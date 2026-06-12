@@ -74,11 +74,11 @@ export default function ProductCard({ product }: { product: GroupProduct }) {
 
       {/* Card body */}
       <div className="flex flex-col gap-2 p-3 flex-1">
-        <h3 className="font-bold text-gray-900 text-sm leading-tight line-clamp-2">
+        <h3 className="font-bold text-gray-900 text-sm leading-tight line-clamp-2 h-[2.5em]">
           {product.name}
         </h3>
 
-        <p className="text-[11px] text-gray-400 leading-tight">{product.variant}</p>
+        <p className="text-[11px] text-gray-400 leading-tight h-[1.25em] overflow-hidden">{product.variant}</p>
 
         {/* Price row */}
         <div className="flex items-baseline gap-1.5 flex-wrap">
