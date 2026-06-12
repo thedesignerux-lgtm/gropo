@@ -126,13 +126,13 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
   const unitsToNext = pricing?.unitsToNext ?? 0
 
   return (
-    <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'white' }}>
-      <div style={{ maxWidth: 448, width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', background: 'white' }}>
+    <div className="bg-white">
+      <div className="max-w-md mx-auto bg-white">
 
         {/* ── HERO IMAGE ── */}
         <div
-          className="relative w-full bg-[#F5F5F5] overflow-hidden"
-          style={{ height: '30dvh', flexShrink: 0 }}
+          className="relative w-full bg-[#F5F5F5] overflow-hidden flex-shrink-0"
+          style={{ height: '36vh' }}
         >
           <div className="absolute inset-0 flex items-center justify-center">
             <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300">
@@ -141,7 +141,7 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
               <polyline points="21 15 16 10 5 21" />
             </svg>
           </div>
-          <div className="absolute top-3 left-3 right-3 flex justify-between z-10 pt-12">
+          <div className="absolute left-3 right-3 flex justify-between z-10" style={{ top: 12 }}>
             <Link
               href="/"
               className="w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center text-gray-700 hover:bg-gray-50 transition-colors"
@@ -161,8 +161,8 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
           </div>
         </div>
 
-        {/* ── SCROLLABLE CONTENT ── */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '8px 16px' }}>
+        {/* ── CONTENT ── */}
+        <div style={{ padding: '8px 16px' }}>
 
           {/* Name + spec */}
           <div style={{ marginBottom: 6 }}>
@@ -266,10 +266,7 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
         </div>
 
         {/* ── CTA BAR ── */}
-        <div
-          className="flex items-center gap-3 border-t border-[#EEEEEE] bg-white"
-          style={{ flexShrink: 0, padding: '8px 16px 12px' }}
-        >
+        <div className="sticky bottom-0 z-20 bg-white border-t border-[#EEEEEE] flex items-center gap-3 px-4 py-3">
           <button
             className="w-14 h-14 flex items-center justify-center rounded-xl border border-gray-200 text-gray-400 flex-shrink-0"
             aria-label="Guardar en favoritos"
