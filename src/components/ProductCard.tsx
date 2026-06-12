@@ -5,6 +5,10 @@ function fmt(price: number): string {
   return price.toFixed(2).replace('.', ',') + ' €'
 }
 
+function fmtSmart(price: number): string {
+  return (price % 1 === 0 ? String(price) : price.toFixed(2).replace('.', ',')) + ' €'
+}
+
 export default function ProductCard({ product }: { product: GroupProduct }) {
   const discount = Math.round(((product.pvp - product.currentPrice) / product.pvp) * 100)
   const unitsLeft = product.nextTierUnits - product.currentUnits
@@ -19,23 +23,25 @@ export default function ProductCard({ product }: { product: GroupProduct }) {
       href={`/grupo/${product.id}`}
       className="flex flex-col rounded-2xl overflow-hidden bg-white border border-gray-100 shadow-sm active:scale-[0.98] transition-transform"
     >
-      {/* Placeholder image */}
-      <div className="relative aspect-square bg-gray-100 flex items-center justify-center p-3">
-        <svg
-          width="32"
-          height="32"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="text-gray-300 mb-1"
-        >
-          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-          <circle cx="8.5" cy="8.5" r="1.5" />
-          <polyline points="21 15 16 10 5 21" />
-        </svg>
+      {/* Image container — 1:1 square, fills card width; swap this div for <img> with object-cover tomorrow */}
+      <div className="relative aspect-square w-full overflow-hidden">
+        <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
+          <svg
+            width="32"
+            height="32"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="text-gray-300"
+          >
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <polyline points="21 15 16 10 5 21" />
+          </svg>
+        </div>
 
         {/* Units chip — top-left */}
         <div className="absolute top-2 left-2 flex items-center gap-1 bg-white/90 backdrop-blur-sm rounded-full px-2 py-1 text-[10px] font-semibold text-gray-600 shadow-sm">
@@ -110,7 +116,7 @@ export default function ProductCard({ product }: { product: GroupProduct }) {
             <polyline points="17 6 23 6 23 12" />
           </svg>
           <span className="text-[11px] text-brand font-semibold leading-tight">
-            A&nbsp;{unitsLeft}&nbsp;ud{unitsLeft !== 1 ? 's' : ''} de bajar a {fmt(product.nextTierPrice)}
+            {unitsLeft} uds más → {fmtSmart(product.nextTierPrice)}
           </span>
         </div>
       </div>
