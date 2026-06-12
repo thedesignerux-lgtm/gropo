@@ -132,7 +132,7 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
         {/* ── HERO IMAGE ── */}
         <div
           className="relative w-full bg-[#F5F5F5] overflow-hidden flex-shrink-0"
-          style={{ height: '36vh' }}
+          style={{ aspectRatio: '3/4' }}
         >
           <div className="absolute inset-0 flex items-center justify-center">
             <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300">
