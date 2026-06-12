@@ -5,7 +5,7 @@ import { getStepPricing } from '@/lib/mock-data'
 import type { Tier } from '@/lib/mock-data'
 import GroupCountdown from '@/components/GroupCountdown'
 import JoinModal from '@/components/JoinModal'
-import ShareButton from '@/components/ShareButton'
+import HeroShareButton from '@/components/HeroShareButton'
 import BottomNav from '@/components/BottomNav'
 
 export const dynamic = 'force-dynamic'
@@ -14,19 +14,9 @@ function fmt(n: number): string {
   return (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
 }
 
-function fmtTier(p: number): string {
-  return (p % 1 === 0 ? String(Math.round(p)) : p.toFixed(2).replace('.', ',')) + '€'
-}
-
 // ─── Horizontal tier progress bar ─────────────────────────────────────────────
 
-function TierBar({
-  tiers,
-  currentTierIndex,
-}: {
-  tiers: Tier[]
-  currentTierIndex: number
-}) {
+function TierBar({ tiers, currentTierIndex }: { tiers: Tier[]; currentTierIndex: number }) {
   return (
     <div className="flex items-center w-full">
       {tiers.map((tier, i) => {
@@ -34,32 +24,22 @@ function TierBar({
         const isPast = i < currentTierIndex
         return (
           <Fragment key={tier.minUnits}>
-            {/* Connecting bar between circles */}
             {i > 0 && (
-              <div
-                className={`flex-1 h-[3px] ${
-                  i <= currentTierIndex ? 'bg-brand' : 'bg-gray-200'
-                }`}
-              />
+              <div className={`flex-1 h-[3px] ${i <= currentTierIndex ? 'bg-brand' : 'bg-gray-200'}`} />
             )}
-            {/* Tier stop: price · circle · units */}
             <div className="flex flex-col items-center">
-              <span
-                className={`text-[10px] font-bold leading-none mb-1.5 whitespace-nowrap ${
-                  isCurrent ? 'text-brand' : 'text-gray-900'
-                }`}
-              >
-                {fmtTier(tier.price)}
+              <span className={`text-[10px] font-bold leading-none mb-1.5 whitespace-nowrap ${
+                isCurrent ? 'text-brand' : 'text-gray-900'
+              }`}>
+                {Math.round(tier.price)}€
               </span>
-              <div
-                className={`w-4 h-4 rounded-full border-2 ${
-                  isCurrent
-                    ? 'bg-brand border-brand'
-                    : isPast
-                    ? 'bg-white border-brand'
-                    : 'bg-white border-gray-300'
-                }`}
-              />
+              <div className={`w-4 h-4 rounded-full border-2 ${
+                isCurrent
+                  ? 'bg-brand border-brand'
+                  : isPast
+                  ? 'bg-white border-brand'
+                  : 'bg-white border-gray-300'
+              }`} />
               <span className="text-[9px] text-gray-400 leading-none mt-1.5 whitespace-nowrap">
                 {tier.minUnits}uds
               </span>
@@ -128,7 +108,7 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
 
   if (!group) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <p className="text-sm text-gray-400">Grupo no encontrado</p>
       </div>
     )
@@ -143,44 +123,53 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
   const currentTierIndex = pricing
     ? group.tiers.findIndex(t => t.minUnits === pricing.currentTierMinUnits)
     : -1
+  const hasNextTier = pricing?.nextTier != null
+  const unitsToNext = pricing?.unitsToNext ?? 0
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-md mx-auto bg-white min-h-screen pb-28">
+    <div className="min-h-screen bg-white">
+      <div className="max-w-md mx-auto bg-white">
 
-        {/* Header: back arrow + centered product name */}
-        <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-4 py-3 flex items-center">
-          <Link
-            href="/"
-            className="text-gray-500 hover:text-gray-700 transition-colors flex-shrink-0"
-          >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="15 18 9 12 15 6" />
-            </svg>
-          </Link>
-          <span className="flex-1 text-center text-base font-bold text-gray-900 px-3 truncate">
-            {group.name}
-          </span>
-          {/* Balancing spacer so title stays centered */}
-          <div className="w-5 flex-shrink-0" />
-        </div>
-
-        {/* Image — 200px placeholder (not full screen) */}
+        {/* ── HERO IMAGE — 280px full-width, buttons overlaid ── */}
         <div
-          className="w-full bg-gray-100 flex items-center justify-center"
-          style={{ height: 200 }}
+          className="relative w-full bg-[#F5F5F5] overflow-hidden flex-shrink-0"
+          style={{ height: 280 }}
         >
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-            <circle cx="8.5" cy="8.5" r="1.5" />
-            <polyline points="21 15 16 10 5 21" />
-          </svg>
+          {/* Placeholder — swap inner div for <img> when image_url exists */}
+          <div className="absolute inset-0 flex items-center justify-center">
+            <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+              <circle cx="8.5" cy="8.5" r="1.5" />
+              <polyline points="21 15 16 10 5 21" />
+            </svg>
+          </div>
+
+          {/* Overlay: back (left) + WhatsApp share (right) */}
+          <div className="absolute top-3 left-3 right-3 flex justify-between z-10">
+            <Link
+              href="/"
+              className="w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center text-gray-700 hover:bg-gray-50 transition-colors"
+              aria-label="Volver"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </Link>
+            <HeroShareButton
+              productName={group.name}
+              bestPrice={group.bestPrice}
+              pvp={group.pvp}
+              nextPrice={group.nextPrice}
+              groupId={group.id}
+            />
+          </div>
         </div>
 
-        <div className="px-4 pt-5 space-y-4 pb-6">
+        {/* ── SCROLLABLE CONTENT ── */}
+        <div className="pb-40">
 
-          {/* Product name · spec · price · savings badge */}
-          <div>
+          {/* Price block */}
+          <div className="px-4 pt-5 pb-4">
             <h1 className="text-xl font-bold text-gray-900 leading-tight">{group.name}</h1>
             {group.spec && (
               <p className="text-sm text-gray-500 mt-0.5">{group.spec}</p>
@@ -202,64 +191,100 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
             )}
           </div>
 
-          {/* Orange box — only when 1 more unit drops the price */}
-          {priceDrop && (
-            <div className="flex items-center gap-2 bg-[#FFF3ED] rounded-2xl px-4 py-3">
-              <span className="text-lg leading-none flex-shrink-0">🔥</span>
-              <p className="flex-1 text-sm text-orange-600 min-w-0">
-                <span className="font-bold text-orange-700">Si entra 1 unidad más:</span>{' '}
-                Nuevo precio:{' '}
-                <span className="font-bold">{fmt(group.nextPrice)}</span> para todos
+          {/* Orange box — price-drop or next-tier nudge */}
+          {(priceDrop || hasNextTier) && (
+            <div className="mx-4 mb-4 flex items-center gap-2 bg-[#FFF3ED] rounded-xl px-4 py-3.5">
+              <span className="text-base leading-none flex-shrink-0">
+                {priceDrop ? '🔥' : '📈'}
+              </span>
+              <p className="flex-1 text-sm text-orange-600 min-w-0 leading-snug">
+                {priceDrop ? (
+                  <>
+                    <span className="font-bold text-orange-700">Si entra 1 unidad más:</span>{' '}
+                    Nuevo precio:{' '}
+                    <span className="font-bold">{fmt(group.nextPrice)}</span> para todos
+                  </>
+                ) : (
+                  <>
+                    A <span className="font-bold">{unitsToNext}</span>{' '}
+                    {unitsToNext === 1 ? 'unidad' : 'uds'} del siguiente tramo
+                  </>
+                )}
               </p>
-              <span className="text-orange-400 font-bold text-base flex-shrink-0">›</span>
+              <span className="text-orange-400 font-bold text-lg leading-none flex-shrink-0">›</span>
             </div>
           )}
 
-          {/* Tier bar */}
+          {/* Tier progress bar */}
           {group.tiers.length >= 2 && (
-            <div>
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">
+            <div className="px-4 pb-4">
+              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-3">
                 Tramos de precio
               </p>
               <TierBar tiers={group.tiers} currentTierIndex={currentTierIndex} />
-              {group.maxStock > 0 && (
-                <p className="text-right text-[11px] text-gray-500 mt-2">
-                  📦 {group.totalUnits} / {group.maxStock} unidades de stock
-                </p>
-              )}
             </div>
           )}
 
-          {/* Chips — same row: sellers left, countdown right */}
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 text-xs text-gray-600 font-medium">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-              </svg>
-              {group.bidCount === 1
-                ? '1 vendedor verificado pujando'
-                : `${group.bidCount} vendedores compitiendo · verificados`}
-            </span>
-            <GroupCountdown closesAt={group.closesAt} />
-          </div>
+          {/* Metrics bar — 3 equal columns */}
+          <div className="border-t border-[#EEEEEE]">
+            <div className="flex divide-x divide-[#EEEEEE]">
 
-          {/* CTA buttons */}
-          <div className="space-y-3 pt-1">
-            <JoinModal groupId={group.id} productName={group.name} />
-            <ShareButton
-              productName={group.name}
-              bestPrice={group.bestPrice}
-              pvp={group.pvp}
-              nextPrice={group.nextPrice}
-              groupId={group.id}
-            />
+              {/* Col 1 — Stock */}
+              <div className="flex-1 flex flex-col items-center gap-1.5 py-3 px-2">
+                {/* Tabler: package */}
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 flex-shrink-0">
+                  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                  <polyline points="12 3 20 7.5 20 16.5 12 21 4 16.5 4 7.5 12 3"/>
+                  <line x1="12" y1="12" x2="20" y2="7.5"/>
+                  <line x1="12" y1="12" x2="12" y2="21"/>
+                  <line x1="12" y1="12" x2="4" y2="7.5"/>
+                </svg>
+                <span className="text-[12px] text-gray-600 text-center leading-tight">
+                  {group.maxStock > 0
+                    ? `${group.totalUnits} / ${group.maxStock}`
+                    : String(group.totalUnits)}{' '}
+                  unidades de stock
+                </span>
+              </div>
+
+              {/* Col 2 — Sellers */}
+              <div className="flex-1 flex flex-col items-center gap-1.5 py-3 px-2">
+                {/* Tabler: user */}
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 flex-shrink-0">
+                  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                  <circle cx="12" cy="7" r="4"/>
+                  <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
+                </svg>
+                <span className="text-[12px] text-gray-600 text-center leading-tight">
+                  {group.bidCount === 1
+                    ? '1 vendedor verificado'
+                    : `${group.bidCount} vendedores verificados`}
+                </span>
+              </div>
+
+              {/* Col 3 — Live countdown */}
+              <div className="flex-1 flex flex-col items-center gap-1.5 py-3 px-2">
+                {/* Tabler: clock */}
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-orange-400 flex-shrink-0">
+                  <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+                  <circle cx="12" cy="12" r="9"/>
+                  <polyline points="12 7 12 12 15 15"/>
+                </svg>
+                <GroupCountdown closesAt={group.closesAt} minimal />
+              </div>
+
+            </div>
           </div>
 
         </div>
+
+        {/* ── STICKY CTA — fixed above BottomNav ── */}
+        <div className="sticky bottom-16 z-20 bg-white border-t border-[#EEEEEE] px-4 py-3">
+          <JoinModal groupId={group.id} productName={group.name} />
+        </div>
+
       </div>
+
       <BottomNav />
     </div>
   )

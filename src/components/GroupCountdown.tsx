@@ -14,7 +14,13 @@ function getRemaining(closesAt: string) {
   }
 }
 
-export default function GroupCountdown({ closesAt }: { closesAt: string }) {
+interface Props {
+  closesAt: string
+  /** When true: render plain text (for metrics bar). Default: orange pill chip. */
+  minimal?: boolean
+}
+
+export default function GroupCountdown({ closesAt, minimal }: Props) {
   const [rem, setRem] = useState<ReturnType<typeof getRemaining>>(null)
 
   useEffect(() => {
@@ -24,17 +30,24 @@ export default function GroupCountdown({ closesAt }: { closesAt: string }) {
   }, [closesAt])
 
   if (rem === undefined) return null
+
   if (!rem) {
-    return (
-      <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-500 text-xs font-medium px-3 py-1.5 rounded-full">
-        Cerrado
-      </span>
-    )
+    return minimal
+      ? <span className="text-[12px] font-bold text-gray-400 text-center">Cerrado</span>
+      : <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-500 text-xs font-medium px-3 py-1.5 rounded-full">Cerrado</span>
   }
 
   const label = rem.days > 0
     ? `${rem.days}d ${rem.hours}h ${rem.minutes}m`
     : `${rem.hours}h ${rem.minutes}m ${rem.seconds}s`
+
+  if (minimal) {
+    return (
+      <span className="text-[12px] font-bold text-orange-500 text-center leading-tight">
+        Cierra en {label}
+      </span>
+    )
+  }
 
   return (
     <span className="inline-flex items-center gap-1.5 bg-orange-50 text-orange-600 text-xs font-semibold px-3 py-1.5 rounded-full">
