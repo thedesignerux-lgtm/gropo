@@ -132,7 +132,7 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
         {/* ── HERO IMAGE — 280px full-width, buttons overlaid ── */}
         <div
           className="relative w-full bg-[#F5F5F5] overflow-hidden flex-shrink-0"
-          style={{ height: '45vh' }}
+          style={{ height: '36vh' }}
         >
           {/* Placeholder — swap inner div for <img> when image_url exists */}
           <div className="absolute inset-0 flex items-center justify-center">
@@ -175,7 +175,7 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
             )}
             {/* Line 1: big price + savings badge */}
             <div className="flex items-center justify-between mt-3 gap-2">
-              <span className="text-xl font-bold text-teal-700 leading-none">
+              <span className="text-3xl font-bold text-teal-700 leading-none">
                 {fmt(group.bestPrice)}
               </span>
               {savings > 0.01 && (
