@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { Fragment } from 'react'
 import { supabase } from '@/lib/supabase'
 import { getStepPricing } from '@/lib/mock-data'
 import type { Tier } from '@/lib/mock-data'
@@ -9,67 +10,64 @@ import BottomNav from '@/components/BottomNav'
 
 export const dynamic = 'force-dynamic'
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 function fmt(n: number): string {
   return (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
 }
 
-// ─── SVG stepped price / units curve ──────────────────────────────────────────
+function fmtTier(p: number): string {
+  return (p % 1 === 0 ? String(Math.round(p)) : p.toFixed(2).replace('.', ',')) + '€'
+}
 
-function PriceCurve({ tiers, currentUnits }: { tiers: Tier[]; currentUnits: number }) {
-  if (tiers.length < 2) return null
+// ─── Horizontal tier progress bar ─────────────────────────────────────────────
 
-  const W = 300, H = 130
-  const P = { t: 16, r: 20, b: 28, l: 44 }
-  const cW = W - P.l - P.r
-  const cH = H - P.t - P.b
-
-  const prices = tiers.map(t => t.price)
-  const maxPr = Math.max(...prices)
-  const minPr = Math.min(...prices)
-  const spread = maxPr - minPr || 1
-  const lastU = tiers[tiers.length - 1].minUnits
-  const maxU = lastU + Math.ceil(lastU * 0.25)
-
-  const xp = (u: number) => (P.l + (u / maxU) * cW).toFixed(1)
-  const yp = (p: number) => (P.t + ((maxPr - p) / spread) * cH).toFixed(1)
-
-  // Stepped path: horizontal at each tier price, then vertical drop to next
-  let d = `M ${xp(tiers[0].minUnits)} ${yp(tiers[0].price)}`
-  for (let i = 0; i < tiers.length; i++) {
-    const nx = i < tiers.length - 1 ? xp(tiers[i + 1].minUnits) : xp(maxU)
-    d += ` H ${nx}`
-    if (i < tiers.length - 1) d += ` V ${yp(tiers[i + 1].price)}`
-  }
-
-  const dotX = xp(currentUnits)
-  const curPrice = tiers.reduce((p, t) => (t.minUnits <= currentUnits ? t.price : p), tiers[0].price)
-  const dotY = yp(curPrice)
-  const fillD = `${d} V ${(P.t + cH).toFixed(1)} H ${P.l} Z`
-
+function TierBar({
+  tiers,
+  currentTierIndex,
+}: {
+  tiers: Tier[]
+  currentTierIndex: number
+}) {
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" aria-hidden="true">
-      {tiers.map(t => (
-        <line key={t.minUnits}
-          x1={P.l} y1={yp(t.price)} x2={W - P.r} y2={yp(t.price)}
-          stroke="#E5E7EB" strokeWidth="1" strokeDasharray="3 3"
-        />
-      ))}
-      <path d={fillD} fill="#0F6E56" fillOpacity="0.07" />
-      <path d={d} fill="none" stroke="#0F6E56" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx={dotX} cy={dotY} r="9" fill="#0F6E56" fillOpacity="0.15" />
-      <circle cx={dotX} cy={dotY} r="4.5" fill="#0F6E56" />
-      <text x={P.l - 5} y={(P.t + 4).toString()} fontSize="9" fill="#9CA3AF" textAnchor="end">
-        {maxPr.toFixed(0)}€
-      </text>
-      <text x={P.l - 5} y={(P.t + cH + 4).toString()} fontSize="9" fill="#9CA3AF" textAnchor="end">
-        {minPr.toFixed(0)}€
-      </text>
-      <text x={dotX} y={(H - 8).toString()} fontSize="9" fill="#0F6E56" fontWeight="600" textAnchor="middle">
-        {currentUnits} uds
-      </text>
-    </svg>
+    <div className="flex items-center w-full">
+      {tiers.map((tier, i) => {
+        const isCurrent = i === currentTierIndex
+        const isPast = i < currentTierIndex
+        return (
+          <Fragment key={tier.minUnits}>
+            {/* Connecting bar between circles */}
+            {i > 0 && (
+              <div
+                className={`flex-1 h-[3px] ${
+                  i <= currentTierIndex ? 'bg-brand' : 'bg-gray-200'
+                }`}
+              />
+            )}
+            {/* Tier stop: price · circle · units */}
+            <div className="flex flex-col items-center">
+              <span
+                className={`text-[10px] font-bold leading-none mb-1.5 whitespace-nowrap ${
+                  isCurrent ? 'text-brand' : 'text-gray-900'
+                }`}
+              >
+                {fmtTier(tier.price)}
+              </span>
+              <div
+                className={`w-4 h-4 rounded-full border-2 ${
+                  isCurrent
+                    ? 'bg-brand border-brand'
+                    : isPast
+                    ? 'bg-white border-brand'
+                    : 'bg-white border-gray-300'
+                }`}
+              />
+              <span className="text-[9px] text-gray-400 leading-none mt-1.5 whitespace-nowrap">
+                {tier.minUnits}uds
+              </span>
+            </div>
+          </Fragment>
+        )
+      })}
+    </div>
   )
 }
 
@@ -81,34 +79,32 @@ async function fetchGroup(id: string) {
     .select(`
       id, product_name, product_spec, pvp,
       total_units, current_price, next_price, closes_at,
-      bids(tiers, price_mode)
+      bids(tiers, price_mode, max_stock, min_execution)
     `)
     .eq('id', id)
     .single()
 
   if (error || !group) return null
 
-  // RPC compute_price — fallback to stored columns on any error
-  let bestPrice: number = Number(group.current_price)
-  let nextPrice: number = Number((group as any).next_price ?? group.current_price)
+  let bestPrice = Number(group.current_price)
+  let nextPrice = Number((group as any).next_price ?? group.current_price)
   const { data: rpc } = await supabase.rpc('compute_price', { p_group_id: id })
   if (rpc && typeof rpc === 'object') {
     if ((rpc as any).best_price != null) bestPrice = Number((rpc as any).best_price)
     if ((rpc as any).next_price != null) nextPrice = Number((rpc as any).next_price)
   }
 
-  // Count competing sellers
   const { count: bidCount } = await supabase
     .from('bids')
     .select('*', { count: 'exact', head: true })
     .eq('group_id', id)
 
-  // Parse JSONB tiers (DB stores snake_case min_units)
   const bid = Array.isArray(group.bids) ? group.bids[0] : null
   const tiers: Tier[] = ((bid as any)?.tiers ?? []).map((t: any) => ({
     minUnits: Number(t.min_units),
     price: Number(t.price),
   }))
+  const maxStock = Number((bid as any)?.max_stock ?? 0)
 
   return {
     id: group.id as string,
@@ -121,6 +117,7 @@ async function fetchGroup(id: string) {
     nextPrice,
     bidCount: bidCount ?? 0,
     tiers,
+    maxStock,
   }
 }
 
@@ -140,108 +137,111 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
   const savings = group.pvp > 0 ? group.pvp - group.bestPrice : 0
   const priceDrop = group.nextPrice < group.bestPrice
 
-  const { nextTier, unitsToNext } = group.tiers.length > 0
+  const pricing = group.tiers.length > 0
     ? getStepPricing(group.tiers, group.totalUnits)
-    : { nextTier: null, unitsToNext: 0 }
+    : null
+  const currentTierIndex = pricing
+    ? group.tiers.findIndex(t => t.minUnits === pricing.currentTierMinUnits)
+    : -1
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-md mx-auto bg-white min-h-screen pb-28">
 
-        {/* Sticky back header */}
-        <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-gray-100 px-4 py-3 flex items-center gap-3">
-          <Link href="/" className="text-gray-500 hover:text-gray-700 transition-colors flex-shrink-0">
+        {/* Header: back arrow + centered product name */}
+        <div className="sticky top-0 z-10 bg-white border-b border-gray-100 px-4 py-3 flex items-center">
+          <Link
+            href="/"
+            className="text-gray-500 hover:text-gray-700 transition-colors flex-shrink-0"
+          >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="15 18 9 12 15 6" />
             </svg>
           </Link>
-          <span className="text-sm font-semibold text-gray-700 truncate">{group.name}</span>
+          <span className="flex-1 text-center text-base font-bold text-gray-900 px-3 truncate">
+            {group.name}
+          </span>
+          {/* Balancing spacer so title stays centered */}
+          <div className="w-5 flex-shrink-0" />
         </div>
 
-        {/* Image placeholder */}
-        <div className="aspect-square w-full bg-gray-100 flex items-center justify-center">
-          <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300">
+        {/* Image — 200px placeholder (not full screen) */}
+        <div
+          className="w-full bg-gray-100 flex items-center justify-center"
+          style={{ height: 200 }}
+        >
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300">
             <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
             <circle cx="8.5" cy="8.5" r="1.5" />
             <polyline points="21 15 16 10 5 21" />
           </svg>
         </div>
 
-        <div className="px-4 pt-5 space-y-5 pb-6">
+        <div className="px-4 pt-5 space-y-4 pb-6">
 
-          {/* Product name + spec */}
+          {/* Product name · spec · price · savings badge */}
           <div>
             <h1 className="text-xl font-bold text-gray-900 leading-tight">{group.name}</h1>
             {group.spec && (
-              <p className="text-sm text-gray-500 mt-1">{group.spec}</p>
+              <p className="text-sm text-gray-500 mt-0.5">{group.spec}</p>
             )}
-          </div>
-
-          {/* Price block */}
-          <div className="space-y-2">
-            <div className="flex items-baseline gap-3 flex-wrap">
-              <span className="text-4xl font-bold text-brand leading-none">{fmt(group.bestPrice)}</span>
+            <div className="flex items-baseline gap-3 mt-3 flex-wrap">
+              <span className="text-5xl font-bold text-brand leading-none">
+                {fmt(group.bestPrice)}
+              </span>
               {group.pvp > 0 && (
-                <span className="text-base text-gray-400 line-through">PVP {fmt(group.pvp)}</span>
+                <span className="text-base text-gray-400 line-through">
+                  PVP {fmt(group.pvp)}
+                </span>
               )}
             </div>
             {savings > 0.01 && (
-              <span className="inline-flex items-center gap-1.5 bg-brand/10 text-brand text-xs font-semibold px-3 py-1.5 rounded-full">
+              <span className="inline-flex items-center bg-green-50 text-green-700 text-xs font-semibold px-3 py-1.5 rounded-full mt-2">
                 Ya ahorras {fmt(savings)} vs PVP
               </span>
             )}
           </div>
 
-          {/* Next-tier box */}
-          {priceDrop ? (
-            <div className="flex items-start gap-3 bg-orange-50 border border-orange-200 rounded-2xl p-4">
-              <span className="text-xl leading-none mt-0.5">🔥</span>
-              <div>
-                <p className="text-sm font-bold text-orange-700">Si entra 1 unidad más</p>
-                <p className="text-sm text-orange-600 mt-0.5">
-                  el precio baja a <strong>{fmt(group.nextPrice)}</strong> para todos
-                </p>
-              </div>
-            </div>
-          ) : nextTier ? (
-            <div className="flex items-start gap-3 bg-brand/5 rounded-2xl p-4">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-brand flex-shrink-0 mt-0.5">
-                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-                <polyline points="17 6 23 6 23 12" />
-              </svg>
-              <p className="text-sm text-brand font-medium">
-                A <strong>{unitsToNext}</strong> {unitsToNext === 1 ? 'unidad' : 'unidades'} de bajar a <strong>{fmt(nextTier.price)}</strong>
+          {/* Orange box — only when 1 more unit drops the price */}
+          {priceDrop && (
+            <div className="flex items-center gap-2 bg-[#FFF3ED] rounded-2xl px-4 py-3">
+              <span className="text-lg leading-none flex-shrink-0">🔥</span>
+              <p className="flex-1 text-sm text-orange-600 min-w-0">
+                <span className="font-bold text-orange-700">Si entra 1 unidad más:</span>{' '}
+                Nuevo precio:{' '}
+                <span className="font-bold">{fmt(group.nextPrice)}</span> para todos
               </p>
-            </div>
-          ) : (
-            <div className="flex items-center gap-3 bg-brand/5 rounded-2xl p-4">
-              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-brand flex-shrink-0">
-                <polyline points="20 6 9 17 4 12" />
-              </svg>
-              <p className="text-sm text-brand font-medium">¡Ya estáis en el mejor precio!</p>
+              <span className="text-orange-400 font-bold text-base flex-shrink-0">›</span>
             </div>
           )}
 
-          {/* SVG price curve */}
+          {/* Tier bar */}
           {group.tiers.length >= 2 && (
-            <div className="rounded-2xl bg-gray-50 px-3 pt-3 pb-2">
-              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-1">
-                Curva de precio
+            <div>
+              <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest mb-3">
+                Tramos de precio
               </p>
-              <PriceCurve tiers={group.tiers} currentUnits={group.totalUnits} />
+              <TierBar tiers={group.tiers} currentTierIndex={currentTierIndex} />
+              {group.maxStock > 0 && (
+                <p className="text-right text-[11px] text-gray-500 mt-2">
+                  📦 {group.totalUnits} / {group.maxStock} unidades de stock
+                </p>
+              )}
             </div>
           )}
 
-          {/* Info chips */}
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-600 text-xs font-medium px-3 py-1.5 rounded-full">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          {/* Chips — same row: sellers left, countdown right */}
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 text-xs text-gray-600 font-medium">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
                 <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                 <circle cx="9" cy="7" r="4" />
                 <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
                 <path d="M16 3.13a4 4 0 0 1 0 7.75" />
               </svg>
-              {group.bidCount} {group.bidCount === 1 ? 'vendedor' : 'vendedores'} compitiendo · verificados
+              {group.bidCount === 1
+                ? '1 vendedor verificado pujando'
+                : `${group.bidCount} vendedores compitiendo · verificados`}
             </span>
             <GroupCountdown closesAt={group.closesAt} />
           </div>
