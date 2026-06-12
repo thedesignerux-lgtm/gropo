@@ -132,7 +132,7 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
         {/* ── HERO IMAGE — 280px full-width, buttons overlaid ── */}
         <div
           className="relative w-full bg-[#F5F5F5] overflow-hidden flex-shrink-0"
-          style={{ height: 280 }}
+          style={{ height: 200 }}
         >
           {/* Placeholder — swap inner div for <img> when image_url exists */}
           <div className="absolute inset-0 flex items-center justify-center">
@@ -165,10 +165,10 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
         </div>
 
         {/* ── SCROLLABLE CONTENT ── */}
-        <div className="pb-24">
+        <div className="pb-0">
 
           {/* Price block */}
-          <div className="px-4 pt-5 pb-4">
+          <div className="px-3 pt-3 pb-3">
             <h1 className="text-xl font-bold text-gray-900 leading-tight">{group.name}</h1>
             {group.spec && (
               <p className="text-sm text-gray-500 mt-0.5">{group.spec}</p>
@@ -196,7 +196,7 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
 
           {/* Orange box — single line */}
           {(priceDrop || hasNextTier) && (
-            <div className="mx-4 mb-4 bg-[#FFF3ED] rounded-xl px-4 py-3">
+            <div className="mx-3 mb-3 bg-[#FFF3ED] rounded-xl px-3 py-2.5">
               <p className="text-sm font-bold text-orange-700">
                 {priceDrop
                   ? `🔥 Solo 1 más: Próximo precio ${fmt(group.nextPrice)}`
@@ -207,8 +207,8 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
 
           {/* Tier progress bar */}
           {group.tiers.length >= 2 && (
-            <div className="px-4 pb-4">
-              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-3">
+            <div className="px-3 pb-3">
+              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-widest mb-2">
                 Tramos de precio
               </p>
               <TierBar tiers={group.tiers} currentTierIndex={currentTierIndex} />
@@ -220,8 +220,7 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
             <div className="flex divide-x divide-[#EEEEEE]">
 
               {/* Col 1 — Stock */}
-              <div className="flex-1 flex flex-col items-center gap-1.5 py-3 px-2">
-                {/* Tabler: package */}
+              <div className="flex-1 flex flex-col items-center gap-1 py-[10px] px-2">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 flex-shrink-0">
                   <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                   <polyline points="12 3 20 7.5 20 16.5 12 21 4 16.5 4 7.5 12 3"/>
@@ -229,32 +228,31 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
                   <line x1="12" y1="12" x2="12" y2="21"/>
                   <line x1="12" y1="12" x2="4" y2="7.5"/>
                 </svg>
-                <span className="text-[12px] text-gray-600 text-center leading-tight">
+                <span className="text-[12px] text-gray-700 font-medium text-center leading-tight">
                   {group.maxStock > 0
-                    ? `${group.totalUnits} / ${group.maxStock}`
-                    : String(group.totalUnits)}{' '}
-                  unidades de stock
+                    ? `${group.totalUnits} / ${group.maxStock} unidades`
+                    : `${group.totalUnits} unidades`}
                 </span>
+                <span className="text-[12px] text-gray-400 text-center leading-tight">de stock</span>
               </div>
 
               {/* Col 2 — Sellers */}
-              <div className="flex-1 flex flex-col items-center gap-1.5 py-3 px-2">
-                {/* Tabler: user */}
+              <div className="flex-1 flex flex-col items-center gap-1 py-[10px] px-2">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400 flex-shrink-0">
                   <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                   <circle cx="12" cy="7" r="4"/>
                   <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
                 </svg>
-                <span className="text-[12px] text-gray-600 text-center leading-tight">
-                  {group.bidCount === 1
-                    ? '1 vendedor verificado'
-                    : `${group.bidCount} vendedores verificados`}
+                <span className="text-[12px] text-gray-700 font-medium text-center leading-tight">
+                  {group.bidCount === 1 ? '1 vendedor' : `${group.bidCount} vendedores`}
+                </span>
+                <span className="text-[12px] text-gray-400 text-center leading-tight">
+                  {group.bidCount === 1 ? 'verificado' : 'verificados'}
                 </span>
               </div>
 
               {/* Col 3 — Live countdown */}
-              <div className="flex-1 flex flex-col items-center gap-1.5 py-3 px-2">
-                {/* Tabler: clock */}
+              <div className="flex-1 flex flex-col items-center gap-1 py-[10px] px-2">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-orange-400 flex-shrink-0">
                   <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                   <circle cx="12" cy="12" r="9"/>

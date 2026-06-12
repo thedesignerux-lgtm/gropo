@@ -43,9 +43,10 @@ export default function GroupCountdown({ closesAt, minimal }: Props) {
 
   if (minimal) {
     return (
-      <span className="text-[12px] font-bold text-orange-500 text-center leading-tight">
-        Cierra en {label}
-      </span>
+      <>
+        <span className="text-[12px] text-gray-400 text-center leading-tight">Cierra en</span>
+        <span className="text-[12px] font-bold text-orange-500 text-center leading-tight">{label}</span>
+      </>
     )
   }
 
