@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import type { GroupProduct } from '@/lib/mock-data'
+import { getStepPricing } from '@/lib/mock-data'
 
 function fmt(price: number): string {
   return price.toFixed(2).replace('.', ',') + ' €'
@@ -10,13 +11,17 @@ function fmtSmart(price: number): string {
 }
 
 export default function ProductCard({ product }: { product: GroupProduct }) {
-  const discount = Math.round(((product.pvp - product.currentPrice) / product.pvp) * 100)
-  const unitsLeft = product.nextTierUnits - product.currentUnits
-  const progress = Math.round(
-    ((product.currentUnits - product.previousTierUnits) /
-      (product.nextTierUnits - product.previousTierUnits)) *
-      100
-  )
+  const { currentPrice, currentTierMinUnits, nextTier, unitsToNext } =
+    getStepPricing(product.tiers, product.currentUnits)
+
+  const discount = Math.round(((product.pvp - currentPrice) / product.pvp) * 100)
+  const progress = nextTier
+    ? Math.round(
+        ((product.currentUnits - currentTierMinUnits) /
+          (nextTier.minUnits - currentTierMinUnits)) *
+          100
+      )
+    : 100
 
   return (
     <Link
@@ -60,7 +65,7 @@ export default function ProductCard({ product }: { product: GroupProduct }) {
             <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
             <path d="M16 3.13a4 4 0 0 1 0 7.75" />
           </svg>
-          {product.currentUnits}&nbsp;/&nbsp;{product.nextTierUnits}&nbsp;uds
+          {product.currentUnits}&nbsp;/&nbsp;{nextTier ? nextTier.minUnits : product.currentUnits}&nbsp;uds
         </div>
 
         {/* Discount badge — top-right */}
@@ -79,7 +84,7 @@ export default function ProductCard({ product }: { product: GroupProduct }) {
 
         {/* Price row */}
         <div className="flex items-baseline gap-1.5 flex-wrap">
-          <span className="text-base font-bold text-brand">{fmt(product.currentPrice)}</span>
+          <span className="text-base font-bold text-brand">{fmt(currentPrice)}</span>
           <span className="text-[11px] text-gray-400 line-through">{fmt(product.pvp)}</span>
         </div>
 
@@ -94,7 +99,7 @@ export default function ProductCard({ product }: { product: GroupProduct }) {
           <div className="flex justify-between text-[10px] text-gray-400">
             <span>{progress}% completado</span>
             <span>
-              {product.currentUnits}&nbsp;/&nbsp;{product.nextTierUnits}&nbsp;uds
+              {product.currentUnits}&nbsp;/&nbsp;{nextTier ? nextTier.minUnits : product.currentUnits}&nbsp;uds
             </span>
           </div>
         </div>
@@ -116,7 +121,7 @@ export default function ProductCard({ product }: { product: GroupProduct }) {
             <polyline points="17 6 23 6 23 12" />
           </svg>
           <span className="text-[11px] text-brand font-semibold leading-tight">
-            {unitsLeft} uds más → {fmtSmart(product.nextTierPrice)}
+            {unitsToNext} uds más → {nextTier ? fmtSmart(nextTier.price) : ''}
           </span>
         </div>
       </div>
