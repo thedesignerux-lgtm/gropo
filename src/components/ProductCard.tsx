@@ -10,6 +10,10 @@ function fmtSmart(price: number): string {
   return (price % 1 === 0 ? String(price) : price.toFixed(2).replace('.', ',')) + ' €'
 }
 
+function hookText(unitsToNext: number): string {
+  return unitsToNext <= 3 ? `🔥 Solo ${unitsToNext} más` : `Faltan ${unitsToNext} uds`
+}
+
 export default function ProductCard({ product }: { product: GroupProduct }) {
   const { currentPrice, currentTierMinUnits, nextTier, unitsToNext } =
     getStepPricing(product.tiers, product.currentUnits)
@@ -120,9 +124,16 @@ export default function ProductCard({ product }: { product: GroupProduct }) {
             <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
             <polyline points="17 6 23 6 23 12" />
           </svg>
-          <span className="text-[11px] text-brand font-semibold leading-tight">
-            {unitsToNext} uds más → {nextTier ? fmtSmart(nextTier.price) : ''}
-          </span>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[11px] text-brand font-semibold leading-tight">
+              {nextTier ? hookText(unitsToNext) : '¡Precio mínimo alcanzado!'}
+            </span>
+            {nextTier && (
+              <span className="text-[10px] text-brand/70 leading-tight">
+                Próximo precio: {fmtSmart(nextTier.price)}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </Link>
