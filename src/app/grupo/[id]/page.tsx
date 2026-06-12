@@ -132,7 +132,7 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
         {/* ── HERO IMAGE — 280px full-width, buttons overlaid ── */}
         <div
           className="relative w-full bg-[#F5F5F5] overflow-hidden flex-shrink-0"
-          style={{ height: 200 }}
+          style={{ height: '45vh' }}
         >
           {/* Placeholder — swap inner div for <img> when image_url exists */}
           <div className="absolute inset-0 flex items-center justify-center">
@@ -194,17 +194,6 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
             )}
           </div>
 
-          {/* Orange box — single line */}
-          {(priceDrop || hasNextTier) && (
-            <div className="mx-3 mb-3 bg-[#FFF3ED] rounded-xl py-2 px-4">
-              <p className="text-sm font-semibold text-orange-600">
-                {priceDrop
-                  ? `Solo 1 más: Próximo precio ${fmt(group.nextPrice)}`
-                  : `A ${unitsToNext} ${unitsToNext === 1 ? 'unidad' : 'uds'} del siguiente tramo`}
-              </p>
-            </div>
-          )}
-
           {/* Tier progress bar */}
           {group.tiers.length >= 2 && (
             <div className="px-3 pb-3">
@@ -212,6 +201,17 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
                 Tramos de precio
               </p>
               <TierBar tiers={group.tiers} currentTierIndex={currentTierIndex} />
+            </div>
+          )}
+
+          {/* Orange box — single line, below tier bar */}
+          {(priceDrop || hasNextTier) && (
+            <div className="mx-3 mb-3 bg-[#FFF3ED] rounded-xl py-2 px-4">
+              <p className="text-sm font-normal text-orange-600">
+                {priceDrop
+                  ? `Solo 1 más: Próximo precio ${fmt(group.nextPrice)}`
+                  : `A ${unitsToNext} ${unitsToNext === 1 ? 'unidad' : 'uds'} del siguiente tramo`}
+              </p>
             </div>
           )}
 
@@ -228,10 +228,10 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
                   <line x1="12" y1="12" x2="12" y2="21"/>
                   <line x1="12" y1="12" x2="4" y2="7.5"/>
                 </svg>
-                <span className="text-sm font-semibold text-neutral-700 text-center leading-tight">
+                <span className="text-sm font-normal text-neutral-700 text-center leading-tight">
                   {group.maxStock > 0
-                    ? `${group.totalUnits} / ${group.maxStock} unidades`
-                    : `${group.totalUnits} unidades`}
+                    ? `${group.totalUnits} / ${group.maxStock} uds`
+                    : `${group.totalUnits} uds`}
                 </span>
                 <span className="text-xs text-neutral-400 text-center leading-tight">de stock</span>
               </div>
@@ -243,7 +243,7 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
                   <circle cx="12" cy="7" r="4"/>
                   <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
                 </svg>
-                <span className="text-sm font-semibold text-neutral-700 text-center leading-tight">
+                <span className="text-sm font-normal text-neutral-700 text-center leading-tight">
                   {group.bidCount === 1 ? '1 vendedor' : `${group.bidCount} vendedores`}
                 </span>
                 <span className="text-xs text-neutral-400 text-center leading-tight">

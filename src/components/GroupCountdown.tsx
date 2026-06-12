@@ -33,7 +33,7 @@ export default function GroupCountdown({ closesAt, minimal }: Props) {
 
   if (!rem) {
     return minimal
-      ? <span className="text-sm font-semibold text-orange-600 text-center">Cerrado</span>
+      ? <span className="text-sm font-normal text-orange-600 text-center">Cerrado</span>
       : <span className="inline-flex items-center gap-1.5 bg-gray-100 text-gray-500 text-xs font-medium px-3 py-1.5 rounded-full">Cerrado</span>
   }
 
@@ -45,7 +45,7 @@ export default function GroupCountdown({ closesAt, minimal }: Props) {
     return (
       <>
         <span className="text-xs text-orange-600 text-center leading-tight">Cierra en</span>
-        <span className="text-sm font-semibold text-orange-600 text-center leading-tight">{label}</span>
+        <span className="text-sm font-normal text-orange-600 text-center leading-tight">{label}</span>
       </>
     )
   }
