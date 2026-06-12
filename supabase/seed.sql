@@ -41,7 +41,15 @@ CREATE POLICY "bids_public_read"
 -- DATE_TRUNC('week', ...) = lunes de la semana actual → +6 días = domingo.
 -- Si ya pasó ese domingo, suma 7 días más (CASE).
 
-WITH closes AS (
+WITH admin_user AS (
+  -- Upsert del vendedor de prueba; idempotente: si ya existe devuelve su id sin error
+  INSERT INTO public.users (email, name, role)
+  VALUES ('admin@kuorum.es', 'Admin Kuorum', 'admin'::user_role)
+  ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name
+  RETURNING id
+),
+
+closes AS (
   SELECT
     CASE
       WHEN (
@@ -72,9 +80,10 @@ new_groups AS (
 )
 
 -- Inserta un bid por grupo con los tramos completos en JSONB
-INSERT INTO public.bids (group_id, price_mode, tiers, min_execution, max_stock)
+INSERT INTO public.bids (group_id, seller_id, price_mode, tiers, min_execution, max_stock)
 SELECT
   ng.id,
+  (SELECT id FROM admin_user),
   t.price_mode::price_mode,
   t.tiers::jsonb,
   t.min_execution,
