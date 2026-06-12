@@ -66,10 +66,12 @@ export default function ProductCard({ product }: { product: GroupProduct }) {
           {product.currentUnits}&nbsp;/&nbsp;{nextTier ? nextTier.minUnits : product.currentUnits}&nbsp;uds
         </div>
 
-        {/* Discount badge — top-right */}
-        <div className="absolute top-2 right-2 bg-brand text-white rounded-full px-2 py-1 text-[10px] font-bold">
-          −{discount}%
-        </div>
+        {/* Discount badge — top-right (solo si hay PVP real) */}
+        {product.pvp > 0 && (
+          <div className="absolute top-2 right-2 bg-brand text-white rounded-full px-2 py-1 text-[10px] font-bold">
+            −{discount}%
+          </div>
+        )}
       </div>
 
       {/* Card body */}
@@ -83,7 +85,9 @@ export default function ProductCard({ product }: { product: GroupProduct }) {
         {/* Price row */}
         <div className="flex items-baseline gap-1.5 flex-wrap">
           <span className="text-base font-bold text-brand">{fmt(currentPrice)}</span>
-          <span className="text-[11px] text-gray-400 line-through">{fmt(product.pvp)}</span>
+          {product.pvp > 0 && (
+            <span className="text-[11px] text-gray-400 line-through">{fmt(product.pvp)}</span>
+          )}
         </div>
 
         {/* Segmented tier progress bar */}
