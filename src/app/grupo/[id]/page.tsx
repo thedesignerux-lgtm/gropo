@@ -126,15 +126,14 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
   const unitsToNext = pricing?.unitsToNext ?? 0
 
   return (
-    <div className="bg-white">
-      <div className="max-w-md mx-auto bg-white">
+    <div style={{ height: '100dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'white' }}>
+      <div style={{ maxWidth: 448, width: '100%', margin: '0 auto', display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', background: 'white' }}>
 
-        {/* ── HERO IMAGE — 280px full-width, buttons overlaid ── */}
+        {/* ── HERO IMAGE ── */}
         <div
-          className="relative w-full bg-[#F5F5F5] overflow-hidden flex-shrink-0"
-          style={{ height: '36vh' }}
+          className="relative w-full bg-[#F5F5F5] overflow-hidden"
+          style={{ height: '30dvh', flexShrink: 0 }}
         >
-          {/* Placeholder — swap inner div for <img> when image_url exists */}
           <div className="absolute inset-0 flex items-center justify-center">
             <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300">
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
@@ -142,8 +141,6 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
               <polyline points="21 15 16 10 5 21" />
             </svg>
           </div>
-
-          {/* Overlay: back (left) + WhatsApp share (right) */}
           <div className="absolute top-3 left-3 right-3 flex justify-between z-10">
             <Link
               href="/"
@@ -165,16 +162,19 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
         </div>
 
         {/* ── SCROLLABLE CONTENT ── */}
-        <div className="pb-0">
+        <div style={{ flex: 1, overflowY: 'auto', padding: '8px 16px' }}>
 
-          {/* Price block */}
-          <div className="px-3 pt-3 pb-3">
-            <h1 className="text-xl font-bold text-neutral-900 leading-tight">{group.name}</h1>
+          {/* Name + spec */}
+          <div style={{ marginBottom: 6 }}>
+            <h1 className="text-xl font-bold text-neutral-900 leading-tight" style={{ marginBottom: 2 }}>{group.name}</h1>
             {group.spec && (
-              <p className="text-base font-normal text-neutral-500 mt-0.5">{group.spec}</p>
+              <p className="text-base font-normal text-neutral-500">{group.spec}</p>
             )}
-            {/* Line 1: big price + savings badge */}
-            <div className="flex items-center justify-between mt-3 gap-2">
+          </div>
+
+          {/* Price + badge + PVP */}
+          <div style={{ marginBottom: 6 }}>
+            <div className="flex items-center justify-between gap-2" style={{ marginBottom: 2 }}>
               <span className="text-3xl font-bold text-teal-700 leading-none">
                 {fmt(group.bestPrice)}
               </span>
@@ -188,25 +188,24 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
                 </span>
               )}
             </div>
-            {/* Line 2: PVP strikethrough */}
             {group.pvp > 0 && (
-              <p className="text-base font-normal text-neutral-400 line-through mt-1">PVP {fmt(group.pvp)}</p>
+              <p className="text-base font-normal text-neutral-400 line-through">{`PVP ${fmt(group.pvp)}`}</p>
             )}
           </div>
 
           {/* Tier progress bar */}
           {group.tiers.length >= 2 && (
-            <div className="px-3 pb-3">
-              <p className="text-xs font-semibold uppercase text-neutral-400 tracking-widest mb-2">
+            <div style={{ marginBottom: 6 }}>
+              <p className="text-xs font-semibold uppercase text-neutral-400 tracking-widest" style={{ marginBottom: 6 }}>
                 Tramos de precio
               </p>
               <TierBar tiers={group.tiers} currentTierIndex={currentTierIndex} />
             </div>
           )}
 
-          {/* Orange box — single line, below tier bar */}
+          {/* Orange box */}
           {(priceDrop || hasNextTier) && (
-            <div className="mx-3 mb-3 bg-[#FFF3ED] rounded-xl py-2 px-4">
+            <div className="bg-[#FFF3ED] rounded-xl" style={{ marginBottom: 6, padding: '6px 12px' }}>
               <p className="text-sm font-normal text-orange-600">
                 {priceDrop
                   ? `Solo 1 más: Próximo precio ${fmt(group.nextPrice)}`
@@ -216,11 +215,11 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
           )}
 
           {/* Metrics bar — 3 equal columns */}
-          <div className="border-t border-[#EEEEEE]">
-            <div className="flex divide-x divide-[#EEEEEE]">
+          <div className="border-t border-[#EEEEEE]" style={{ marginBottom: 6 }}>
+            <div className="flex divide-x divide-[#EEEEEE]" style={{ padding: '8px 0' }}>
 
               {/* Col 1 — Stock */}
-              <div className="flex-1 flex flex-col items-center gap-1 py-[10px] px-2">
+              <div className="flex-1 flex flex-col items-center gap-1 px-2">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-400 flex-shrink-0">
                   <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                   <polyline points="12 3 20 7.5 20 16.5 12 21 4 16.5 4 7.5 12 3"/>
@@ -237,7 +236,7 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
               </div>
 
               {/* Col 2 — Sellers */}
-              <div className="flex-1 flex flex-col items-center gap-1 py-[10px] px-2">
+              <div className="flex-1 flex flex-col items-center gap-1 px-2">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-400 flex-shrink-0">
                   <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                   <circle cx="12" cy="7" r="4"/>
@@ -252,7 +251,7 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
               </div>
 
               {/* Col 3 — Live countdown */}
-              <div className="flex-1 flex flex-col items-center gap-1 py-[10px] px-2">
+              <div className="flex-1 flex flex-col items-center gap-1 px-2">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-orange-600 flex-shrink-0">
                   <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
                   <circle cx="12" cy="12" r="9"/>
@@ -266,9 +265,11 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
 
         </div>
 
-        {/* ── STICKY ACTION BAR ── */}
-        <div className="sticky bottom-0 z-20 bg-white border-t border-[#EEEEEE] px-4 py-3 flex items-center gap-3">
-          {/* Heart — favoritos placeholder */}
+        {/* ── CTA BAR ── */}
+        <div
+          className="flex items-center gap-3 border-t border-[#EEEEEE] bg-white"
+          style={{ flexShrink: 0, padding: '8px 16px 12px' }}
+        >
           <button
             className="w-14 h-14 flex items-center justify-center rounded-xl border border-gray-200 text-gray-400 flex-shrink-0"
             aria-label="Guardar en favoritos"
