@@ -82,21 +82,22 @@ export default function GroupLiveSection({
 
   useEffect(() => {
     const channel = supabase
-      .channel(`events:${groupId}`)
+      .channel(`group-${groupId}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'events', filter: `group_id=eq.${groupId}` },
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'events',
+          filter: `group_id=eq.${groupId}`,
+        },
         (payload) => {
-          const evt = payload.new as { type: string; payload: Record<string, any> }
-          if (evt.type === 'member_joined') {
-            const newTotal: number = evt.payload.total_units
-            const newBest: number = evt.payload.new_price
-            setTotalUnits(newTotal)
-            setBestPrice(newBest)
-            const p = tiers.length > 0 ? getStepPricing(tiers, newTotal) : null
-            setNextPrice(p?.nextTier?.price ?? newBest)
-          } else if (evt.type === 'price_dropped') {
-            setBestPrice(evt.payload.new_price)
+          console.log('Realtime evento recibido:', payload)
+          const { type, payload: data } = payload.new as any
+          if (type === 'member_joined' || type === 'price_dropped') {
+            setBestPrice(data.new_price)
+            setTotalUnits(data.total_units)
+            setNextPrice(data.next_price ?? data.new_price)
           }
         }
       )
