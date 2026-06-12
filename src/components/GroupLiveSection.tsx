@@ -81,6 +81,8 @@ export default function GroupLiveSection({
   }
 
   useEffect(() => {
+    console.log('GroupLiveSection montado, groupId:', groupId)
+
     const channel = supabase
       .channel(`group-${groupId}`)
       .on(
@@ -101,7 +103,9 @@ export default function GroupLiveSection({
           }
         }
       )
-      .subscribe()
+      .subscribe((status) => {
+        console.log('Realtime status:', status)
+      })
 
     return () => { supabase.removeChannel(channel) }
   }, [groupId, tiers])
