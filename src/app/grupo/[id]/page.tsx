@@ -141,7 +141,7 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
               <polyline points="21 15 16 10 5 21" />
             </svg>
           </div>
-          <div className="absolute top-3 left-3 right-3 flex justify-between z-10">
+          <div className="absolute top-3 left-3 right-3 flex justify-between z-10 pt-12">
             <Link
               href="/"
               className="w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center text-gray-700 hover:bg-gray-50 transition-colors"
@@ -215,7 +215,7 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
           )}
 
           {/* Metrics bar — 3 equal columns */}
-          <div className="border-t border-[#EEEEEE]" style={{ marginBottom: 6 }}>
+          <div className="border-t border-[#EEEEEE]">
             <div className="flex divide-x divide-[#EEEEEE]" style={{ padding: '8px 0' }}>
 
               {/* Col 1 — Stock */}
