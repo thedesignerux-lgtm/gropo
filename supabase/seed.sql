@@ -64,10 +64,10 @@ new_groups AS (
   INSERT INTO public.groups
     (product_name,                    product_spec,                status,   closes_at,              current_price, next_price, total_units)
   VALUES
-    ('Cubierta Continental GP5000',   '700×25 · Carretera',        'open',   (SELECT at FROM closes),  41.90,         38.90,      14),
-    ('Pedales Shimano 105 PD-R7000',  'Carretera · Calas incluidas','open',  (SELECT at FROM closes),  89.90,         79.00,      18),
-    ('Casco Giro Agilis MIPS',        'Carretera · Ventilado',     'open',   (SELECT at FROM closes),  79.90,         69.00,      12),
-    ('Luz trasera Garmin Varia RTL515','Radar · 65 lúmenes',       'open',   (SELECT at FROM closes), 159.90,        149.90,       7)
+    ('Cubierta Continental GP5000',   '700×25 · Carretera',        'open'::group_status,   (SELECT at FROM closes),  41.90,         38.90,      14),
+    ('Pedales Shimano 105 PD-R7000',  'Carretera · Calas incluidas','open'::group_status,  (SELECT at FROM closes),  89.90,         79.00,      18),
+    ('Casco Giro Agilis MIPS',        'Carretera · Ventilado',     'open'::group_status,   (SELECT at FROM closes),  79.90,         69.00,      12),
+    ('Luz trasera Garmin Varia RTL515','Radar · 65 lúmenes',       'open'::group_status,   (SELECT at FROM closes), 159.90,        149.90,       7)
   RETURNING id, product_name
 )
 
@@ -75,7 +75,7 @@ new_groups AS (
 INSERT INTO public.bids (group_id, price_mode, tiers, min_execution, max_stock)
 SELECT
   ng.id,
-  t.price_mode,
+  t.price_mode::price_mode,
   t.tiers::jsonb,
   t.min_execution,
   t.max_stock
