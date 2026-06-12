@@ -19,13 +19,7 @@ export default function ProductCard({ product }: { product: GroupProduct }) {
     getStepPricing(product.tiers, product.currentUnits)
 
   const discount = Math.round(((product.pvp - currentPrice) / product.pvp) * 100)
-  const progress = nextTier
-    ? Math.round(
-        ((product.currentUnits - currentTierMinUnits) /
-          (nextTier.minUnits - currentTierMinUnits)) *
-          100
-      )
-    : 100
+  const currentTierIndex = product.tiers.findIndex(t => t.minUnits === currentTierMinUnits)
 
   return (
     <Link
@@ -92,16 +86,27 @@ export default function ProductCard({ product }: { product: GroupProduct }) {
           <span className="text-[11px] text-gray-400 line-through">{fmt(product.pvp)}</span>
         </div>
 
-        {/* Progress bar */}
+        {/* Segmented tier progress bar */}
         <div className="space-y-1.5">
-          <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-brand rounded-full"
-              style={{ width: `${progress}%` }}
-            />
+          <div className="flex h-2 rounded-full overflow-hidden gap-px bg-white">
+            {product.tiers.map((tier, i) => {
+              const isCompleted = i < currentTierIndex
+              const isCurrent = i === currentTierIndex
+              const fillPct = isCurrent
+                ? nextTier
+                  ? ((product.currentUnits - currentTierMinUnits) /
+                      (nextTier.minUnits - currentTierMinUnits)) * 100
+                  : 100
+                : 0
+              const bg = isCompleted
+                ? '#1D9E75'
+                : isCurrent
+                ? `linear-gradient(to right, #1D9E75 ${fillPct}%, rgba(29,158,117,0.12) ${fillPct}%)`
+                : '#E5E7EB'
+              return <div key={tier.minUnits} className="flex-1" style={{ background: bg }} />
+            })}
           </div>
-          <div className="flex justify-between text-[10px] text-gray-400">
-            <span>{progress}% completado</span>
+          <div className="flex justify-end text-[10px] text-gray-400">
             <span>
               {product.currentUnits}&nbsp;/&nbsp;{nextTier ? nextTier.minUnits : product.currentUnits}&nbsp;uds
             </span>
