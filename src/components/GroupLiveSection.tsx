@@ -95,11 +95,11 @@ export default function GroupLiveSection({
         },
         (payload) => {
           console.log('Realtime evento recibido:', payload)
-          const { type, payload: data } = payload.new as any
-          if (type === 'member_joined' || type === 'price_dropped') {
-            setBestPrice(data.new_price)
-            setTotalUnits(data.total_units)
-            setNextPrice(data.next_price ?? data.new_price)
+          const eventData = payload.new as any
+          if (eventData.type === 'member_joined' || eventData.type === 'price_dropped') {
+            setBestPrice(eventData.payload.new_price)
+            setTotalUnits(eventData.payload.total_units)
+            setNextPrice(eventData.payload.next_price)
           }
         }
       )
