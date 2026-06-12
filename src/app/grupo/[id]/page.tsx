@@ -173,43 +173,35 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
             {group.spec && (
               <p className="text-sm text-gray-500 mt-0.5">{group.spec}</p>
             )}
-            <div className="flex items-baseline gap-3 mt-3 flex-wrap">
+            {/* Line 1: big price + savings badge */}
+            <div className="flex items-center justify-between mt-3 gap-2">
               <span className="text-5xl font-bold text-brand leading-none">
                 {fmt(group.bestPrice)}
               </span>
-              {group.pvp > 0 && (
-                <span className="text-base text-gray-400 line-through">
-                  PVP {fmt(group.pvp)}
+              {savings > 0.01 && (
+                <span className="inline-flex items-center gap-1 bg-[#E6F4EF] text-brand text-xs font-semibold px-3.5 py-2 rounded-full flex-shrink-0">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
+                    <line x1="7" y1="7" x2="7.01" y2="7"/>
+                  </svg>
+                  Ahorras {fmt(savings)} vs PVP
                 </span>
               )}
             </div>
-            {savings > 0.01 && (
-              <span className="inline-flex items-center bg-green-50 text-green-700 text-xs font-semibold px-3 py-1.5 rounded-full mt-2">
-                Ya ahorras {fmt(savings)} vs PVP
-              </span>
+            {/* Line 2: PVP strikethrough */}
+            {group.pvp > 0 && (
+              <p className="text-sm text-gray-400 line-through mt-1">PVP {fmt(group.pvp)}</p>
             )}
           </div>
 
-          {/* Orange box — two lines */}
+          {/* Orange box — single line */}
           {(priceDrop || hasNextTier) && (
-            <div className="mx-4 mb-4 bg-[#FFF3ED] rounded-xl px-4 py-4">
-              {priceDrop ? (
-                <>
-                  <p className="text-sm font-bold text-orange-700">🔥 Si entra 1 unidad más:</p>
-                  <p className="text-sm text-orange-600 mt-1">
-                    Nuevo precio:{' '}
-                    <span className="font-bold">{fmt(group.nextPrice)}</span> para todos
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p className="text-sm font-bold text-orange-700">📈 Siguiente tramo:</p>
-                  <p className="text-sm text-orange-600 mt-1">
-                    A <span className="font-bold">{unitsToNext}</span>{' '}
-                    {unitsToNext === 1 ? 'unidad' : 'uds'} del siguiente precio
-                  </p>
-                </>
-              )}
+            <div className="mx-4 mb-4 bg-[#FFF3ED] rounded-xl px-4 py-3">
+              <p className="text-sm font-bold text-orange-700">
+                {priceDrop
+                  ? `🔥 Solo 1 más: Próximo precio ${fmt(group.nextPrice)}`
+                  : `A ${unitsToNext} ${unitsToNext === 1 ? 'unidad' : 'uds'} del siguiente tramo`}
+              </p>
             </div>
           )}
 
@@ -280,10 +272,10 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
         <div className="sticky bottom-0 z-20 bg-white border-t border-[#EEEEEE] px-4 py-3 flex items-center gap-3">
           {/* Heart — favoritos placeholder */}
           <button
-            className="w-11 h-11 flex items-center justify-center rounded-xl border border-gray-200 text-gray-400 flex-shrink-0"
+            className="w-14 h-14 flex items-center justify-center rounded-xl border border-gray-200 text-gray-400 flex-shrink-0"
             aria-label="Guardar en favoritos"
           >
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
               <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
               <path d="M19.5 13.572l-7.5 7.428l-7.5 -7.428m0 0a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"/>
             </svg>
@@ -291,7 +283,7 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
           <JoinModal
             groupId={group.id}
             productName={group.name}
-            triggerClassName="flex-1 bg-brand text-white font-bold text-base py-3.5 rounded-xl hover:bg-brand-dark active:scale-[0.98] transition-all"
+            triggerClassName="flex-1 bg-brand text-white font-bold text-base py-4 rounded-xl hover:bg-brand-dark active:scale-[0.98] transition-all"
           />
         </div>
 
