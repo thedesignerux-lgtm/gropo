@@ -14,6 +14,7 @@ async function fetchGroups(): Promise<GroupProduct[]> {
       product_name,
       product_spec,
       total_units,
+      pvp,
       bids (
         tiers,
         price_mode
