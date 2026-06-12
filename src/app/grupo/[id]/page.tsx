@@ -6,7 +6,6 @@ import type { Tier } from '@/lib/mock-data'
 import GroupCountdown from '@/components/GroupCountdown'
 import JoinModal from '@/components/JoinModal'
 import HeroShareButton from '@/components/HeroShareButton'
-import BottomNav from '@/components/BottomNav'
 
 export const dynamic = 'force-dynamic'
 
@@ -166,7 +165,7 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
         </div>
 
         {/* ── SCROLLABLE CONTENT ── */}
-        <div className="pb-40">
+        <div className="pb-24">
 
           {/* Price block */}
           <div className="px-4 pt-5 pb-4">
@@ -191,27 +190,26 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
             )}
           </div>
 
-          {/* Orange box — price-drop or next-tier nudge */}
+          {/* Orange box — two lines */}
           {(priceDrop || hasNextTier) && (
-            <div className="mx-4 mb-4 flex items-center gap-2 bg-[#FFF3ED] rounded-xl px-4 py-3.5">
-              <span className="text-base leading-none flex-shrink-0">
-                {priceDrop ? '🔥' : '📈'}
-              </span>
-              <p className="flex-1 text-sm text-orange-600 min-w-0 leading-snug">
-                {priceDrop ? (
-                  <>
-                    <span className="font-bold text-orange-700">Si entra 1 unidad más:</span>{' '}
+            <div className="mx-4 mb-4 bg-[#FFF3ED] rounded-xl px-4 py-4">
+              {priceDrop ? (
+                <>
+                  <p className="text-sm font-bold text-orange-700">🔥 Si entra 1 unidad más:</p>
+                  <p className="text-sm text-orange-600 mt-1">
                     Nuevo precio:{' '}
                     <span className="font-bold">{fmt(group.nextPrice)}</span> para todos
-                  </>
-                ) : (
-                  <>
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-bold text-orange-700">📈 Siguiente tramo:</p>
+                  <p className="text-sm text-orange-600 mt-1">
                     A <span className="font-bold">{unitsToNext}</span>{' '}
-                    {unitsToNext === 1 ? 'unidad' : 'uds'} del siguiente tramo
-                  </>
-                )}
-              </p>
-              <span className="text-orange-400 font-bold text-lg leading-none flex-shrink-0">›</span>
+                    {unitsToNext === 1 ? 'unidad' : 'uds'} del siguiente precio
+                  </p>
+                </>
+              )}
             </div>
           )}
 
@@ -278,14 +276,26 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
 
         </div>
 
-        {/* ── STICKY CTA — fixed above BottomNav ── */}
-        <div className="sticky bottom-16 z-20 bg-white border-t border-[#EEEEEE] px-4 py-3">
-          <JoinModal groupId={group.id} productName={group.name} />
+        {/* ── STICKY ACTION BAR ── */}
+        <div className="sticky bottom-0 z-20 bg-white border-t border-[#EEEEEE] px-4 py-3 flex items-center gap-3">
+          {/* Heart — favoritos placeholder */}
+          <button
+            className="w-11 h-11 flex items-center justify-center rounded-xl border border-gray-200 text-gray-400 flex-shrink-0"
+            aria-label="Guardar en favoritos"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+              <path d="M19.5 13.572l-7.5 7.428l-7.5 -7.428m0 0a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"/>
+            </svg>
+          </button>
+          <JoinModal
+            groupId={group.id}
+            productName={group.name}
+            triggerClassName="flex-1 bg-brand text-white font-bold text-base py-3.5 rounded-xl hover:bg-brand-dark active:scale-[0.98] transition-all"
+          />
         </div>
 
       </div>
-
-      <BottomNav />
     </div>
   )
 }

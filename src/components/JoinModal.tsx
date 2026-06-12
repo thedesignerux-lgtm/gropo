@@ -5,9 +5,10 @@ import { useState } from 'react'
 interface Props {
   groupId: string
   productName: string
+  triggerClassName?: string
 }
 
-export default function JoinModal({ groupId, productName }: Props) {
+export default function JoinModal({ groupId, productName, triggerClassName }: Props) {
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({ nombre: '', email: '', telefono: '', cantidad: 1 })
 
@@ -24,7 +25,7 @@ export default function JoinModal({ groupId, productName }: Props) {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="w-full bg-brand text-white font-bold text-base py-4 rounded-2xl hover:bg-brand-dark active:scale-[0.98] transition-all"
+        className={triggerClassName ?? 'w-full bg-brand text-white font-bold text-base py-4 rounded-2xl hover:bg-brand-dark active:scale-[0.98] transition-all'}
       >
         Unirme al grupo
       </button>
