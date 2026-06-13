@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { updatePaymentStatus } from './actions'
+import CloseGroupButton from './CloseGroupButton'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,7 +48,7 @@ export default async function AdminGroupDetailPage({ params }: { params: { id: s
       .single(),
     supabaseAdmin
       .from('group_members')
-      .select('id, join_order, quantity, guaranteed_price, payment_status, users(name, email, phone)')
+      .select('id, join_order, quantity, guaranteed_price, final_price, payment_status, users(name, email, phone)')
       .eq('group_id', id)
       .order('join_order'),
     supabaseAdmin
@@ -123,7 +124,7 @@ export default async function AdminGroupDetailPage({ params }: { params: { id: s
                   <th className="px-4 py-3 text-left">Teléfono</th>
                   <th className="px-4 py-3 text-left">Email</th>
                   <th className="px-4 py-3 text-right">Cant.</th>
-                  <th className="px-4 py-3 text-right">Precio garantizado</th>
+                  <th className="px-4 py-3 text-right">Precio</th>
                   <th className="px-4 py-3 text-right">Total</th>
                   <th className="px-4 py-3 text-left">Pago</th>
                   <th className="px-4 py-3" />
@@ -135,6 +136,8 @@ export default async function AdminGroupDetailPage({ params }: { params: { id: s
                   const payBadge = PAYMENT_BADGE[m.payment_status] ?? PAYMENT_BADGE.pending
                   const nextLabel = PAYMENT_NEXT_LABEL[m.payment_status] ?? '—'
                   const isDone = m.payment_status === 'paid'
+                  // final_price (liquidación) si el grupo ya cerró; si no, guaranteed_price (precio de unión)
+                  const unitPrice = Number(m.final_price ?? m.guaranteed_price)
                   const action = updatePaymentStatus.bind(null, m.id, id)
                   return (
                     <tr key={m.id} className="hover:bg-gray-50 transition-colors">
@@ -143,9 +146,9 @@ export default async function AdminGroupDetailPage({ params }: { params: { id: s
                       <td className="px-4 py-3 text-gray-600">{u?.phone ?? '—'}</td>
                       <td className="px-4 py-3 text-gray-600">{u?.email ?? '—'}</td>
                       <td className="px-4 py-3 text-right text-gray-700">{m.quantity}</td>
-                      <td className="px-4 py-3 text-right text-gray-700">{fmt(Number(m.guaranteed_price))}</td>
+                      <td className="px-4 py-3 text-right text-gray-700">{fmt(unitPrice)}</td>
                       <td className="px-4 py-3 text-right font-semibold text-gray-900">
-                        {fmt(Number(m.guaranteed_price) * m.quantity)}
+                        {fmt(unitPrice * m.quantity)}
                       </td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${payBadge.cls}`}>
@@ -177,7 +180,7 @@ export default async function AdminGroupDetailPage({ params }: { params: { id: s
                     <td className="px-4 py-3 text-right">{totalUnits}</td>
                     <td />
                     <td className="px-4 py-3 text-right">
-                      {fmt((members ?? []).reduce((s, m) => s + Number(m.guaranteed_price) * m.quantity, 0))}
+                      {fmt((members ?? []).reduce((s, m) => s + Number(m.final_price ?? m.guaranteed_price) * m.quantity, 0))}
                     </td>
                     <td colSpan={2} />
                   </tr>
@@ -235,19 +238,26 @@ export default async function AdminGroupDetailPage({ params }: { params: { id: s
         )}
       </section>
 
-      {/* ── CERRAR GRUPO ── (stub, próxima iteración) */}
+      {/* ── CERRAR GRUPO ── */}
       <section className="border-t border-gray-200 pt-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-gray-900">Cerrar grupo manualmente</p>
-            <p className="text-xs text-gray-400 mt-0.5">Irreversible. Disponible en la próxima iteración.</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              {group.status === 'closed'
+                ? 'El grupo ya está cerrado.'
+                : group.status === 'cancelled'
+                ? 'El grupo está cancelado.'
+                : group.status === 'closing'
+                ? 'Cierre en curso (excedente pendiente de resolución).'
+                : 'Calcula el precio final de liquidación y instruye los pagos. Irreversible.'}
+            </p>
           </div>
-          <button
-            disabled
-            className="px-4 py-2 rounded-xl border border-gray-200 text-sm font-semibold text-gray-300 cursor-not-allowed"
-          >
-            Cerrar grupo
-          </button>
+          <CloseGroupButton
+            groupId={id}
+            productName={group.product_name}
+            disabled={group.status === 'closed' || group.status === 'cancelled' || group.status === 'closing'}
+          />
         </div>
       </section>
 

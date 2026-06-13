@@ -9,6 +9,26 @@ const PAYMENT_CYCLE: Record<string, string> = {
   paid:       'paid',
 }
 
+export interface CloseResult {
+  result: string
+  settlement_price?: number
+  total_units?: number
+  adjudicated_units?: number
+  surplus_units?: number
+  min_required?: number
+  second_price_at_n?: number
+}
+
+export async function closeGroup(
+  groupId: string,
+): Promise<{ error?: string; data?: CloseResult }> {
+  const { data, error } = await supabaseAdmin.rpc('close_group', { p_group_id: groupId })
+  if (error) return { error: error.message }
+  revalidatePath(`/admin/grupos/${groupId}`)
+  revalidatePath('/admin')
+  return { data: data as CloseResult }
+}
+
 export async function updatePaymentStatus(memberId: string, groupId: string) {
   const { data: member } = await supabaseAdmin
     .from('group_members')

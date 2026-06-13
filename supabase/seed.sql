@@ -92,7 +92,7 @@ FROM new_groups ng
 JOIN (VALUES
 
   ( 'Cubierta Continental GP5000',
-    'stepped',
+    'fluid',
     '[
       {"min_units":  1, "price": 48.90},
       {"min_units":  6, "price": 44.90},
@@ -105,7 +105,7 @@ JOIN (VALUES
   ),
 
   ( 'Pedales Shimano 105 PD-R7000',
-    'stepped',
+    'fluid',
     '[
       {"min_units":  1, "price": 104.90},
       {"min_units":  8, "price":  97.90},
@@ -116,7 +116,7 @@ JOIN (VALUES
   ),
 
   ( 'Casco Giro Agilis MIPS',
-    'stepped',
+    'fluid',
     '[
       {"min_units":  1, "price": 94.90},
       {"min_units":  6, "price": 86.90},
@@ -127,7 +127,7 @@ JOIN (VALUES
   ),
 
   ( 'Luz trasera Garmin Varia RTL515',
-    'stepped',
+    'fluid',
     '[
       {"min_units":  1, "price": 159.90},
       {"min_units":  8, "price": 149.90},

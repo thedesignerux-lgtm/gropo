@@ -16,24 +16,26 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 
   const { data: members } = await supabaseAdmin
     .from('group_members')
-    .select('join_order, quantity, guaranteed_price, payment_status, users(name, email, phone)')
+    .select('join_order, quantity, guaranteed_price, final_price, payment_status, users(name, email, phone)')
     .eq('group_id', params.id)
     .order('join_order')
 
   const rows: (string | number)[][] = [
-    ['#', 'Nombre', 'Teléfono', 'Email', 'Cantidad', 'Precio garantizado (€)', 'Total (€)', 'Estado pago'],
+    ['#', 'Nombre', 'Teléfono', 'Email', 'Cantidad', 'Precio final (€)', 'Total (€)', 'Estado pago'],
   ]
 
   for (const m of members ?? []) {
     const u = m.users as any
+    // final_price (liquidación) si el grupo ya cerró; si no, guaranteed_price (precio de unión)
+    const unitPrice = Number(m.final_price ?? m.guaranteed_price)
     rows.push([
       m.join_order ?? '',
       u?.name ?? '',
       u?.phone ?? '',
       u?.email ?? '',
       m.quantity,
-      Number(m.guaranteed_price).toFixed(2),
-      (Number(m.guaranteed_price) * m.quantity).toFixed(2),
+      unitPrice.toFixed(2),
+      (unitPrice * m.quantity).toFixed(2),
       m.payment_status ?? 'pending',
     ])
   }
