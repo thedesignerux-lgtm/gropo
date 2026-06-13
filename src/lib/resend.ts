@@ -1,6 +1,7 @@
 // Cliente Resend — SOLO servidor. Nunca importar desde un Client Component.
 import { Resend } from 'resend'
 import { joinConfirmationEmail } from './emails/joinConfirmation'
+import { paymentInstructionsEmail } from './emails/paymentInstructions'
 
 // Remitente: por defecto el sandbox de Resend (entrega solo al email de la
 // cuenta sin dominio verificado). Para producción, define RESEND_FROM con una
@@ -24,6 +25,28 @@ export interface SendJoinParams {
 export async function sendJoinConfirmation(params: SendJoinParams) {
   const { to, nombre, productName, currentPrice, closesAt } = params
   const { subject, html, text } = joinConfirmationEmail({ nombre, productName, currentPrice, closesAt })
+
+  const resend = getResend()
+  return resend.emails.send({ from: FROM, to, subject, html, text })
+}
+
+export interface SendPaymentParams {
+  to: string
+  nombre?: string
+  productName: string
+  quantity: number
+  finalPrice: number
+  total: number
+  paymentInfo?: string | null
+  concepto: string
+  deadline: string
+}
+
+export async function sendPaymentInstructions(params: SendPaymentParams) {
+  const { to, nombre, productName, quantity, finalPrice, total, paymentInfo, concepto, deadline } = params
+  const { subject, html, text } = paymentInstructionsEmail({
+    nombre, productName, quantity, finalPrice, total, paymentInfo, concepto, deadline,
+  })
 
   const resend = getResend()
   return resend.emails.send({ from: FROM, to, subject, html, text })

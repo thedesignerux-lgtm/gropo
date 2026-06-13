@@ -31,6 +31,7 @@ export default function NewGroupPage() {
     price_mode: 'fluid' as 'fluid' | 'stepped',
     min_execution: 5,
     max_stock: 50,
+    payment_info: '',
   })
   const [tiers, setTiers] = useState<Tier[]>([
     { min_units: 1, price: 0 },
@@ -198,6 +199,20 @@ export default function NewGroupPage() {
                 className={inputCls}
               />
             </div>
+          </div>
+
+          {/* Datos de pago del vendedor */}
+          <div>
+            <label className={labelCls}>Datos de pago del vendedor (Bizum o IBAN)</label>
+            <textarea
+              rows={2}
+              value={fields.payment_info}
+              onChange={e => setField('payment_info', e.target.value)}
+              placeholder="Bizum 600 000 000 · o · IBAN ES00 0000 0000 0000 0000 0000"
+              disabled={loading}
+              className={inputCls + ' resize-none'}
+            />
+            <p className="text-xs text-gray-400 mt-1">Se mostrará a los compradores adjudicados en el email de cierre. Opcional.</p>
           </div>
 
           {/* Tiers table */}

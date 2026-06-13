@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { sendClosePaymentEmails } from '@/lib/emails/sendClose'
 
 const PAYMENT_CYCLE: Record<string, string> = {
   pending:    'instructed',
@@ -24,9 +25,23 @@ export async function closeGroup(
 ): Promise<{ error?: string; data?: CloseResult }> {
   const { data, error } = await supabaseAdmin.rpc('close_group', { p_group_id: groupId })
   if (error) return { error: error.message }
+
+  const result = data as CloseResult
+
+  // Emails de pago a los adjudicados — BLINDADO: el cierre ya está cometido en
+  // la BD, así que un fallo de email NO debe romper ni revertir el cierre.
+  // El dinero es primario; el email, secundario (misma regla que la unión).
+  if (result?.result === 'closed' || result?.result === 'surplus') {
+    try {
+      await sendClosePaymentEmails(groupId)
+    } catch (e) {
+      console.error('sendClosePaymentEmails falló (cierre OK igualmente):', e)
+    }
+  }
+
   revalidatePath(`/admin/grupos/${groupId}`)
   revalidatePath('/admin')
-  return { data: data as CloseResult }
+  return { data: result }
 }
 
 export async function updatePaymentStatus(memberId: string, groupId: string) {

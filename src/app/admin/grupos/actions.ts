@@ -18,6 +18,7 @@ export interface CreateGroupInput {
   price_mode: 'fluid' | 'stepped'
   min_execution: number
   max_stock: number
+  payment_info: string
   tiers: Tier[]
 }
 
@@ -27,7 +28,7 @@ function sellerEmail(name: string): string {
 }
 
 export async function createGroup(input: CreateGroupInput): Promise<{ error?: string }> {
-  const { product_name, product_spec, product_url, image_url, closes_at, seller_name, price_mode, min_execution, max_stock, tiers } = input
+  const { product_name, product_spec, product_url, image_url, closes_at, seller_name, price_mode, min_execution, max_stock, payment_info, tiers } = input
 
   // Validations
   if (!product_name.trim()) return { error: 'El nombre del producto es obligatorio' }
@@ -87,6 +88,7 @@ export async function createGroup(input: CreateGroupInput): Promise<{ error?: st
       price_mode,
       min_execution,
       max_stock,
+      payment_info: payment_info.trim() || null,
       tiers,
       status: 'active',
     })
