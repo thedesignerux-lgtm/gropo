@@ -4,8 +4,9 @@ import { sendJoinConfirmation } from '@/lib/resend'
 
 // Endpoint TEMPORAL de prueba de Resend.
 // Uso: estando logueado en /admin, visita:
-//   /api/email/test?to=tu@email.com
-// Protegido por la cookie admin_auth (igual que el CSV).
+//   /admin/email-test?to=tu@email.com
+// Vive BAJO /admin a propósito: la cookie admin_auth se pone con path '/admin',
+// así que el navegador solo la envía a rutas bajo /admin (igual que el CSV).
 
 export async function GET(req: Request) {
   const auth = cookies().get('admin_auth')?.value
