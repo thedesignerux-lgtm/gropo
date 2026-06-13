@@ -14,17 +14,24 @@ export interface CreateGroupInput {
   product_url: string
   image_url: string
   closes_at: string
+  seller_name: string
   price_mode: 'fluid' | 'stepped'
   min_execution: number
   max_stock: number
   tiers: Tier[]
 }
 
+function sellerEmail(name: string): string {
+  const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  return `seller-${slug}@grupeta.local`
+}
+
 export async function createGroup(input: CreateGroupInput): Promise<{ error?: string }> {
-  const { product_name, product_spec, product_url, image_url, closes_at, price_mode, min_execution, max_stock, tiers } = input
+  const { product_name, product_spec, product_url, image_url, closes_at, seller_name, price_mode, min_execution, max_stock, tiers } = input
 
   // Validations
   if (!product_name.trim()) return { error: 'El nombre del producto es obligatorio' }
+  if (!seller_name.trim()) return { error: 'El nombre del vendedor es obligatorio' }
   if (!closes_at) return { error: 'La fecha de cierre es obligatoria' }
   if (tiers.length < 1) return { error: 'Añade al menos un tramo de precio' }
 
@@ -38,6 +45,18 @@ export async function createGroup(input: CreateGroupInput): Promise<{ error?: st
     if (i > 0 && tiers[i].price >= tiers[i - 1].price)
       return { error: `Tramo ${i + 1}: precio debe ser menor que el tramo anterior` }
   }
+
+  // Upsert seller
+  const { data: seller, error: sellerError } = await supabaseAdmin
+    .from('users')
+    .upsert(
+      { email: sellerEmail(seller_name), name: seller_name.trim(), role: 'seller' },
+      { onConflict: 'email' }
+    )
+    .select('id')
+    .single()
+
+  if (sellerError || !seller) return { error: sellerError?.message ?? 'Error al crear el vendedor' }
 
   // Insert group
   const initialPrice = tiers[0].price
@@ -64,6 +83,7 @@ export async function createGroup(input: CreateGroupInput): Promise<{ error?: st
     .from('bids')
     .insert({
       group_id: group.id,
+      seller_id: seller.id,
       price_mode,
       min_execution,
       max_stock,

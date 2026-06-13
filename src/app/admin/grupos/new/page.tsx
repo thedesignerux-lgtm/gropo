@@ -27,6 +27,7 @@ export default function NewGroupPage() {
     product_url: '',
     image_url: '',
     closes_at: nextSundayISO(),
+    seller_name: '',
     price_mode: 'fluid' as 'fluid' | 'stepped',
     min_execution: 5,
     max_stock: 50,
@@ -139,6 +140,19 @@ export default function NewGroupPage() {
                 disabled={loading}
                 className={inputCls}
               />
+            </div>
+            <div>
+              <label className={labelCls}>Vendedor *</label>
+              <input
+                required
+                type="text"
+                value={fields.seller_name}
+                onChange={e => setField('seller_name', e.target.value)}
+                placeholder="Trek España"
+                disabled={loading}
+                className={inputCls}
+              />
+              <p className="text-xs text-gray-400 mt-1">Se crea o reutiliza un usuario placeholder con role=seller</p>
             </div>
           </div>
         </section>
