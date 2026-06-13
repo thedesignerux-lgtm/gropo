@@ -54,6 +54,14 @@ export default function JoinModal({ groupId, productName, triggerClassName, onJo
       return
     }
 
+    // Email de confirmación — best-effort, NO bloquea la unión.
+    // Sin await, sin mirar la respuesta, y traga cualquier fallo de red.
+    fetch('/api/email/join', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ groupId, email: form.email.trim() }),
+    }).catch(() => {})
+
     setOpen(false)
     setForm({ nombre: '', email: '', telefono: '', cantidad: 1 })
     onJoined?.(data as JoinResult)
