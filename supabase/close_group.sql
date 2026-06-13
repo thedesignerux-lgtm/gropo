@@ -131,8 +131,9 @@ BEGIN
   IF NOT FOUND THEN
     UPDATE groups SET status = 'cancelled' WHERE id = p_group_id;
     UPDATE group_members SET payment_status = 'cancelled' WHERE group_id = p_group_id;
-    INSERT INTO events (group_id, payload) VALUES (
+    INSERT INTO events (group_id, type, payload) VALUES (
       p_group_id,
+      'group_closed',
       jsonb_build_object('type','group_closed','result','no_active_bids','total_units',v_n)
     );
     RETURN jsonb_build_object('result','no_active_bids','total_units',v_n);
@@ -148,8 +149,9 @@ BEGIN
   IF v_n < v_winning_bid.min_execution THEN
     UPDATE groups SET status = 'cancelled' WHERE id = p_group_id;
     UPDATE group_members SET payment_status = 'cancelled' WHERE group_id = p_group_id;
-    INSERT INTO events (group_id, payload) VALUES (
+    INSERT INTO events (group_id, type, payload) VALUES (
       p_group_id,
+      'group_closed',
       jsonb_build_object(
         'type','group_closed','result','no_execution',
         'total_units',v_n,'min_required',v_winning_bid.min_execution
@@ -213,8 +215,9 @@ BEGIN
     SET status = 'closed', current_price = v_settlement
     WHERE id = p_group_id;
 
-    INSERT INTO events (group_id, payload) VALUES (
+    INSERT INTO events (group_id, type, payload) VALUES (
       p_group_id,
+      'group_closed',
       jsonb_build_object(
         'type','group_closed','result','closed',
         'new_price',v_settlement,'total_units',v_n,
@@ -249,8 +252,9 @@ BEGIN
   SET status = 'closing', current_price = v_settlement
   WHERE id = p_group_id;
 
-  INSERT INTO events (group_id, payload) VALUES (
+  INSERT INTO events (group_id, type, payload) VALUES (
     p_group_id,
+    'group_closed',
     jsonb_build_object(
       'type','group_closed','result','surplus',
       'new_price',v_settlement,
