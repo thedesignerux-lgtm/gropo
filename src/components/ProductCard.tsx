@@ -135,13 +135,10 @@ export default function ProductCard({ product }: { product: GroupProduct }) {
           </svg>
           <div className="flex flex-col gap-0.5">
             <span className="text-[11px] text-brand font-semibold leading-tight">
-              {nextTier ? hookText(unitsToNext) : '¡Precio mínimo alcanzado!'}
+              {nextTier
+                ? `${unitsToNext} más → ${fmtSmart(nextTier.price)}`
+                : '¡Precio mínimo alcanzado!'}
             </span>
-            {nextTier && (
-              <span className="text-[10px] text-brand/70 leading-tight">
-                Próximo precio: {fmtSmart(nextTier.price)}
-              </span>
-            )}
           </div>
         </div>
       </div>

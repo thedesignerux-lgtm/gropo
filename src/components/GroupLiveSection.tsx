@@ -177,9 +177,7 @@ export default function GroupLiveSection({
         {(priceDrop || hasNextTier) && (
           <div className="bg-[#FFF3ED] rounded-xl" style={{ marginBottom: 6, padding: '6px 12px' }}>
             <p className="text-sm font-normal text-orange-600">
-              {priceDrop
-                ? `Solo 1 más: Próximo precio ${fmt(nextPrice)}`
-                : `A ${unitsToNext} ${unitsToNext === 1 ? 'unidad' : 'uds'} del siguiente tramo`}
+              {`Nos falta ${unitsToNext} para bajar a ${fmt(nextPrice)}`}
             </p>
           </div>
         )}

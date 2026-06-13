@@ -65,7 +65,7 @@ export default function JoinModal({ groupId, productName, triggerClassName, onJo
         onClick={() => { setOpen(true); setError(null) }}
         className={triggerClassName ?? 'w-full bg-brand text-white font-semibold text-base py-4 rounded-2xl hover:bg-brand-dark active:scale-[0.98] transition-all'}
       >
-        Unirme al grupo
+        Sumarme a la compra
       </button>
 
       {open && (
