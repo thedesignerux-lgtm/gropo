@@ -7,7 +7,8 @@ import type { Tier } from '@/lib/mock-data'
 import GroupCountdown from './GroupCountdown'
 import JoinModal from './JoinModal'
 
-function fmt(n: number): string {
+function fmt(n: number | undefined | null): string {
+  if (n === undefined || n === null) return '—'
   return (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
 }
 
@@ -97,9 +98,10 @@ export default function GroupLiveSection({
           console.log('Realtime evento recibido:', payload)
           const eventData = payload.new as any
           if (eventData.type === 'member_joined' || eventData.type === 'price_dropped') {
-            setBestPrice(eventData.payload.new_price)
+            const newBest: number = eventData.payload.new_price
+            setBestPrice(newBest)
             setTotalUnits(eventData.payload.total_units)
-            setNextPrice(eventData.payload.next_price)
+            setNextPrice(eventData.payload.next_price ?? newBest)
           }
         }
       )
@@ -112,7 +114,7 @@ export default function GroupLiveSection({
 
   function handleJoined(result: JoinResult) {
     setBestPrice(result.new_price)
-    setNextPrice(result.next_price ?? nextPrice)
+    setNextPrice(result.next_price ?? result.new_price)
     setTotalUnits(result.new_total_units)
     showToast(`¡Dentro! Precio actual: ${fmt(result.new_price)} · Somos ${result.new_total_units} uds`)
   }
