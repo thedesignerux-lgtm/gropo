@@ -76,7 +76,7 @@ export default function JoinModal({ groupId, productName, triggerClassName, onJo
           />
           <div className="relative bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl px-6 pt-6 pb-8 shadow-xl">
             <div className="flex items-center justify-between mb-1">
-              <h2 className="text-lg font-bold text-gray-900">Unirme al grupo</h2>
+              <h2 className="text-lg font-bold text-gray-900">Sumarme a la compra</h2>
               <button
                 onClick={() => { if (!loading) setOpen(false) }}
                 className="text-gray-400 hover:text-gray-600 transition-colors p-1 disabled:opacity-40"
@@ -106,7 +106,7 @@ export default function JoinModal({ groupId, productName, triggerClassName, onJo
                     onChange={e => set(id as keyof typeof form, e.target.value)}
                     placeholder={placeholder}
                     disabled={loading}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand disabled:opacity-50"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand disabled:opacity-50"
                   />
                 </div>
               ))}
@@ -121,7 +121,7 @@ export default function JoinModal({ groupId, productName, triggerClassName, onJo
                   value={form.cantidad}
                   onChange={e => set('cantidad', Math.min(10, Math.max(1, parseInt(e.target.value) || 1)))}
                   disabled={loading}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand disabled:opacity-50"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand disabled:opacity-50"
                 />
               </div>
 
@@ -134,7 +134,7 @@ export default function JoinModal({ groupId, productName, triggerClassName, onJo
                 disabled={loading}
                 className="w-full bg-brand text-white font-semibold text-sm py-3.5 rounded-xl hover:bg-brand-dark active:scale-[0.98] transition-all mt-1 disabled:opacity-60 disabled:scale-100"
               >
-                {loading ? 'Uniéndome...' : 'Confirmar reserva'}
+                {loading ? 'Uniéndome...' : 'Sumarme a la compra'}
               </button>
             </form>
           </div>
