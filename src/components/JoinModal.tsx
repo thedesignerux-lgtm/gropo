@@ -114,7 +114,7 @@ export default function JoinModal({ groupId, productName, triggerClassName, onJo
                     onChange={e => set(id as keyof typeof form, e.target.value)}
                     placeholder={placeholder}
                     disabled={loading}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand disabled:opacity-50"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-base text-gray-900 bg-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand disabled:opacity-50"
                   />
                 </div>
               ))}
@@ -129,7 +129,7 @@ export default function JoinModal({ groupId, productName, triggerClassName, onJo
                   value={form.cantidad}
                   onChange={e => set('cantidad', Math.min(10, Math.max(1, parseInt(e.target.value) || 1)))}
                   disabled={loading}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-900 bg-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand disabled:opacity-50"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-base text-gray-900 bg-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand disabled:opacity-50"
                 />
               </div>
 
