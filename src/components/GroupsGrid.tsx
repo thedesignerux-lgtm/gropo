@@ -78,7 +78,7 @@ export default function GroupsGrid({ products }: { products: GroupProduct[] }) {
 
       {/* CTA — crear petición */}
       <Link
-        href="/peticion"
+        href="/crear-peticion"
         className="mx-4 mt-4 flex items-center gap-3 p-4 rounded-2xl border-2 border-dashed border-gray-200 bg-white"
       >
         <div className="w-9 h-9 rounded-full border-2 border-gray-200 flex items-center justify-center flex-shrink-0">
