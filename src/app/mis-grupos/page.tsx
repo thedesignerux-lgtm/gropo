@@ -8,6 +8,7 @@ import BottomNav from '@/components/BottomNav'
 interface GrupetaUser {
   email: string
   name: string
+  phone?: string
 }
 
 interface Membership {
@@ -76,15 +77,19 @@ export default function MisGruposPage() {
       setLoading(true)
       setError(null)
 
-      const { data: userData, error: userError } = await supabase
-        .from('users')
-        .select('id')
-        .eq('email', user!.email)
-        .single()
+      // Buscar por teléfono (campo principal). Si el localStorage es antiguo
+      // y no tiene phone, caer a email como fallback.
+      const phone = user!.phone
+      const query = supabase.from('users').select('id')
+      const { data: userData, error: userError } = await (
+        phone
+          ? query.eq('phone', phone).single()
+          : query.eq('email', user!.email).single()
+      )
 
       if (userError || !userData) {
         setLoading(false)
-        setError('No encontramos tu cuenta. ¿Usaste un email diferente al unirte?')
+        setError('No encontramos tu cuenta. ¿Usaste un teléfono diferente al unirte?')
         return
       }
 
