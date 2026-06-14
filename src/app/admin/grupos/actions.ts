@@ -1,7 +1,9 @@
 'use server'
 
 import { redirect } from 'next/navigation'
+import { revalidatePath } from 'next/cache'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { sendPetitionMatched } from '@/lib/resend'
 
 export interface Tier {
   min_units: number
@@ -101,4 +103,135 @@ export async function createGroup(input: CreateGroupInput): Promise<{ error?: st
   }
 
   redirect(`/admin/grupos/${group.id}`)
+}
+
+export interface AddBidInput {
+  tiers: Tier[]
+  price_mode: 'fluid' | 'stepped'
+  min_execution: number
+  max_stock: number
+  payment_info: string
+  seller_name: string
+  closes_at?: string  // UTC ISO con zona explícita (mismo formato que createGroup)
+  pvp?: string        // string vacío/ausente → no se toca
+}
+
+// Asigna la PRIMERA puja a un grupo que ya existe (una petición sin puja).
+// No es para mejorar pujas (eso es futuro): si ya hay una activa, rechaza.
+export async function addBidToGroup(
+  groupId: string,
+  input: AddBidInput,
+): Promise<{ error?: string }> {
+  const { tiers, price_mode, min_execution, max_stock, payment_info, seller_name, closes_at, pvp } = input
+
+  // Validaciones (mismas reglas que createGroup)
+  if (!seller_name.trim()) return { error: 'El nombre del vendedor es obligatorio' }
+  if (tiers.length < 1) return { error: 'Añade al menos un tramo de precio' }
+  for (let i = 0; i < tiers.length; i++) {
+    if (!Number.isFinite(tiers[i].min_units) || tiers[i].min_units < 1)
+      return { error: `Tramo ${i + 1}: unidades mínimas deben ser ≥ 1` }
+    if (!Number.isFinite(tiers[i].price) || tiers[i].price <= 0)
+      return { error: `Tramo ${i + 1}: precio debe ser mayor que 0` }
+    if (i > 0 && tiers[i].min_units <= tiers[i - 1].min_units)
+      return { error: `Tramo ${i + 1}: min_units debe ser mayor que el tramo anterior` }
+    if (i > 0 && tiers[i].price >= tiers[i - 1].price)
+      return { error: `Tramo ${i + 1}: precio debe ser menor que el tramo anterior` }
+  }
+
+  // GUARD: solo para asignar la PRIMERA puja
+  const { data: activeBids, error: activeErr } = await supabaseAdmin
+    .from('bids')
+    .select('id')
+    .eq('group_id', groupId)
+    .eq('status', 'active')
+    .limit(1)
+  if (activeErr) return { error: activeErr.message }
+  if (activeBids && activeBids.length > 0) return { error: 'Este grupo ya tiene vendedor asignado' }
+
+  // Upsert vendedor placeholder (igual que createGroup)
+  const { data: seller, error: sellerError } = await supabaseAdmin
+    .from('users')
+    .upsert(
+      { email: sellerEmail(seller_name), name: seller_name.trim(), role: 'seller' },
+      { onConflict: 'email' }
+    )
+    .select('id')
+    .single()
+  if (sellerError || !seller) return { error: sellerError?.message ?? 'Error al crear el vendedor' }
+
+  // Insert puja
+  const { error: bidError } = await supabaseAdmin
+    .from('bids')
+    .insert({
+      group_id: groupId,
+      seller_id: seller.id,
+      price_mode,
+      min_execution,
+      max_stock,
+      payment_info: payment_info.trim() || null,
+      tiers,
+      status: 'active',
+    })
+  if (bidError) return { error: bidError.message ?? 'Error al crear la puja' }
+
+  // El admin confirma fecha/pvp definitivos al asignar el vendedor.
+  // current_price/next_price se recalculan con compute_price (como join_group).
+  const groupUpdate: Record<string, unknown> = {}
+  if (closes_at) groupUpdate.closes_at = new Date(closes_at).toISOString()
+  if (pvp != null && pvp.trim()) groupUpdate.pvp = Number(pvp.trim())
+
+  const { data: priced } = await supabaseAdmin.rpc('compute_price', { p_group_id: groupId })
+  const row = Array.isArray(priced) ? priced[0] : priced
+  if (row?.best_price != null) groupUpdate.current_price = Number(row.best_price)
+  if (row?.next_price != null) groupUpdate.next_price = Number(row.next_price)
+
+  if (Object.keys(groupUpdate).length > 0) {
+    await supabaseAdmin.from('groups').update(groupUpdate).eq('id', groupId)
+  }
+
+  // ── EMAIL al peticionario (solo si es la primera puja de una petición) ──
+  // Blindado: cualquier fallo se traga; la puja ya está cargada.
+  try {
+    const { count } = await supabaseAdmin
+      .from('bids')
+      .select('id', { count: 'exact', head: true })
+      .eq('group_id', groupId)
+
+    if (count === 1) {
+      const { data: petition } = await supabaseAdmin
+        .from('events')
+        .select('payload')
+        .eq('group_id', groupId)
+        .eq('type', 'petition_created')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      const payload = petition?.payload as { email?: string; name?: string } | undefined
+      if (payload?.email) {
+        const { data: group } = await supabaseAdmin
+          .from('groups')
+          .select('product_name')
+          .eq('id', groupId)
+          .single()
+
+        const base =
+          process.env.NEXT_PUBLIC_SITE_URL ||
+          (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
+
+        await sendPetitionMatched({
+          to: payload.email,
+          nombre: payload.name,
+          productName: group?.product_name ?? 'tu producto',
+          groupUrl: `${base}/grupo/${groupId}`,
+        })
+      }
+    }
+  } catch (e) {
+    console.error('[addBidToGroup] email de petición falló (puja cargada igualmente):', e)
+  }
+
+  revalidatePath(`/admin/grupos/${groupId}`)
+  revalidatePath('/admin')
+  return {}
 }

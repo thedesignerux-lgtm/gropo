@@ -2,6 +2,7 @@
 import { Resend } from 'resend'
 import { joinConfirmationEmail } from './emails/joinConfirmation'
 import { paymentInstructionsEmail } from './emails/paymentInstructions'
+import { petitionMatchedEmail } from './emails/petitionMatched'
 
 // Remitente: por defecto el sandbox de Resend (entrega solo al email de la
 // cuenta sin dominio verificado). Para producción, define RESEND_FROM con una
@@ -47,6 +48,21 @@ export async function sendPaymentInstructions(params: SendPaymentParams) {
   const { subject, html, text } = paymentInstructionsEmail({
     nombre, productName, quantity, finalPrice, total, paymentInfo, concepto, deadline,
   })
+
+  const resend = getResend()
+  return resend.emails.send({ from: FROM, to, subject, html, text })
+}
+
+export interface SendPetitionMatchedParams {
+  to: string
+  nombre?: string
+  productName: string
+  groupUrl: string
+}
+
+export async function sendPetitionMatched(params: SendPetitionMatchedParams) {
+  const { to, nombre, productName, groupUrl } = params
+  const { subject, html, text } = petitionMatchedEmail({ nombre, productName, groupUrl })
 
   const resend = getResend()
   return resend.emails.send({ from: FROM, to, subject, html, text })

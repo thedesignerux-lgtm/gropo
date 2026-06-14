@@ -4,6 +4,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 import { updatePaymentStatus } from './actions'
 import CloseGroupButton from './CloseGroupButton'
 import EditGroupForm from './EditGroupForm'
+import AssignSellerForm from './AssignSellerForm'
 
 export const dynamic = 'force-dynamic'
 
@@ -64,6 +65,7 @@ export default async function AdminGroupDetailPage({ params }: { params: { id: s
   const badge = STATUS_BADGE[group.status] ?? { label: group.status, cls: 'bg-gray-100 text-gray-600' }
   const memberCount = members?.length ?? 0
   const totalUnits = group.total_units ?? 0
+  const hasActiveBid = (bids ?? []).some((b) => b.status === 'active')
 
   return (
     <div className="space-y-8">
@@ -209,14 +211,25 @@ export default async function AdminGroupDetailPage({ params }: { params: { id: s
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-base font-bold text-gray-900">Pujas ({bids?.length ?? 0})</h2>
-          <button
-            disabled
-            className="text-xs font-semibold text-gray-300 cursor-not-allowed"
-            title="Próximamente"
-          >
-            + Mejorar puja
-          </button>
+          {hasActiveBid && (
+            <button
+              disabled
+              className="text-xs font-semibold text-gray-300 cursor-not-allowed"
+              title="Próximamente"
+            >
+              + Mejorar puja
+            </button>
+          )}
         </div>
+
+        {!hasActiveBid && (
+          <div className="mb-3">
+            <AssignSellerForm
+              groupId={id}
+              initialClosesDate={group.closes_at ? group.closes_at.slice(0, 10) : ''}
+            />
+          </div>
+        )}
 
         {!bids?.length ? (
           <p className="text-sm text-gray-400">Sin pujas.</p>
