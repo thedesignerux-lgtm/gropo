@@ -13,13 +13,21 @@ interface Props {
 
 export default function JoinModal({ groupId, productName, triggerClassName, onJoined }: Props) {
   const [open, setOpen] = useState(false)
-  const [form, setForm] = useState({ nombre: '', email: '', telefono: '', cantidad: 1 })
+  const [form, setForm] = useState({ nombre: '', email: '', telefono: '', cantidad: '1' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  function set(field: keyof typeof form, value: string | number) {
+  function set(field: keyof typeof form, value: string) {
     setForm(f => ({ ...f, [field]: value }))
     setError(null)
+  }
+
+  // Ajusta la cantidad con los botones - / +, acotando entre 1 y 10.
+  // Si el campo está vacío, parte de 0 para que ambos botones lleven a 1.
+  function adjustQuantity(delta: number) {
+    const current = parseInt(form.cantidad, 10)
+    const base = Number.isNaN(current) ? 0 : current
+    set('cantidad', String(Math.min(10, Math.max(1, base + delta))))
   }
 
   function validate(): string | null {
@@ -27,7 +35,8 @@ export default function JoinModal({ groupId, productName, triggerClassName, onJo
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) return 'Email no válido'
     const phone = form.telefono.replace(/[\s\-\.]/g, '').replace(/^\+34/, '')
     if (!/^[679][0-9]{8}$/.test(phone)) return 'Teléfono no válido (9 dígitos, empieza por 6, 7 o 9)'
-    if (form.cantidad < 1 || form.cantidad > 10) return 'Cantidad entre 1 y 10'
+    const qty = parseInt(form.cantidad, 10)
+    if (Number.isNaN(qty) || qty < 1 || qty > 10) return 'Cantidad entre 1 y 10'
     return null
   }
 
@@ -44,7 +53,7 @@ export default function JoinModal({ groupId, productName, triggerClassName, onJo
       p_name: form.nombre.trim(),
       p_email: form.email.trim(),
       p_phone: form.telefono.trim(),
-      p_quantity: form.cantidad,
+      p_quantity: parseInt(form.cantidad, 10),
     })
 
     setLoading(false)
@@ -63,7 +72,7 @@ export default function JoinModal({ groupId, productName, triggerClassName, onJo
     }).catch(() => {})
 
     setOpen(false)
-    setForm({ nombre: '', email: '', telefono: '', cantidad: 1 })
+    setForm({ nombre: '', email: '', telefono: '', cantidad: '1' })
     onJoined?.(data as JoinResult)
   }
 
@@ -120,17 +129,40 @@ export default function JoinModal({ groupId, productName, triggerClassName, onJo
               ))}
               <div>
                 <label htmlFor="cantidad" className="block text-xs font-semibold text-gray-600 mb-1.5">Cantidad</label>
-                <input
-                  id="cantidad"
-                  required
-                  type="number"
-                  min={1}
-                  max={10}
-                  value={form.cantidad}
-                  onChange={e => set('cantidad', Math.min(10, Math.max(1, parseInt(e.target.value) || 1)))}
-                  disabled={loading}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-base text-gray-900 bg-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand disabled:opacity-50"
-                />
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => adjustQuantity(-1)}
+                    disabled={loading || parseInt(form.cantidad, 10) <= 1}
+                    aria-label="Restar una unidad"
+                    className="shrink-0 w-11 h-11 rounded-xl border border-gray-200 text-gray-700 text-xl font-medium bg-white hover:bg-gray-50 active:scale-95 transition-all disabled:opacity-40 disabled:active:scale-100"
+                  >
+                    −
+                  </button>
+                  <input
+                    id="cantidad"
+                    required
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={form.cantidad}
+                    onChange={e => {
+                      const v = e.target.value
+                      if (v === '' || /^\d+$/.test(v)) set('cantidad', v)
+                    }}
+                    disabled={loading}
+                    className="w-full min-w-0 px-3.5 py-2.5 rounded-xl border border-gray-200 text-base text-center text-gray-900 bg-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand disabled:opacity-50"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => adjustQuantity(1)}
+                    disabled={loading || parseInt(form.cantidad, 10) >= 10}
+                    aria-label="Sumar una unidad"
+                    className="shrink-0 w-11 h-11 rounded-xl border border-gray-200 text-gray-700 text-xl font-medium bg-white hover:bg-gray-50 active:scale-95 transition-all disabled:opacity-40 disabled:active:scale-100"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
 
               {error && (
