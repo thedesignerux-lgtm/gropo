@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createGroup } from '../actions'
 import type { Tier } from '../actions'
 
-function nextSundayISO(): string {
+function nextSundayDate(): string {
   const now = new Date()
   const daysUntil = now.getDay() === 0 ? 7 : 7 - now.getDay()
   const d = new Date(now)
@@ -13,7 +13,7 @@ function nextSundayISO(): string {
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, '0')
   const day = String(d.getDate()).padStart(2, '0')
-  return `${y}-${m}-${day}T22:00`
+  return `${y}-${m}-${day}`
 }
 
 const EMPTY_TIER: Tier = { min_units: 0, price: 0 }
@@ -26,7 +26,7 @@ export default function NewGroupPage() {
     product_spec: '',
     product_url: '',
     image_url: '',
-    closes_at: nextSundayISO(),
+    closes_date: nextSundayDate(),
     seller_name: '',
     price_mode: 'fluid' as 'fluid' | 'stepped',
     min_execution: 5,
@@ -62,7 +62,11 @@ export default function NewGroupPage() {
     e.preventDefault()
     setError(null)
     setLoading(true)
-    const result = await createGroup({ ...fields, tiers })
+    // Construye closes_at como UTC explícito para que new Date() en el servidor
+    // sea determinista. 20:00 UTC = 22:00 Madrid en verano (CEST, UTC+2).
+    const { closes_date, ...rest } = fields
+    const closes_at = `${closes_date}T20:00:00+00:00`
+    const result = await createGroup({ ...rest, closes_at, tiers })
     setLoading(false)
     if (result?.error) setError(result.error)
   }
@@ -135,12 +139,15 @@ export default function NewGroupPage() {
               <label className={labelCls}>Fecha de cierre *</label>
               <input
                 required
-                type="datetime-local"
-                value={fields.closes_at}
-                onChange={e => setField('closes_at', e.target.value)}
+                type="date"
+                value={fields.closes_date}
+                onChange={e => setField('closes_date', e.target.value)}
                 disabled={loading}
                 className={inputCls}
               />
+              <p className="text-xs text-gray-400 mt-1">
+                Cierra a las <strong>22:00 h Madrid</strong> (20:00 UTC · fijo)
+              </p>
             </div>
             <div>
               <label className={labelCls}>Vendedor *</label>
