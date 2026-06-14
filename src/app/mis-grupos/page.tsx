@@ -79,7 +79,8 @@ export default function MisGruposPage() {
 
       // Buscar por teléfono (campo principal). Si el localStorage es antiguo
       // y no tiene phone, caer a email como fallback.
-      const phone = user!.phone
+      const rawPhone = user!.phone || ''
+      const phone = rawPhone.replace(/[\s\-\.]/g, '').replace(/^\+34/, '')
       const query = supabase.from('users').select('id')
       const { data: userData, error: userError } = await (
         phone
