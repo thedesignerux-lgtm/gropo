@@ -12,22 +12,21 @@ interface GrupetaUser {
   phone?: string
 }
 
+// Forma plana que devuelve la RPC get_my_groups (un objeto por membresía)
 interface Membership {
-  id: string
+  member_id: string
   quantity: number
   guaranteed_price: number
   final_price: number | null
   payment_status: 'pending' | 'instructed' | 'paid'
-  groups: {
-    id: string
-    product_name: string
-    product_spec: string | null
-    closes_at: string
-    current_price: number
-    image_url: string | null
-    status: string
-    bids: Array<{ payment_info: string | null; status: string }>
-  }
+  group_id: string
+  product_name: string
+  product_spec: string | null
+  image_url: string | null
+  status: string
+  closes_at: string
+  current_price: number
+  payment_info: string | null
 }
 
 function fmt(n: number) {
@@ -78,37 +77,14 @@ export default function MisGruposPage() {
       setLoading(true)
       setError(null)
 
-      // Buscar por teléfono (campo principal). Si el localStorage es antiguo
-      // y no tiene phone, caer a email como fallback.
+      // Una sola RPC SECURITY DEFINER: identifica por teléfono normalizado
+      // y devuelve los grupos del usuario sin exponer users/group_members a anon.
       const phone = normalizePhone(user!.phone || '')
-      const query = supabase.from('users').select('id')
-      const { data: userData, error: userError } = await (
-        phone
-          ? query.eq('phone', phone).single()
-          : query.eq('email', user!.email).single()
-      )
-
-      if (userError || !userData) {
-        setLoading(false)
-        setError('No encontramos tu cuenta. ¿Usaste un teléfono diferente al unirte?')
-        return
-      }
-
-      const { data, error: membError } = await supabase
-        .from('group_members')
-        .select(`
-          id, quantity, guaranteed_price, final_price, payment_status,
-          groups (
-            id, product_name, product_spec, closes_at, current_price, image_url, status,
-            bids (payment_info, status)
-          )
-        `)
-        .eq('user_id', userData.id)
-        .order('created_at', { ascending: false })
+      const { data, error: rpcError } = await supabase.rpc('get_my_groups', { p_phone: phone })
 
       setLoading(false)
-      if (membError) { setError(membError.message); return }
-      setMemberships((data ?? []) as unknown as Membership[])
+      if (rpcError) { setError(rpcError.message); return }
+      setMemberships(((data as any)?.groups ?? []) as Membership[])
     }
 
     load()
@@ -183,22 +159,21 @@ export default function MisGruposPage() {
               ) : (
                 <div className="space-y-3">
                   {enMarcha.map(m => {
-                    const g = m.groups
-                    const savings = Number(m.guaranteed_price) - Number(g.current_price)
+                    const savings = Number(m.guaranteed_price) - Number(m.current_price)
                     return (
-                      <div key={m.id} className="bg-white rounded-2xl border border-gray-200 p-4">
+                      <div key={m.member_id} className="bg-white rounded-2xl border border-gray-200 p-4">
                         <div className="flex items-start justify-between gap-2 mb-3">
                           <div className="min-w-0">
-                            <p className="font-semibold text-gray-900 text-sm leading-tight truncate">{g.product_name}</p>
-                            {g.product_spec && (
-                              <p className="text-xs text-gray-400 mt-0.5">{g.product_spec}</p>
+                            <p className="font-semibold text-gray-900 text-sm leading-tight truncate">{m.product_name}</p>
+                            {m.product_spec && (
+                              <p className="text-xs text-gray-400 mt-0.5">{m.product_spec}</p>
                             )}
                           </div>
                           <div className="flex items-center gap-1 bg-orange-100 text-orange-600 rounded-full px-2.5 py-1 text-xs font-semibold shrink-0">
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                               <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
                             </svg>
-                            <Countdown closesAt={g.closes_at} />
+                            <Countdown closesAt={m.closes_at} />
                           </div>
                         </div>
 
@@ -209,7 +184,7 @@ export default function MisGruposPage() {
                           </div>
                           <div className="bg-gray-50 rounded-xl px-3 py-2">
                             <p className="text-[10px] text-gray-400 mb-0.5">Precio actual</p>
-                            <p className="text-sm font-bold text-brand">{fmt(Number(g.current_price))}</p>
+                            <p className="text-sm font-bold text-brand">{fmt(Number(m.current_price))}</p>
                           </div>
                           <div className="bg-gray-50 rounded-xl px-3 py-2">
                             <p className="text-[10px] text-gray-400 mb-0.5">Uds</p>
@@ -230,7 +205,7 @@ export default function MisGruposPage() {
                         )}
 
                         <Link
-                          href={`/grupo/${g.id}`}
+                          href={`/grupo/${m.group_id}`}
                           className="block w-full text-center text-sm font-semibold text-brand border border-brand/30 rounded-xl py-2 hover:bg-brand/5 transition-colors"
                         >
                           Ver grupo →
@@ -252,18 +227,14 @@ export default function MisGruposPage() {
               ) : (
                 <div className="space-y-3">
                   {cerrados.map(m => {
-                    const g = m.groups
-                    const activeBid = Array.isArray(g.bids)
-                      ? (g.bids.find((b: any) => b.status === 'active') ?? g.bids[0] ?? null)
-                      : null
                     const isPaid = m.payment_status === 'paid'
                     return (
-                      <div key={m.id} className="bg-white rounded-2xl border border-gray-200 p-4">
+                      <div key={m.member_id} className="bg-white rounded-2xl border border-gray-200 p-4">
                         <div className="flex items-start justify-between gap-2 mb-3">
                           <div className="min-w-0">
-                            <p className="font-semibold text-gray-900 text-sm leading-tight truncate">{g.product_name}</p>
-                            {g.product_spec && (
-                              <p className="text-xs text-gray-400 mt-0.5">{g.product_spec}</p>
+                            <p className="font-semibold text-gray-900 text-sm leading-tight truncate">{m.product_name}</p>
+                            {m.product_spec && (
+                              <p className="text-xs text-gray-400 mt-0.5">{m.product_spec}</p>
                             )}
                           </div>
                           <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${isPaid ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
@@ -282,15 +253,15 @@ export default function MisGruposPage() {
                           </div>
                         </div>
 
-                        {!isPaid && activeBid?.payment_info && (
+                        {!isPaid && m.payment_info && (
                           <div className="bg-orange-50 border border-orange-100 rounded-xl px-3 py-2.5 mb-3">
                             <p className="text-[10px] font-semibold text-orange-700 mb-1">Instrucciones de pago</p>
-                            <p className="text-xs text-orange-900 whitespace-pre-line">{activeBid.payment_info}</p>
+                            <p className="text-xs text-orange-900 whitespace-pre-line">{m.payment_info}</p>
                           </div>
                         )}
 
                         <Link
-                          href={`/grupo/${g.id}`}
+                          href={`/grupo/${m.group_id}`}
                           className="block w-full text-center text-sm font-semibold text-gray-600 border border-gray-200 rounded-xl py-2 hover:bg-gray-50 transition-colors"
                         >
                           Ver detalles →
