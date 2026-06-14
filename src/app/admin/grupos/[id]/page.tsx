@@ -5,15 +5,9 @@ import { updatePaymentStatus } from './actions'
 import CloseGroupButton from './CloseGroupButton'
 import EditGroupForm from './EditGroupForm'
 import AssignSellerForm from './AssignSellerForm'
+import { resolveGroupBadge } from '@/lib/statusBadge'
 
 export const dynamic = 'force-dynamic'
-
-const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  open:      { label: 'Abierto',   cls: 'bg-green-100 text-green-700' },
-  closing:   { label: 'Cerrando', cls: 'bg-orange-100 text-orange-700' },
-  closed:    { label: 'Cerrado',   cls: 'bg-gray-100 text-gray-600' },
-  cancelled: { label: 'Cancelado', cls: 'bg-red-100 text-red-600' },
-}
 
 const PAYMENT_BADGE: Record<string, { label: string; cls: string }> = {
   pending:    { label: 'Pendiente',   cls: 'bg-gray-100 text-gray-600' },
@@ -62,10 +56,10 @@ export default async function AdminGroupDetailPage({ params }: { params: { id: s
 
   if (!group) notFound()
 
-  const badge = STATUS_BADGE[group.status] ?? { label: group.status, cls: 'bg-gray-100 text-gray-600' }
   const memberCount = members?.length ?? 0
   const totalUnits = group.total_units ?? 0
   const hasActiveBid = (bids ?? []).some((b) => b.status === 'active')
+  const badge = resolveGroupBadge(group.status, hasActiveBid ? 1 : 0)
 
   return (
     <div className="space-y-8">

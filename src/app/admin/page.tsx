@@ -1,14 +1,8 @@
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import Link from 'next/link'
+import { resolveGroupBadge } from '@/lib/statusBadge'
 
 export const dynamic = 'force-dynamic'
-
-const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  open:      { label: 'Abierto',   cls: 'bg-green-100 text-green-700' },
-  closing:   { label: 'Cerrando', cls: 'bg-orange-100 text-orange-700' },
-  closed:    { label: 'Cerrado',   cls: 'bg-gray-100 text-gray-600' },
-  cancelled: { label: 'Cancelado', cls: 'bg-red-100 text-red-600' },
-}
 
 function fmtDate(iso: string): string {
   return new Intl.DateTimeFormat('es-ES', {
@@ -69,7 +63,7 @@ export default async function AdminDashboard() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {(groups ?? []).map((g) => {
-                const badge = STATUS_BADGE[g.status] ?? { label: g.status, cls: 'bg-gray-100 text-gray-600' }
+                const badge = resolveGroupBadge(g.status, bidsByGroup[g.id] ?? 0)
                 const members = (g.group_members as any)?.[0]?.count ?? 0
                 return (
                   <tr key={g.id} className="hover:bg-gray-50 transition-colors">
