@@ -219,12 +219,21 @@ export async function addBidToGroup(
           process.env.NEXT_PUBLIC_SITE_URL ||
           (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
 
-        await sendPetitionMatched({
+        // resend.emails.send NO lanza ante errores de API (dominio no
+        // verificado, destinatario no permitido en sandbox, etc.): devuelve
+        // el error en .error. Hay que inspeccionarlo o el fallo es silencioso.
+        const { data: sent, error: sendError } = await sendPetitionMatched({
           to: payload.email,
           nombre: payload.name,
           productName: group?.product_name ?? 'tu producto',
           groupUrl: `${base}/grupo/${groupId}`,
         })
+
+        if (sendError) {
+          console.error(`[addBidToGroup] Resend rechazó el email a ${payload.email} (puja cargada igualmente):`, sendError)
+        } else {
+          console.log(`[addBidToGroup] email de petición enviado a ${payload.email} (id: ${sent?.id ?? '—'})`)
+        }
       }
     }
   } catch (e) {
