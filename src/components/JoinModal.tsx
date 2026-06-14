@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
+import { normalizePhone } from '@/lib/phone'
 import type { JoinResult } from './GroupLiveSection'
 
 interface Props {
@@ -65,7 +66,7 @@ export default function JoinModal({ groupId, productName, triggerClassName, onJo
 
     // Guardar identidad en localStorage para que Mis Grupos pueda identificar al usuario.
     try {
-      localStorage.setItem('grupeta_user', JSON.stringify({ email: form.email.trim(), name: form.nombre.trim(), phone: form.telefono.trim() }))
+      localStorage.setItem('grupeta_user', JSON.stringify({ name: form.nombre.trim(), email: form.email.trim(), phone: normalizePhone(form.telefono) }))
     } catch {}
 
     // Email de confirmación — best-effort, NO bloquea la unión.

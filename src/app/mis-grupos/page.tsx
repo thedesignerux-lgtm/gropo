@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { normalizePhone } from '@/lib/phone'
 import BottomNav from '@/components/BottomNav'
 
 interface GrupetaUser {
@@ -79,8 +80,7 @@ export default function MisGruposPage() {
 
       // Buscar por teléfono (campo principal). Si el localStorage es antiguo
       // y no tiene phone, caer a email como fallback.
-      const rawPhone = user!.phone || ''
-      const phone = rawPhone.replace(/[\s\-\.]/g, '').replace(/^\+34/, '')
+      const phone = normalizePhone(user!.phone || '')
       const query = supabase.from('users').select('id')
       const { data: userData, error: userError } = await (
         phone
