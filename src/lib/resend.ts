@@ -51,3 +51,13 @@ export async function sendPaymentInstructions(params: SendPaymentParams) {
   const resend = getResend()
   return resend.emails.send({ from: FROM, to, subject, html, text })
 }
+
+// Alerta interna de operaciones (p.ej. fallos del cron de cierre). Email plano,
+// sin plantilla: lo lee el equipo, no un cliente. Reutiliza cliente y remitente.
+export async function sendAdminAlert(subject: string, text: string) {
+  const to = process.env.ADMIN_EMAIL
+  if (!to) throw new Error('ADMIN_EMAIL no configurada en el servidor')
+
+  const resend = getResend()
+  return resend.emails.send({ from: FROM, to, subject, text })
+}
