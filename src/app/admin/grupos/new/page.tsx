@@ -29,7 +29,7 @@ export default function NewGroupPage() {
     pvp: '',
     closes_date: nextSundayDate(),
     seller_name: '',
-    price_mode: 'fluid' as 'fluid' | 'stepped',
+    price_mode: 'stepped' as 'fluid' | 'stepped',
     min_execution: 5,
     max_stock: 50,
     payment_info: '',
