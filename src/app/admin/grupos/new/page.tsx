@@ -26,6 +26,7 @@ export default function NewGroupPage() {
     product_spec: '',
     product_url: '',
     image_url: '',
+    pvp: '',
     closes_date: nextSundayDate(),
     seller_name: '',
     price_mode: 'fluid' as 'fluid' | 'stepped',
@@ -134,6 +135,20 @@ export default function NewGroupPage() {
                 disabled={loading}
                 className={inputCls}
               />
+            </div>
+            <div>
+              <label className={labelCls}>PVP precio de tienda (opcional)</label>
+              <input
+                type="number"
+                min={0}
+                step={0.01}
+                value={fields.pvp}
+                onChange={e => setField('pvp', e.target.value)}
+                placeholder="54.95"
+                disabled={loading}
+                className={inputCls}
+              />
+              <p className="text-xs text-gray-400 mt-1">Muestra el descuento en la tarjeta del grupo</p>
             </div>
             <div>
               <label className={labelCls}>Fecha de cierre *</label>

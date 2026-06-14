@@ -44,7 +44,7 @@ export default async function AdminGroupDetailPage({ params }: { params: { id: s
   const [{ data: group }, { data: members }, { data: bids }] = await Promise.all([
     supabaseAdmin
       .from('groups')
-      .select('id, product_name, product_spec, product_url, image_url, status, closes_at, current_price, total_units')
+      .select('id, product_name, product_spec, product_url, image_url, pvp, status, closes_at, current_price, total_units')
       .eq('id', id)
       .single(),
     supabaseAdmin
@@ -109,6 +109,7 @@ export default async function AdminGroupDetailPage({ params }: { params: { id: s
           product_spec: (group as any).product_spec ?? '',
           product_url: (group as any).product_url ?? '',
           image_url: (group as any).image_url ?? '',
+          pvp: (group as any).pvp != null ? String((group as any).pvp) : '',
           closes_date: group.closes_at ? group.closes_at.slice(0, 10) : '',
         }}
       />

@@ -10,6 +10,7 @@ interface Props {
     product_spec: string
     product_url: string
     image_url: string
+    pvp: string
     closes_date: string  // YYYY-MM-DD
   }
 }
@@ -103,6 +104,21 @@ export default function EditGroupForm({ groupId, initial }: Props) {
                 disabled={loading}
                 className={inputCls}
               />
+            </div>
+
+            <div>
+              <label className={labelCls}>PVP precio de tienda (opcional)</label>
+              <input
+                type="number"
+                min={0}
+                step={0.01}
+                value={fields.pvp}
+                onChange={e => setField('pvp', e.target.value)}
+                placeholder="54.95"
+                disabled={loading}
+                className={inputCls}
+              />
+              <p className="text-xs text-gray-400 mt-1">Muestra el descuento en la tarjeta del grupo</p>
             </div>
 
             <div className="col-span-2 sm:col-span-1">

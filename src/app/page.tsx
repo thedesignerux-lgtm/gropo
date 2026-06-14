@@ -44,7 +44,7 @@ async function fetchGroups(): Promise<GroupProduct[]> {
       id: row.id as string,
       name: row.product_name as string,
       variant: (row.product_spec ?? '') as string,
-      pvp: Number(row.pvp ?? 0),
+      pvp: row.pvp != null ? Number(row.pvp) : 0,
       currentUnits: Number(row.total_units ?? 0),
       priceMode: 'stepped' as const,
       tiers,

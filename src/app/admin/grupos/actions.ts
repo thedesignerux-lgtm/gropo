@@ -13,6 +13,7 @@ export interface CreateGroupInput {
   product_spec: string
   product_url: string
   image_url: string
+  pvp: string  // string vacío → null en BD; número → guardado como decimal
   closes_at: string
   seller_name: string
   price_mode: 'fluid' | 'stepped'
@@ -28,7 +29,7 @@ function sellerEmail(name: string): string {
 }
 
 export async function createGroup(input: CreateGroupInput): Promise<{ error?: string }> {
-  const { product_name, product_spec, product_url, image_url, closes_at, seller_name, price_mode, min_execution, max_stock, payment_info, tiers } = input
+  const { product_name, product_spec, product_url, image_url, pvp, closes_at, seller_name, price_mode, min_execution, max_stock, payment_info, tiers } = input
 
   // Validations
   if (!product_name.trim()) return { error: 'El nombre del producto es obligatorio' }
@@ -68,6 +69,7 @@ export async function createGroup(input: CreateGroupInput): Promise<{ error?: st
       product_spec: product_spec.trim() || null,
       product_url: product_url.trim() || null,
       image_url: image_url.trim() || null,
+      pvp: pvp.trim() ? Number(pvp.trim()) : null,
       closes_at: new Date(closes_at).toISOString(),
       status: 'open',
       total_units: 0,

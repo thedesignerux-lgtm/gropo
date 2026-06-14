@@ -49,6 +49,7 @@ export interface UpdateGroupInput {
   product_spec: string
   product_url: string
   image_url: string
+  pvp: string  // string vacío → null en BD; número → guardado como decimal
   closes_date: string  // YYYY-MM-DD; se guarda como 20:00 UTC (= 22:00 Madrid CEST)
 }
 
@@ -56,7 +57,7 @@ export async function updateGroup(
   groupId: string,
   input: UpdateGroupInput,
 ): Promise<{ error?: string }> {
-  const { product_name, product_spec, product_url, image_url, closes_date } = input
+  const { product_name, product_spec, product_url, image_url, pvp, closes_date } = input
 
   if (!product_name.trim()) return { error: 'El nombre del producto es obligatorio' }
   if (!closes_date) return { error: 'La fecha de cierre es obligatoria' }
@@ -70,6 +71,7 @@ export async function updateGroup(
       product_spec: product_spec.trim() || null,
       product_url: product_url.trim() || null,
       image_url: image_url.trim() || null,
+      pvp: pvp.trim() ? Number(pvp.trim()) : null,
       closes_at: new Date(closes_at).toISOString(),
     })
     .eq('id', groupId)
