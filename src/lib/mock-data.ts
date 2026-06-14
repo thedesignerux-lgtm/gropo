@@ -11,6 +11,7 @@ export interface GroupProduct {
   currentUnits: number
   priceMode: 'stepped'
   tiers: Tier[]
+  imageUrl?: string
 }
 
 export interface StepPricingResult {

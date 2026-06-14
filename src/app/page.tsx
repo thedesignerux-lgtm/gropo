@@ -15,6 +15,7 @@ async function fetchGroups(): Promise<GroupProduct[]> {
       product_spec,
       total_units,
       pvp,
+      image_url,
       bids (
         tiers,
         price_mode
@@ -47,6 +48,7 @@ async function fetchGroups(): Promise<GroupProduct[]> {
       currentUnits: Number(row.total_units ?? 0),
       priceMode: 'stepped' as const,
       tiers,
+      imageUrl: (row.image_url as string | null) ?? undefined,
     }]
   })
 }
