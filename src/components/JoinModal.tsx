@@ -63,6 +63,11 @@ export default function JoinModal({ groupId, productName, triggerClassName, onJo
       return
     }
 
+    // Guardar identidad en localStorage para que Mis Grupos pueda identificar al usuario.
+    try {
+      localStorage.setItem('grupeta_user', JSON.stringify({ email: form.email.trim(), name: form.nombre.trim() }))
+    } catch {}
+
     // Email de confirmación — best-effort, NO bloquea la unión.
     // Sin await, sin mirar la respuesta, y traga cualquier fallo de red.
     fetch('/api/email/join', {
