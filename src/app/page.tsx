@@ -21,7 +21,7 @@ async function fetchGroups(): Promise<GroupProduct[]> {
         price_mode
       )
     `)
-    .neq('status', 'cancelled')
+    .eq('status', 'open')
     .order('created_at', { ascending: false })
 
   if (error) {
