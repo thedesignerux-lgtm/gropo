@@ -44,6 +44,42 @@ export async function closeGroup(
   return { data: result }
 }
 
+export interface UpdateGroupInput {
+  product_name: string
+  product_spec: string
+  product_url: string
+  image_url: string
+  closes_date: string  // YYYY-MM-DD; se guarda como 20:00 UTC (= 22:00 Madrid CEST)
+}
+
+export async function updateGroup(
+  groupId: string,
+  input: UpdateGroupInput,
+): Promise<{ error?: string }> {
+  const { product_name, product_spec, product_url, image_url, closes_date } = input
+
+  if (!product_name.trim()) return { error: 'El nombre del producto es obligatorio' }
+  if (!closes_date) return { error: 'La fecha de cierre es obligatoria' }
+
+  const closes_at = `${closes_date}T20:00:00+00:00`
+
+  const { error } = await supabaseAdmin
+    .from('groups')
+    .update({
+      product_name: product_name.trim(),
+      product_spec: product_spec.trim() || null,
+      product_url: product_url.trim() || null,
+      image_url: image_url.trim() || null,
+      closes_at: new Date(closes_at).toISOString(),
+    })
+    .eq('id', groupId)
+
+  if (error) return { error: error.message }
+
+  revalidatePath(`/admin/grupos/${groupId}`)
+  return {}
+}
+
 export async function updatePaymentStatus(memberId: string, groupId: string) {
   const { data: member } = await supabaseAdmin
     .from('group_members')
