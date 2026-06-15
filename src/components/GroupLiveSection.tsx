@@ -24,8 +24,22 @@ function TierBar({ milestones, totalUnits }: { milestones: Milestone[]; totalUni
   let currentIndex = -1
   milestones.forEach((m, i) => { if (totalUnits >= m.units) currentIndex = i })
 
+  // Progreso 0 → min_execution (units del primer hito). Ancho fijo pequeño que
+  // se rellena con total_units/min_execution; lleno justo al activarse.
+  const activationFrac = milestones.length > 0 && milestones[0].units > 0
+    ? Math.min(1, totalUnits / milestones[0].units)
+    : 1
+
   return (
     <div className="flex items-center w-full">
+      {milestones.length > 0 && (
+        <div className="h-[3px] bg-gray-200 rounded-full overflow-hidden flex-shrink-0" style={{ width: 20 }}>
+          <div
+            className="h-full bg-brand rounded-full"
+            style={{ width: `${activationFrac * 100}%`, transition: 'width 300ms ease' }}
+          />
+        </div>
+      )}
       {milestones.map((m, i) => {
         const reached = totalUnits >= m.units
         const isCurrent = i === currentIndex
@@ -201,20 +215,27 @@ export default function GroupLiveSection({
 
         {/* Price + badge + PVP */}
         <div style={{ marginBottom: 6 }}>
+          {!activated && (
+            <p className="text-xs font-medium text-neutral-500" style={{ marginBottom: 2 }}>
+              {`Precio del grupo al activarse (${minExecution} uds)`}
+            </p>
+          )}
           <div className="flex items-center justify-between gap-2" style={{ marginBottom: 2 }}>
             <span
-              className="text-3xl font-bold text-teal-700 leading-none"
+              className={`text-3xl font-bold leading-none ${activated ? 'text-teal-700' : 'text-neutral-900'}`}
               style={{ transition: 'all 300ms ease' }}
             >
               {fmt(bestPrice)}
             </span>
             {savings > 0.01 && (
-              <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs font-semibold px-3.5 py-2 rounded-full flex-shrink-0">
+              <span className={`inline-flex items-center gap-1 text-xs font-semibold px-3.5 py-2 rounded-full flex-shrink-0 ${
+                activated ? 'bg-green-50 text-green-700' : 'bg-neutral-100 text-neutral-600'
+              }`}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
                   <line x1="7" y1="7" x2="7.01" y2="7"/>
                 </svg>
-                Ahorras {fmt(savings)} vs PVP
+                {`${activated ? 'Ahorras' : 'Ahorrarás'} ${fmt(savings)}`}
               </span>
             )}
           </div>
