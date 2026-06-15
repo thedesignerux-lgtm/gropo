@@ -11,6 +11,7 @@ export interface GroupProduct {
   currentUnits: number
   priceMode: 'stepped'
   tiers: Tier[]
+  minExecution: number
   imageUrl?: string
 }
 
@@ -36,61 +37,35 @@ export function getStepPricing(tiers: Tier[], currentUnits: number): StepPricing
   }
 }
 
-export const groupProducts: GroupProduct[] = [
-  {
-    id: 'continental-gp5000',
-    name: 'Cubierta Continental GP5000',
-    variant: '700×25 · Carretera',
-    pvp: 54.95,
-    currentUnits: 14,
-    priceMode: 'stepped',
-    tiers: [
-      { minUnits: 1,  price: 48.90 },
-      { minUnits: 6,  price: 44.90 },
-      { minUnits: 10, price: 41.90 },
-      { minUnits: 15, price: 38.90 },
-      { minUnits: 20, price: 36.50 },
-    ],
-  },
-  {
-    id: 'shimano-105-pd-r7000',
-    name: 'Pedales Shimano 105 PD-R7000',
-    variant: 'Carretera · Calas incluidas',
-    pvp: 114.95,
-    currentUnits: 18,
-    priceMode: 'stepped',
-    tiers: [
-      { minUnits: 1,  price: 104.90 },
-      { minUnits: 8,  price: 97.90  },
-      { minUnits: 15, price: 89.90  },
-      { minUnits: 30, price: 79.00  },
-    ],
-  },
-  {
-    id: 'giro-agilis-mips',
-    name: 'Casco Giro Agilis MIPS',
-    variant: 'Carretera · Ventilado',
-    pvp: 105.00,
-    currentUnits: 12,
-    priceMode: 'stepped',
-    tiers: [
-      { minUnits: 1,  price: 94.90 },
-      { minUnits: 6,  price: 86.90 },
-      { minUnits: 12, price: 79.90 },
-      { minUnits: 20, price: 69.00 },
-    ],
-  },
-  {
-    id: 'garmin-varia-rtl515',
-    name: 'Luz trasera Garmin Varia RTL515',
-    variant: 'Radar · 65 lúmenes',
-    pvp: 174.90,
-    currentUnits: 7,
-    priceMode: 'stepped',
-    tiers: [
-      { minUnits: 1,  price: 159.90 },
-      { minUnits: 8,  price: 149.90 },
-      { minUnits: 15, price: 139.90 },
-    ],
-  },
-]
+export interface Milestone {
+  units: number
+  price: number
+}
+
+// Hitos de la barra: el primero es la ACTIVACIÓN (min_execution unidades al
+// precio del tramo 1); el resto, las bajadas de precio de los tramos siguientes.
+export function getMilestones(tiers: Tier[], minExecution: number): Milestone[] {
+  if (tiers.length === 0) return []
+  return [
+    { units: minExecution, price: tiers[0].price },
+    ...tiers.slice(1).map(t => ({ units: t.minUnits, price: t.price })),
+  ]
+}
+
+export interface ActivationState {
+  activated: boolean
+  unitsToActivate: number
+  nextTier: Tier | null
+  unitsToNext: number
+}
+
+// Estado de activación + siguiente tramo, compartido entre la ficha y la tarjeta.
+export function getActivationState(tiers: Tier[], totalUnits: number, minExecution: number): ActivationState {
+  const step = tiers.length > 0 ? getStepPricing(tiers, totalUnits) : null
+  return {
+    activated: totalUnits >= minExecution,
+    unitsToActivate: Math.max(0, minExecution - totalUnits),
+    nextTier: step?.nextTier ?? null,
+    unitsToNext: step?.unitsToNext ?? 0,
+  }
+}

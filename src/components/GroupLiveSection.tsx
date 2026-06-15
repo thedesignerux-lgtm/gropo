@@ -2,19 +2,14 @@
 
 import { useState, useEffect, useRef, Fragment } from 'react'
 import { supabase } from '@/lib/supabase'
-import { getStepPricing } from '@/lib/mock-data'
-import type { Tier } from '@/lib/mock-data'
+import { getActivationState, getMilestones } from '@/lib/mock-data'
+import type { Tier, Milestone } from '@/lib/mock-data'
 import GroupCountdown from './GroupCountdown'
 import JoinModal from './JoinModal'
 
 function fmt(n: number | undefined | null): string {
   if (n === undefined || n === null) return '—'
   return (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
-}
-
-interface Milestone {
-  units: number
-  price: number
 }
 
 // El relleno refleja total_units sobre el eje de unidades: un hito se ilumina
@@ -174,25 +169,14 @@ export default function GroupLiveSection({
   }
 
   const savings = pvp > 0 ? pvp - bestPrice : 0
-  const pricing = tiers.length > 0 ? getStepPricing(tiers, totalUnits) : null
-  // Siguiente tramo = primer tier con min_units > unidades actuales (lo calcula
-  // getStepPricing desde el mismo array que el slider). Si no hay, no hay bajada.
-  const nextTier = pricing?.nextTier ?? null
-  const unitsToNext = pricing?.unitsToNext ?? 0
-
-  // Hitos de la barra: el primero es la ACTIVACIÓN (min_execution unidades al
-  // precio del tramo 1); el resto son las bajadas de precio de los tramos.
-  const milestones: Milestone[] = tiers.length > 0
-    ? [{ units: minExecution, price: tiers[0].price }, ...tiers.slice(1).map(t => ({ units: t.minUnits, price: t.price }))]
-    : []
+  const { activated, unitsToActivate, nextTier, unitsToNext } = getActivationState(tiers, totalUnits, minExecution)
+  const milestones: Milestone[] = getMilestones(tiers, minExecution)
 
   // Mensaje naranja según el estado del grupo.
-  const activated = totalUnits >= minExecution
   let progressMsg: string | null = null
   if (tiers.length > 0) {
     if (!activated) {
-      const left = minExecution - totalUnits
-      progressMsg = `Falta${left === 1 ? '' : 'n'} ${left} para activar el grupo a ${fmt(tiers[0].price)}`
+      progressMsg = `Falta${unitsToActivate === 1 ? '' : 'n'} ${unitsToActivate} para activar el grupo a ${fmt(tiers[0].price)}`
     } else if (nextTier) {
       progressMsg = `Falta${unitsToNext === 1 ? '' : 'n'} ${unitsToNext} para bajar a ${fmt(nextTier.price)}`
     }

@@ -18,7 +18,8 @@ async function fetchGroups(): Promise<GroupProduct[]> {
       image_url,
       bids (
         tiers,
-        price_mode
+        price_mode,
+        min_execution
       )
     `)
     .eq('status', 'open')
@@ -48,6 +49,7 @@ async function fetchGroups(): Promise<GroupProduct[]> {
       currentUnits: Number(row.total_units ?? 0),
       priceMode: 'stepped' as const,
       tiers,
+      minExecution: Number(bid.min_execution ?? 0),
       imageUrl: (row.image_url as string | null) ?? undefined,
     }]
   })

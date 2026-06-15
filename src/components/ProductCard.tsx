@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import type { GroupProduct } from '@/lib/mock-data'
-import { getStepPricing } from '@/lib/mock-data'
+import { getStepPricing, getActivationState, getMilestones } from '@/lib/mock-data'
 
 function fmt(price: number): string {
   return price.toFixed(2).replace('.', ',') + ' €'
@@ -10,16 +10,20 @@ function fmtSmart(price: number): string {
   return (price % 1 === 0 ? String(price) : price.toFixed(2).replace('.', ',')) + ' €'
 }
 
-function hookText(unitsToNext: number): string {
-  return unitsToNext <= 3 ? `🔥 Solo ${unitsToNext} más` : `Faltan ${unitsToNext} uds`
-}
-
 export default function ProductCard({ product }: { product: GroupProduct }) {
-  const { currentPrice, currentTierMinUnits, nextTier, unitsToNext } =
-    getStepPricing(product.tiers, product.currentUnits)
+  const { currentPrice } = getStepPricing(product.tiers, product.currentUnits)
+  // Misma lógica de activación/siguiente-tramo que la ficha (helpers compartidos).
+  const { activated, unitsToActivate, nextTier, unitsToNext } =
+    getActivationState(product.tiers, product.currentUnits, product.minExecution)
+  const milestones = getMilestones(product.tiers, product.minExecution)
 
   const discount = Math.round(((product.pvp - currentPrice) / product.pvp) * 100)
-  const currentTierIndex = product.tiers.findIndex(t => t.minUnits === currentTierMinUnits)
+
+  // Denominador del contador: hacia la activación si aún no está activado;
+  // si lo está, hacia el siguiente tramo.
+  const progressTarget = !activated
+    ? product.minExecution
+    : nextTier ? nextTier.minUnits : product.currentUnits
 
   return (
     <Link
@@ -71,7 +75,7 @@ export default function ProductCard({ product }: { product: GroupProduct }) {
             <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
             <path d="M16 3.13a4 4 0 0 1 0 7.75" />
           </svg>
-          {product.currentUnits}&nbsp;/&nbsp;{nextTier ? nextTier.minUnits : product.currentUnits}&nbsp;uds
+          {product.currentUnits}&nbsp;/&nbsp;{progressTarget}&nbsp;uds
         </div>
 
         {/* Discount badge — top-right (solo si hay PVP real) */}
@@ -92,7 +96,7 @@ export default function ProductCard({ product }: { product: GroupProduct }) {
 
         {/* Price row */}
         <div className="flex items-baseline gap-1.5 flex-wrap">
-          <span className="text-base font-bold text-brand">{fmt(currentPrice)}</span>
+          <span className={`text-base font-bold ${activated ? 'text-brand' : 'text-gray-900'}`}>{fmt(currentPrice)}</span>
           {product.pvp > 0 && (
             <span className="text-[11px] text-gray-400 line-through">{fmt(product.pvp)}</span>
           )}
@@ -101,26 +105,24 @@ export default function ProductCard({ product }: { product: GroupProduct }) {
         {/* Segmented tier progress bar */}
         <div className="space-y-1.5">
           <div className="flex h-2 rounded-full overflow-hidden gap-px bg-white">
-            {product.tiers.map((tier, i) => {
-              const isCompleted = i < currentTierIndex
-              const isCurrent = i === currentTierIndex
-              const fillPct = isCurrent
-                ? nextTier
-                  ? ((product.currentUnits - currentTierMinUnits) /
-                      (nextTier.minUnits - currentTierMinUnits)) * 100
-                  : 100
-                : 0
-              const bg = isCompleted
+            {milestones.map((m, i) => {
+              // Cada segmento va del hito anterior (0 para el primero) a este.
+              const start = i === 0 ? 0 : milestones[i - 1].units
+              const span = m.units - start
+              const fillPct = span > 0
+                ? Math.max(0, Math.min(1, (product.currentUnits - start) / span)) * 100
+                : (product.currentUnits >= m.units ? 100 : 0)
+              const bg = fillPct >= 100
                 ? '#1D9E75'
-                : isCurrent
+                : fillPct > 0
                 ? `linear-gradient(to right, #1D9E75 ${fillPct}%, rgba(29,158,117,0.12) ${fillPct}%)`
                 : '#E5E7EB'
-              return <div key={tier.minUnits} className="flex-1" style={{ background: bg }} />
+              return <div key={m.units} className="flex-1" style={{ background: bg }} />
             })}
           </div>
           <div className="flex justify-end text-[10px] text-gray-400">
             <span>
-              {product.currentUnits}&nbsp;/&nbsp;{nextTier ? nextTier.minUnits : product.currentUnits}&nbsp;uds
+              {product.currentUnits}&nbsp;/&nbsp;{progressTarget}&nbsp;uds
             </span>
           </div>
         </div>
@@ -143,7 +145,9 @@ export default function ProductCard({ product }: { product: GroupProduct }) {
           </svg>
           <div className="flex flex-col gap-0.5">
             <span className="text-[11px] text-brand font-semibold leading-tight">
-              {nextTier
+              {!activated
+                ? `${unitsToActivate} más → se activa a ${fmtSmart(product.tiers[0].price)}`
+                : nextTier
                 ? `${unitsToNext} más → ${fmtSmart(nextTier.price)}`
                 : '¡Precio mínimo alcanzado!'}
             </span>
