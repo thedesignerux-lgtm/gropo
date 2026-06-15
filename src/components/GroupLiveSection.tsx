@@ -12,28 +12,39 @@ function fmt(n: number | undefined | null): string {
   return (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
 }
 
-function TierBar({ tiers, currentTierIndex }: { tiers: Tier[]; currentTierIndex: number }) {
+interface Milestone {
+  units: number
+  price: number
+}
+
+// El relleno refleja total_units sobre el eje de unidades: un hito se ilumina
+// (verde) cuando total_units alcanza su umbral de unidades, NO según el tramo
+// de precio. Con total_units = 0 ningún hito está alcanzado.
+function TierBar({ milestones, totalUnits }: { milestones: Milestone[]; totalUnits: number }) {
+  let currentIndex = -1
+  milestones.forEach((m, i) => { if (totalUnits >= m.units) currentIndex = i })
+
   return (
     <div className="flex items-center w-full">
-      {tiers.map((tier, i) => {
-        const isCurrent = i === currentTierIndex
-        const isPast = i < currentTierIndex
+      {milestones.map((m, i) => {
+        const reached = totalUnits >= m.units
+        const isCurrent = i === currentIndex
         return (
-          <Fragment key={tier.minUnits}>
+          <Fragment key={m.units}>
             {i > 0 && (
-              <div className={`flex-1 h-[3px] ${i <= currentTierIndex ? 'bg-brand' : 'bg-gray-200'}`} />
+              <div className={`flex-1 h-[3px] ${reached ? 'bg-brand' : 'bg-gray-200'}`} />
             )}
             <div className="flex flex-col items-center">
               <span className={`text-xs font-semibold leading-none mb-1.5 whitespace-nowrap ${
                 isCurrent ? 'text-teal-700' : 'text-neutral-900'
               }`}>
-                {tier.price % 1 === 0 ? tier.price : tier.price.toFixed(2).replace('.', ',')}€
+                {m.price % 1 === 0 ? m.price : m.price.toFixed(2).replace('.', ',')}€
               </span>
               <div className={`w-4 h-4 rounded-full border-2 ${
-                isCurrent ? 'bg-brand border-brand' : isPast ? 'bg-white border-brand' : 'bg-white border-gray-300'
+                reached ? 'bg-brand border-brand' : 'bg-white border-gray-300'
               }`} />
               <span className="text-xs font-normal text-neutral-400 leading-none mt-1.5 whitespace-nowrap">
-                {tier.minUnits}uds
+                {m.units}uds
               </span>
             </div>
           </Fragment>
@@ -60,13 +71,14 @@ interface Props {
   bidCount: number
   tiers: Tier[]
   maxStock: number
+  minExecution: number
   closesAt: string
 }
 
 export default function GroupLiveSection({
   groupId, name, spec, pvp,
   initialBestPrice, initialTotalUnits,
-  bidCount, tiers, maxStock, closesAt,
+  bidCount, tiers, maxStock, minExecution, closesAt,
 }: Props) {
   const [bestPrice, setBestPrice] = useState(initialBestPrice)
   const [totalUnits, setTotalUnits] = useState(initialTotalUnits)
@@ -149,11 +161,28 @@ export default function GroupLiveSection({
 
   const savings = pvp > 0 ? pvp - bestPrice : 0
   const pricing = tiers.length > 0 ? getStepPricing(tiers, totalUnits) : null
-  const currentTierIndex = pricing ? tiers.findIndex(t => t.minUnits === pricing.currentTierMinUnits) : -1
   // Siguiente tramo = primer tier con min_units > unidades actuales (lo calcula
   // getStepPricing desde el mismo array que el slider). Si no hay, no hay bajada.
   const nextTier = pricing?.nextTier ?? null
   const unitsToNext = pricing?.unitsToNext ?? 0
+
+  // Hitos de la barra: el primero es la ACTIVACIÓN (min_execution unidades al
+  // precio del tramo 1); el resto son las bajadas de precio de los tramos.
+  const milestones: Milestone[] = tiers.length > 0
+    ? [{ units: minExecution, price: tiers[0].price }, ...tiers.slice(1).map(t => ({ units: t.minUnits, price: t.price }))]
+    : []
+
+  // Mensaje naranja según el estado del grupo.
+  const activated = totalUnits >= minExecution
+  let progressMsg: string | null = null
+  if (tiers.length > 0) {
+    if (!activated) {
+      const left = minExecution - totalUnits
+      progressMsg = `Falta${left === 1 ? '' : 'n'} ${left} para activar el grupo a ${fmt(tiers[0].price)}`
+    } else if (nextTier) {
+      progressMsg = `Falta${unitsToNext === 1 ? '' : 'n'} ${unitsToNext} para bajar a ${fmt(nextTier.price)}`
+    }
+  }
 
   return (
     <>
@@ -195,21 +224,19 @@ export default function GroupLiveSection({
         </div>
 
         {/* Tier bar */}
-        {tiers.length >= 2 && (
+        {milestones.length >= 2 && (
           <div style={{ marginBottom: 6 }}>
             <p className="text-xs font-semibold uppercase text-neutral-400 tracking-widest" style={{ marginBottom: 6 }}>
               Tramos de precio
             </p>
-            <TierBar tiers={tiers} currentTierIndex={currentTierIndex} />
+            <TierBar milestones={milestones} totalUnits={totalUnits} />
           </div>
         )}
 
         {/* Orange box */}
-        {nextTier && (
+        {progressMsg && (
           <div className="bg-[#FFF3ED] rounded-xl" style={{ marginBottom: 6, padding: '6px 12px' }}>
-            <p className="text-sm font-normal text-orange-600">
-              {`Nos falta${unitsToNext === 1 ? '' : 'n'} ${unitsToNext} para bajar a ${fmt(nextTier.price)}`}
-            </p>
+            <p className="text-sm font-normal text-orange-600">{progressMsg}</p>
           </div>
         )}
 

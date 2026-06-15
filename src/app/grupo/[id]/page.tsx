@@ -38,6 +38,7 @@ async function fetchGroup(id: string) {
     price: Number(t.price),
   }))
   const maxStock = Number((bid as any)?.max_stock ?? 0)
+  const minExecution = Number((bid as any)?.min_execution ?? 0)
 
   return {
     id: group.id as string,
@@ -52,6 +53,7 @@ async function fetchGroup(id: string) {
     bidCount: bidCount ?? 0,
     tiers,
     maxStock,
+    minExecution,
   }
 }
 
@@ -121,6 +123,7 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
           bidCount={group.bidCount}
           tiers={group.tiers}
           maxStock={group.maxStock}
+          minExecution={group.minExecution}
           closesAt={group.closesAt}
         />
 
