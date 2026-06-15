@@ -146,7 +146,7 @@ export default function ProductCard({ product }: { product: GroupProduct }) {
           <div className="flex flex-col gap-0.5">
             <span className="text-[11px] text-brand font-semibold leading-tight">
               {!activated
-                ? `${unitsToActivate} más → se activa a ${fmtSmart(product.tiers[0].price)}`
+                ? `Faltan ${unitsToActivate} para ${fmtSmart(product.tiers[0].price)}`
                 : nextTier
                 ? `${unitsToNext} más → ${fmtSmart(nextTier.price)}`
                 : '¡Precio mínimo alcanzado!'}
