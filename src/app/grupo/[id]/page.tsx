@@ -117,7 +117,6 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
           spec={group.spec}
           pvp={group.pvp}
           initialBestPrice={group.bestPrice}
-          initialNextPrice={group.nextPrice}
           initialTotalUnits={group.totalUnits}
           bidCount={group.bidCount}
           tiers={group.tiers}

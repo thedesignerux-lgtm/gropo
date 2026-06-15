@@ -27,7 +27,7 @@ function TierBar({ tiers, currentTierIndex }: { tiers: Tier[]; currentTierIndex:
               <span className={`text-xs font-semibold leading-none mb-1.5 whitespace-nowrap ${
                 isCurrent ? 'text-teal-700' : 'text-neutral-900'
               }`}>
-                {Math.round(tier.price)}€
+                {tier.price % 1 === 0 ? tier.price : tier.price.toFixed(2).replace('.', ',')}€
               </span>
               <div className={`w-4 h-4 rounded-full border-2 ${
                 isCurrent ? 'bg-brand border-brand' : isPast ? 'bg-white border-brand' : 'bg-white border-gray-300'
@@ -56,7 +56,6 @@ interface Props {
   spec: string
   pvp: number
   initialBestPrice: number
-  initialNextPrice: number
   initialTotalUnits: number
   bidCount: number
   tiers: Tier[]
@@ -66,11 +65,10 @@ interface Props {
 
 export default function GroupLiveSection({
   groupId, name, spec, pvp,
-  initialBestPrice, initialNextPrice, initialTotalUnits,
+  initialBestPrice, initialTotalUnits,
   bidCount, tiers, maxStock, closesAt,
 }: Props) {
   const [bestPrice, setBestPrice] = useState(initialBestPrice)
-  const [nextPrice, setNextPrice] = useState(initialNextPrice)
   const [totalUnits, setTotalUnits] = useState(initialTotalUnits)
   const [toast, setToast] = useState<string | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout>>()
@@ -102,14 +100,9 @@ export default function GroupLiveSection({
         row?.best_price != null ? Number(row.best_price)
         : g?.current_price != null ? Number(g.current_price)
         : null
-      const next =
-        row?.next_price != null ? Number(row.next_price)
-        : (g as any)?.next_price != null ? Number((g as any).next_price)
-        : null
 
       if (g?.total_units != null) setTotalUnits(Number(g.total_units))
       if (best != null) setBestPrice(best)
-      if (next != null) setNextPrice(next)
     }
 
     // 1) al montar
@@ -132,7 +125,6 @@ export default function GroupLiveSection({
             const newBest: number = eventData.payload.new_price
             setBestPrice(newBest)
             setTotalUnits(eventData.payload.total_units)
-            setNextPrice(eventData.payload.next_price ?? newBest)
           }
         }
       )
@@ -151,16 +143,16 @@ export default function GroupLiveSection({
 
   function handleJoined(result: JoinResult) {
     setBestPrice(result.new_price)
-    setNextPrice(result.next_price ?? result.new_price)
     setTotalUnits(result.new_total_units)
     showToast(`¡Dentro! Precio actual: ${fmt(result.new_price)} · Somos ${result.new_total_units} uds`)
   }
 
   const savings = pvp > 0 ? pvp - bestPrice : 0
-  const priceDrop = nextPrice < bestPrice
   const pricing = tiers.length > 0 ? getStepPricing(tiers, totalUnits) : null
   const currentTierIndex = pricing ? tiers.findIndex(t => t.minUnits === pricing.currentTierMinUnits) : -1
-  const hasNextTier = pricing?.nextTier != null
+  // Siguiente tramo = primer tier con min_units > unidades actuales (lo calcula
+  // getStepPricing desde el mismo array que el slider). Si no hay, no hay bajada.
+  const nextTier = pricing?.nextTier ?? null
   const unitsToNext = pricing?.unitsToNext ?? 0
 
   return (
@@ -213,10 +205,10 @@ export default function GroupLiveSection({
         )}
 
         {/* Orange box */}
-        {(priceDrop || hasNextTier) && (
+        {nextTier && (
           <div className="bg-[#FFF3ED] rounded-xl" style={{ marginBottom: 6, padding: '6px 12px' }}>
             <p className="text-sm font-normal text-orange-600">
-              {`Nos falta ${unitsToNext} para bajar a ${fmt(nextPrice)}`}
+              {`Nos falta${unitsToNext === 1 ? '' : 'n'} ${unitsToNext} para bajar a ${fmt(nextTier.price)}`}
             </p>
           </div>
         )}
