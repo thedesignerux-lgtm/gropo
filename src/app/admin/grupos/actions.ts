@@ -242,5 +242,8 @@ export async function addBidToGroup(
 
   revalidatePath(`/admin/grupos/${groupId}`)
   revalidatePath('/admin')
+  // El grupo pasa a tener puja → debe aparecer/actualizarse en las páginas públicas.
+  revalidatePath('/')
+  revalidatePath(`/grupo/${groupId}`)
   return {}
 }

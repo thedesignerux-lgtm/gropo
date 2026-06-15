@@ -83,6 +83,37 @@ export default function GroupLiveSection({
 
   useEffect(() => {
     console.log('GroupLiveSection montado, groupId:', groupId)
+    let cancelled = false
+
+    // Re-consulta el estado ACTUAL del grupo (total_units de la tabla +
+    // precio vía compute_price) y pisa los props initial* del SSR. Así la
+    // pantalla se autocorrige aunque el HTML inicial haya llegado rancio.
+    async function syncFromServer() {
+      const { data: g } = await supabase
+        .from('groups')
+        .select('total_units, current_price, next_price')
+        .eq('id', groupId)
+        .single()
+      const { data: rpc } = await supabase.rpc('compute_price', { p_group_id: groupId })
+      if (cancelled) return
+
+      const row = Array.isArray(rpc) ? rpc[0] : (rpc as any)
+      const best =
+        row?.best_price != null ? Number(row.best_price)
+        : g?.current_price != null ? Number(g.current_price)
+        : null
+      const next =
+        row?.next_price != null ? Number(row.next_price)
+        : (g as any)?.next_price != null ? Number((g as any).next_price)
+        : null
+
+      if (g?.total_units != null) setTotalUnits(Number(g.total_units))
+      if (best != null) setBestPrice(best)
+      if (next != null) setNextPrice(next)
+    }
+
+    // 1) al montar
+    syncFromServer()
 
     const channel = supabase
       .channel(`group-${groupId}`)
@@ -107,9 +138,15 @@ export default function GroupLiveSection({
       )
       .subscribe((status) => {
         console.log('Realtime status:', status)
+        // 2) en cada (re)conexión del canal, re-sincroniza por si el socket
+        // estuvo caído y nos perdimos eventos INSERT.
+        if (status === 'SUBSCRIBED') syncFromServer()
       })
 
-    return () => { supabase.removeChannel(channel) }
+    return () => {
+      cancelled = true
+      supabase.removeChannel(channel)
+    }
   }, [groupId, tiers])
 
   function handleJoined(result: JoinResult) {
