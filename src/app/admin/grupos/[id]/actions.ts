@@ -3,6 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { sendClosePaymentEmails } from '@/lib/emails/sendClose'
+import { captureGroupPayments } from '@/lib/stripe-capture'
+import { sendAdminAlert } from '@/lib/resend'
 
 const PAYMENT_CYCLE: Record<string, string> = {
   pending:    'instructed',
@@ -27,6 +29,31 @@ export async function closeGroup(
   if (error) return { error: error.message }
 
   const result = data as CloseResult
+
+  // CAPTURA AL CIERRE (Bloque 2.5) — BLINDADA: el cierre ya está cometido en la
+  // BD; mover el dinero en Stripe va después y por miembro, así que un fallo
+  // puntual NO revierte el cierre. Cobra a los adjudicados (final_price×qty) y
+  // libera los holds de las vondas canceladas. Idempotente.
+  try {
+    const cap = await captureGroupPayments(groupId)
+    console.log(`[closeGroup] captura ${groupId}:`, JSON.stringify(cap))
+    if (cap.failed.length > 0) {
+      // Captura fallida = dinero atascado: el adjudicado sigue 'instructed' y es
+      // visible en el panel. Avisamos al admin (best-effort, no rompe el cierre).
+      const detail = cap.failed.map(f => `• miembro ${f.memberId} (PI ${f.paymentIntentId}): ${f.error}`).join('\n')
+      try {
+        await sendAdminAlert(
+          `[Lunivo] ${cap.failed.length} cobro(s) fallaron al cerrar la vonda`,
+          `Estos holds no se pudieron capturar/liberar al cerrar ${groupId}:\n\n${detail}\n\n` +
+            `Siguen pendientes en el panel. Reintenta cerrando de nuevo o revísalos en Stripe.`,
+        )
+      } catch (e) {
+        console.error('sendAdminAlert (captura) falló:', e)
+      }
+    }
+  } catch (e) {
+    console.error('captureGroupPayments falló (cierre OK igualmente):', e)
+  }
 
   // Emails de pago a los adjudicados — BLINDADO: el cierre ya está cometido en
   // la BD, así que un fallo de email NO debe romper ni revertir el cierre.

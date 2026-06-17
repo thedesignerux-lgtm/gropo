@@ -1,11 +1,11 @@
 'use client'
 
-import { useState, useEffect, useRef, Fragment } from 'react'
+import { useState, useEffect, Fragment } from 'react'
+import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { getActivationState, getMilestones } from '@/lib/mock-data'
 import type { Tier, Milestone } from '@/lib/mock-data'
 import GroupCountdown from './GroupCountdown'
-import JoinModal from './JoinModal'
 
 function fmt(n: number | undefined | null): string {
   if (n === undefined || n === null) return '—'
@@ -63,13 +63,6 @@ function TierBar({ milestones, totalUnits }: { milestones: Milestone[]; totalUni
   )
 }
 
-export interface JoinResult {
-  success: boolean
-  new_total_units: number
-  new_price: number
-  next_price: number
-}
-
 interface Props {
   groupId: string
   name: string
@@ -91,14 +84,6 @@ export default function GroupLiveSection({
 }: Props) {
   const [bestPrice, setBestPrice] = useState(initialBestPrice)
   const [totalUnits, setTotalUnits] = useState(initialTotalUnits)
-  const [toast, setToast] = useState<string | null>(null)
-  const toastTimer = useRef<ReturnType<typeof setTimeout>>()
-
-  function showToast(msg: string) {
-    setToast(msg)
-    clearTimeout(toastTimer.current)
-    toastTimer.current = setTimeout(() => setToast(null), 4000)
-  }
 
   useEffect(() => {
     console.log('GroupLiveSection montado, groupId:', groupId)
@@ -162,12 +147,6 @@ export default function GroupLiveSection({
     }
   }, [groupId, tiers])
 
-  function handleJoined(result: JoinResult) {
-    setBestPrice(result.new_price)
-    setTotalUnits(result.new_total_units)
-    showToast(`¡Dentro! Precio actual: ${fmt(result.new_price)} · Somos ${result.new_total_units} uds`)
-  }
-
   const savings = pvp > 0 ? pvp - bestPrice : 0
   const { activated, unitsToActivate, nextTier, unitsToNext } = getActivationState(tiers, totalUnits, minExecution)
   const milestones: Milestone[] = getMilestones(tiers, minExecution)
@@ -184,12 +163,6 @@ export default function GroupLiveSection({
 
   return (
     <>
-      {toast && (
-        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[60] bg-green-600 text-white text-sm px-4 py-2.5 rounded-xl shadow-lg whitespace-nowrap">
-          {toast}
-        </div>
-      )}
-
       <div style={{ padding: '8px 16px' }}>
         {/* Name + spec */}
         <div style={{ marginBottom: 6 }}>
@@ -302,12 +275,12 @@ export default function GroupLiveSection({
             <path d="M19.5 13.572l-7.5 7.428l-7.5 -7.428m0 0a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"/>
           </svg>
         </button>
-        <JoinModal
-          groupId={groupId}
-          productName={name}
-          onJoined={handleJoined}
-          triggerClassName="flex-1 bg-brand text-white font-semibold text-base py-4 rounded-xl hover:bg-brand-dark active:scale-[0.98] transition-all"
-        />
+        <Link
+          href={`/grupo/${groupId}/unirme`}
+          className="flex-1 bg-brand text-white font-semibold text-base py-4 rounded-xl text-center hover:bg-brand-dark active:scale-[0.98] transition-all"
+        >
+          Unirme a la vonda
+        </Link>
       </div>
     </>
   )
