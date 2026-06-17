@@ -6,12 +6,6 @@ import { sendClosePaymentEmails } from '@/lib/emails/sendClose'
 import { captureGroupPayments } from '@/lib/stripe-capture'
 import { sendAdminAlert } from '@/lib/resend'
 
-const PAYMENT_CYCLE: Record<string, string> = {
-  pending:    'instructed',
-  instructed: 'paid',
-  paid:       'paid',
-}
-
 export interface CloseResult {
   result: string
   settlement_price?: number
@@ -107,24 +101,4 @@ export async function updateGroup(
 
   revalidatePath(`/admin/grupos/${groupId}`)
   return {}
-}
-
-export async function updatePaymentStatus(memberId: string, groupId: string) {
-  const { data: member } = await supabaseAdmin
-    .from('group_members')
-    .select('payment_status')
-    .eq('id', memberId)
-    .single()
-
-  if (!member) return
-
-  const next = PAYMENT_CYCLE[member.payment_status] ?? 'paid'
-  if (next === member.payment_status) return
-
-  await supabaseAdmin
-    .from('group_members')
-    .update({ payment_status: next })
-    .eq('id', memberId)
-
-  revalidatePath(`/admin/grupos/${groupId}`)
 }

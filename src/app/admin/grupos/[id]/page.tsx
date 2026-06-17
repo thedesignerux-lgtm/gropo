@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { supabaseAdmin } from '@/lib/supabase-admin'
-import { updatePaymentStatus } from './actions'
 import CloseGroupButton from './CloseGroupButton'
 import EditGroupForm from './EditGroupForm'
 import AssignSellerForm from './AssignSellerForm'
@@ -10,15 +9,13 @@ import { resolveGroupBadge } from '@/lib/statusBadge'
 export const dynamic = 'force-dynamic'
 
 const PAYMENT_BADGE: Record<string, { label: string; cls: string }> = {
-  pending:    { label: 'Pendiente',   cls: 'bg-gray-100 text-gray-600' },
-  instructed: { label: 'Instruido',  cls: 'bg-orange-100 text-orange-700' },
-  paid:       { label: 'Pagado',      cls: 'bg-green-100 text-green-700' },
-}
-
-const PAYMENT_NEXT_LABEL: Record<string, string> = {
-  pending:    'Marcar instruido →',
-  instructed: 'Marcar pagado →',
-  paid:       '✓ Pagado',
+  pending:     { label: 'Pendiente',         cls: 'bg-gray-100 text-gray-600' },
+  authorized:  { label: 'Autorizado',        cls: 'bg-blue-100 text-blue-700' },
+  instructed:  { label: 'Instruido',         cls: 'bg-orange-100 text-orange-700' },
+  paid:        { label: 'Pagado',            cls: 'bg-green-100 text-green-700' },
+  released:    { label: 'Liberado',          cls: 'bg-gray-100 text-gray-600' },
+  cancelled:   { label: 'Cancelado',         cls: 'bg-gray-100 text-gray-600' },
+  auth_failed: { label: 'Autorización fallida', cls: 'bg-red-100 text-red-700' },
 }
 
 function fmt(n: number) {
@@ -137,18 +134,14 @@ export default async function AdminGroupDetailPage({ params }: { params: { id: s
                   <th className="px-4 py-3 text-right">Precio</th>
                   <th className="px-4 py-3 text-right">Total</th>
                   <th className="px-4 py-3 text-left">Pago</th>
-                  <th className="px-4 py-3" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {(members ?? []).map((m) => {
                   const u = m.users as any
                   const payBadge = PAYMENT_BADGE[m.payment_status] ?? PAYMENT_BADGE.pending
-                  const nextLabel = PAYMENT_NEXT_LABEL[m.payment_status] ?? '—'
-                  const isDone = m.payment_status === 'paid'
                   // final_price (liquidación) si el grupo ya cerró; si no, guaranteed_price (precio de unión)
                   const unitPrice = Number(m.final_price ?? m.guaranteed_price)
-                  const action = updatePaymentStatus.bind(null, m.id, id)
                   return (
                     <tr key={m.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3 text-gray-400">{m.join_order ?? '—'}</td>
@@ -165,20 +158,6 @@ export default async function AdminGroupDetailPage({ params }: { params: { id: s
                           {payBadge.label}
                         </span>
                       </td>
-                      <td className="px-4 py-3">
-                        {!isDone ? (
-                          <form action={action}>
-                            <button
-                              type="submit"
-                              className="text-xs text-brand font-semibold hover:underline whitespace-nowrap"
-                            >
-                              {nextLabel}
-                            </button>
-                          </form>
-                        ) : (
-                          <span className="text-xs text-green-600 font-semibold">✓</span>
-                        )}
-                      </td>
                     </tr>
                   )
                 })}
@@ -192,7 +171,7 @@ export default async function AdminGroupDetailPage({ params }: { params: { id: s
                     <td className="px-4 py-3 text-right">
                       {fmt((members ?? []).reduce((s, m) => s + Number(m.final_price ?? m.guaranteed_price) * m.quantity, 0))}
                     </td>
-                    <td colSpan={2} />
+                    <td />
                   </tr>
                 </tfoot>
               )}
