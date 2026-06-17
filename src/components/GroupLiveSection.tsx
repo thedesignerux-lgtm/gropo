@@ -40,9 +40,22 @@ function TierBar({ milestones, totalUnits }: { milestones: Milestone[]; totalUni
         const isCurrent = i === currentIndex
         return (
           <Fragment key={m.units}>
-            {i > 0 && (
-              <div className={`flex-1 h-[3px] ${reached ? 'bg-brand' : 'bg-gray-200'}`} />
-            )}
+            {i > 0 && (() => {
+              const prevUnits = milestones[i - 1].units
+              const currUnits = m.units
+              const span = currUnits - prevUnits
+              const frac = span > 0
+                ? Math.max(0, Math.min(1, (totalUnits - prevUnits) / span))
+                : (totalUnits >= currUnits ? 1 : 0)
+              return (
+                <div className="flex-1 h-[3px] bg-gray-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-brand rounded-full"
+                    style={{ width: `${frac * 100}%`, transition: 'width 300ms ease' }}
+                  />
+                </div>
+              )
+            })()}
             <div className="flex flex-col items-center">
               <span className={`text-xs font-semibold leading-none mb-1.5 whitespace-nowrap ${
                 isCurrent ? 'text-teal-700' : 'text-neutral-900'
