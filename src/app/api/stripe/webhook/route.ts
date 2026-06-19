@@ -12,6 +12,11 @@
 import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { Resend } from 'resend';
+import { joinConfirmationEmail } from '@/lib/emails/joinConfirmation';
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+const FROM = process.env.RESEND_FROM ?? 'Vonda <no-reply@vonda.es>';
 
 // El SDK de Stripe necesita Node, no Edge.
 export const runtime = 'nodejs';
@@ -73,6 +78,37 @@ export async function POST(req: Request) {
         console.log(`[webhook] hold liberado (${data.reason}) PI ${pi.id}`);
       } catch (e: any) {
         console.error('[webhook] no se pudo cancelar el PI:', e?.message);
+      }
+    } else if (data?.status === 'confirmed') {
+      console.log(`[webhook] confirmed PI ${pi.id}`);
+
+      // Email de confirmación — no-fatal (un fallo de email no revierte la unión).
+      try {
+        const { data: group } = await supabaseAdmin
+          .from('groups')
+          .select('product_name, closes_at')
+          .eq('id', m.group_id)
+          .single();
+
+        if (group) {
+          const emailData = joinConfirmationEmail({
+            nombre: m.buyer_name,
+            productName: group.product_name,
+            currentPrice: data.new_price,
+            closesAt: group.closes_at,
+          });
+
+          await resend.emails.send({
+            from: FROM,
+            to: m.buyer_email,
+            subject: emailData.subject,
+            text: emailData.text,
+            html: emailData.html,
+          });
+          console.log(`[webhook] email de confirmación enviado a ${m.buyer_email}`);
+        }
+      } catch (emailErr: any) {
+        console.error('[webhook] email de confirmación falló (no-fatal):', emailErr?.message);
       }
     } else {
       console.log(`[webhook] ${data?.status} PI ${pi.id}`);
