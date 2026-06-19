@@ -27,7 +27,7 @@ export interface CreateGroupInput {
 
 function sellerEmail(name: string): string {
   const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-  return `seller-${slug}@grupeta.local`
+  return `seller-${slug}@vonda.local`
 }
 
 export async function createGroup(input: CreateGroupInput): Promise<{ error?: string }> {

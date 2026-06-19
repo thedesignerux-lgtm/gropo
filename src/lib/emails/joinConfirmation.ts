@@ -1,5 +1,5 @@
 // Plantilla del email de confirmación de unión a un grupo.
-// Remitente visible: Lunivo (no Kuorum).
+// Remitente visible: Vonda.
 
 export interface JoinEmailData {
   nombre?: string
@@ -45,7 +45,7 @@ El grupo cierra el ${cierre}.
 
 Cuantos más seáis, mejor precio para todos. Te avisaremos cuando el grupo cierre.
 
-— Lunivo`
+— Vonda`
 
   const html = `<!DOCTYPE html>
 <html lang="es">
@@ -55,7 +55,7 @@ Cuantos más seáis, mejor precio para todos. Te avisaremos cuando el grupo cier
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #eaeaea;">
         <tr><td style="padding:28px 28px 0 28px;">
-          <p style="margin:0;font-size:18px;font-weight:700;color:#111111;">Lunivo</p>
+          <p style="margin:0;font-size:18px;font-weight:700;color:#111111;">Vonda</p>
         </td></tr>
         <tr><td style="padding:20px 28px 8px 28px;">
           <p style="margin:0 0 16px 0;font-size:15px;color:#333333;line-height:1.5;">${saludo}</p>
@@ -77,7 +77,7 @@ Cuantos más seáis, mejor precio para todos. Te avisaremos cuando el grupo cier
           <p style="margin:0;font-size:14px;color:#555555;line-height:1.5;">
             Cuantos más seáis, mejor precio para todos. Te avisaremos cuando el grupo cierre.
           </p>
-          <p style="margin:20px 0 0 0;font-size:14px;color:#999999;">— Lunivo</p>
+          <p style="margin:20px 0 0 0;font-size:14px;color:#999999;">— Vonda</p>
         </td></tr>
       </table>
     </td></tr>

@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { normalizePhone } from '@/lib/phone'
 import BottomNav from '@/components/BottomNav'
 
-interface GrupetaUser {
+interface VondaUser {
   email: string
   name: string
   phone?: string
@@ -54,7 +54,7 @@ function Countdown({ closesAt }: { closesAt: string }) {
 }
 
 export default function MisGruposPage() {
-  const [user, setUser] = useState<GrupetaUser | null | undefined>(undefined)
+  const [user, setUser] = useState<VondaUser | null | undefined>(undefined)
   const [memberships, setMemberships] = useState<Membership[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -62,8 +62,8 @@ export default function MisGruposPage() {
   // Leer identidad de localStorage (solo en cliente)
   useEffect(() => {
     try {
-      const raw = localStorage.getItem('grupeta_user')
-      setUser(raw ? (JSON.parse(raw) as GrupetaUser) : null)
+      const raw = localStorage.getItem('vonda_user')
+      setUser(raw ? (JSON.parse(raw) as VondaUser) : null)
     } catch {
       setUser(null)
     }

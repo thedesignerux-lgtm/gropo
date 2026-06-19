@@ -83,7 +83,7 @@ export default async function UnirmePage({ params }: { params: { id: string } })
               <polyline points="15 18 9 12 15 6" />
             </svg>
           </Link>
-          <span className="text-base font-bold tracking-tight text-brand">Lunivo</span>
+          <span className="text-base font-bold tracking-tight text-brand">Vonda</span>
           <span className="inline-flex items-center gap-1 text-xs font-medium text-neutral-500">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />

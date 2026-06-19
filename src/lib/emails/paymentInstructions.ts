@@ -1,6 +1,6 @@
 // Plantilla del email de instrucciones de pago al cierre.
 // Se envía SOLO a miembros adjudicados (payment_status='instructed').
-// Remitente visible: Lunivo.
+// Remitente visible: Vonda.
 
 export interface PaymentEmailData {
   nombre?: string
@@ -64,7 +64,7 @@ ${pagoText}
 Plazo: antes del ${plazo} (48 horas).
 
 Gracias por participar.
-— Lunivo`
+— Vonda`
 
   // Bloque de pago (HTML)
   const pagoHtml = hasPago
@@ -85,7 +85,7 @@ Gracias por participar.
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #eaeaea;">
         <tr><td style="padding:28px 28px 0 28px;">
-          <p style="margin:0;font-size:18px;font-weight:700;color:#111111;">Lunivo</p>
+          <p style="margin:0;font-size:18px;font-weight:700;color:#111111;">Vonda</p>
         </td></tr>
         <tr><td style="padding:20px 28px 8px 28px;">
           <p style="margin:0 0 16px 0;font-size:15px;color:#333333;line-height:1.5;">${saludo}</p>
@@ -114,7 +114,7 @@ Gracias por participar.
           <p style="margin:0;font-size:14px;color:#555555;line-height:1.5;">
             Plazo: <strong style="color:#111111;">antes del ${plazo}</strong> (48 horas).
           </p>
-          <p style="margin:20px 0 0 0;font-size:14px;color:#999999;">— Lunivo</p>
+          <p style="margin:20px 0 0 0;font-size:14px;color:#999999;">— Vonda</p>
         </td></tr>
       </table>
     </td></tr>

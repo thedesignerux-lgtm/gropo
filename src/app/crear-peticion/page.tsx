@@ -26,7 +26,7 @@ export default function CrearPeticionPage() {
   // Autorrellenar identidad si ya se unió/pidió antes
   useEffect(() => {
     try {
-      const raw = localStorage.getItem('grupeta_user')
+      const raw = localStorage.getItem('vonda_user')
       if (raw) {
         const u = JSON.parse(raw)
         setForm(f => ({
@@ -88,7 +88,7 @@ export default function CrearPeticionPage() {
 
     // Recordar identidad para próximas pantallas (teléfono normalizado)
     try {
-      localStorage.setItem('grupeta_user', JSON.stringify({
+      localStorage.setItem('vonda_user', JSON.stringify({
         name: form.nombre.trim(),
         email: form.email.trim(),
         phone: normalizePhone(form.telefono),

@@ -78,7 +78,7 @@ export default function CloseGroupButton({ groupId, productName, disabled }: Pro
       {/* Native dialog — backdrop styled via CSS class below */}
       <dialog
         ref={dialogRef}
-        className="kuorum-dialog rounded-2xl border border-gray-200 shadow-2xl p-0 w-full max-w-md"
+        className="vonda-dialog rounded-2xl border border-gray-200 shadow-2xl p-0 w-full max-w-md"
         onClick={(e) => { if (e.target === dialogRef.current) closeDialog() }}
       >
         <div className="p-6">
@@ -149,7 +149,7 @@ export default function CloseGroupButton({ groupId, productName, disabled }: Pro
 
       {/* Dialog backdrop */}
       <style>{`
-        dialog.kuorum-dialog::backdrop {
+        dialog.vonda-dialog::backdrop {
           background: rgba(0, 0, 0, 0.45);
         }
       `}</style>

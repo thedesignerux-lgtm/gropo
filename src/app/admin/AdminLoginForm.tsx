@@ -9,7 +9,7 @@ export default function AdminLoginForm() {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 w-full max-w-sm">
-        <h1 className="text-xl font-bold text-gray-900 mb-1">Kuorum Admin</h1>
+        <h1 className="text-xl font-bold text-gray-900 mb-1">Vonda Admin</h1>
         <p className="text-sm text-gray-500 mb-6">Acceso restringido</p>
         <form action={formAction} className="space-y-4">
           <div>

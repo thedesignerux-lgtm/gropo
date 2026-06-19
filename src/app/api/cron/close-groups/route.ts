@@ -61,7 +61,7 @@ export async function GET(req: Request) {
     const detail = failed.map(f => `• ${f.id}: ${f.error}`).join('\n')
     try {
       await sendAdminAlert(
-        `[Lunivo] ${failed.length} grupo(s) fallaron al cerrar`,
+        `[Vonda] ${failed.length} grupo(s) fallaron al cerrar`,
         `El cron de cierre automático no pudo cerrar estos grupos:\n\n${detail}\n\n` +
           `Revisa los logs de Vercel y, si procede, ciérralos manualmente desde el panel.`,
       )

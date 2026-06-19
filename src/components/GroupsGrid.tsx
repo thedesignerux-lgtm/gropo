@@ -19,7 +19,7 @@ export default function GroupsGrid({ products }: { products: GroupProduct[] }) {
       <div className="sticky top-0 z-10 bg-gray-50/95 backdrop-blur-sm">
         {/* Header row */}
         <div className="flex items-center justify-between px-4 pt-5 pb-3">
-          <span className="text-2xl font-bold tracking-tight text-brand">kuorum</span>
+          <span className="text-2xl font-bold tracking-tight text-brand">vonda</span>
           <CountdownChip />
         </div>
 

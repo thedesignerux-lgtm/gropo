@@ -14,7 +14,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Kuorum — Compra en grupo",
+  title: "Vonda — Compra en grupo",
   description: "Únete a grupos de compra y consigue el mejor precio juntos.",
 };
 

@@ -72,7 +72,7 @@ export async function sendClosePaymentEmails(groupId: string): Promise<CloseEmai
 
     const finalPrice = Number(m.final_price)
     const quantity = m.quantity
-    const concepto = `LUNIVO-${groupPrefix}-${m.join_order}`
+    const concepto = `VONDA-${groupPrefix}-${m.join_order}`
 
     try {
       const { error } = await sendPaymentInstructions({
