@@ -57,7 +57,13 @@ async function fetchVonda(id: string): Promise<JoinGroup | null> {
   }
 }
 
-export default async function UnirmePage({ params }: { params: { id: string } }) {
+export default async function UnirmePage({
+  params,
+  searchParams,
+}: {
+  params: { id: string }
+  searchParams: { mode?: string; target?: string }
+}) {
   const v = await fetchVonda(params.id)
 
   if (!v) {
@@ -68,9 +74,13 @@ export default async function UnirmePage({ params }: { params: { id: string } })
     )
   }
 
+  // "Esperar a precio" mode: ?mode=esperar&target=37.00
+  const joinMode = searchParams.mode === 'esperar' ? 'esperar' : 'comprar'
+  const targetPrice = searchParams.target ? Number(searchParams.target) : undefined
+
   return (
     <div className="min-h-screen bg-neutral-50">
-      <div className="mx-auto min-h-screen max-w-md bg-white pb-28">
+      <div className="mx-auto min-h-screen max-w-md bg-white pb-28 lg:max-w-lg">
 
         {/* ── CABECERA: marca + pago seguro 3D Secure ── */}
         <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-neutral-100 bg-white/95 px-4 backdrop-blur">
@@ -93,7 +103,7 @@ export default async function UnirmePage({ params }: { params: { id: string } })
           </span>
         </header>
 
-        <JoinFlow group={v} />
+        <JoinFlow group={v} joinMode={joinMode} targetPrice={targetPrice} />
       </div>
     </div>
   )

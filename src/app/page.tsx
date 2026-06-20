@@ -2,6 +2,7 @@ import { supabase } from '@/lib/supabase'
 import type { GroupProduct, Tier } from '@/lib/mock-data'
 import GroupsGrid from '@/components/GroupsGrid'
 import BottomNav from '@/components/BottomNav'
+import HomeDesktopView from '@/components/desktop/HomeDesktopView'
 
 // Siempre datos frescos de Supabase (no cache de Next.js)
 export const dynamic = 'force-dynamic'
@@ -59,11 +60,19 @@ export default async function Home() {
   const products = await fetchGroups()
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-md mx-auto min-h-screen pb-28">
-        <GroupsGrid products={products} />
+    <>
+      {/* Desktop (≥1024px) */}
+      <div className="hidden lg:block">
+        <HomeDesktopView products={products} />
       </div>
-      <BottomNav />
-    </div>
+
+      {/* Mobile (<1024px) */}
+      <div className="lg:hidden min-h-screen bg-gray-50">
+        <div className="max-w-md mx-auto min-h-screen pb-28">
+          <GroupsGrid products={products} />
+        </div>
+        <BottomNav />
+      </div>
+    </>
   )
 }

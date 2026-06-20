@@ -48,7 +48,7 @@ function fireConfetti() {
     particleCount: 90,
     spread: 75,
     origin: { y: 0.75 },
-    colors: ['#0F6E56', '#34D399', '#A7F3D0'],
+    colors: ['#6C3CE1', '#8B63E8', '#F3F0FF'],
   });
 }
 
@@ -57,7 +57,15 @@ const H = 'text-sm font-semibold text-neutral-900 mb-3';
 const INPUT =
   'w-full h-12 px-3.5 rounded-xl border border-neutral-200 bg-white text-[15px] text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand';
 
-export default function JoinFlow({ group }: { group: JoinGroup }) {
+export default function JoinFlow({
+  group,
+  joinMode = 'comprar',
+  targetPrice,
+}: {
+  group: JoinGroup
+  joinMode?: 'comprar' | 'esperar'
+  targetPrice?: number
+}) {
   // Tope: 10 por comprador y nunca más del stock restante de la puja ganadora.
   const remaining = group.max_stock > 0 ? Math.max(1, group.max_stock - group.total_units) : 10;
   const maxQty = Math.min(10, remaining);
@@ -114,7 +122,7 @@ export default function JoinFlow({ group }: { group: JoinGroup }) {
       currency: 'eur',
       capture_method: 'manual' as const,
       paymentMethodTypes: ['card'],
-      appearance: { theme: 'stripe' as const, variables: { colorPrimary: '#0F6E56' } },
+      appearance: { theme: 'stripe' as const, variables: { colorPrimary: '#6C3CE1' } },
     }),
     [amountCents],
   );
@@ -123,8 +131,31 @@ export default function JoinFlow({ group }: { group: JoinGroup }) {
   const barTarget = nextTier ? nextTier.minUnits : Math.max(group.total_units, 1);
   const barFrac = barTarget > 0 ? Math.min(1, group.total_units / barTarget) : 1;
 
+  const isEsperar = joinMode === 'esperar'
+  const efectiveTargetPrice = targetPrice ?? (sorted.length > 0 ? sorted[sorted.length - 1].price : pricePerUnit)
+
   return (
     <div>
+      {/* ── MODO ESPERAR BANNER ── */}
+      {isEsperar && (
+        <section className="px-4 pt-4">
+          <div className="rounded-2xl bg-brand/5 border border-brand/20 p-4">
+            <div className="flex items-start gap-3">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand flex-shrink-0 mt-0.5">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+              <div>
+                <p className="text-sm font-semibold text-neutral-900">Compra automática a {eur(efectiveTargetPrice)}</p>
+                <p className="text-xs text-neutral-500 mt-1">
+                  Tu pago se reservará ahora al precio actual ({eur(pricePerUnit)}). Si la vonda alcanza {eur(efectiveTargetPrice)} antes del cierre, se confirma automáticamente al precio más bajo. Si no se alcanza, puedes quedarte al precio actual o cancelar sin cargo.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* ── RESUMEN DE PRODUCTO (precio proyectado, reactivo) ── */}
       <section className="flex gap-3.5 px-4 pt-4">
         <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-[#F5F5F5]">
@@ -236,7 +267,14 @@ export default function JoinFlow({ group }: { group: JoinGroup }) {
 
       {/* ── 2-4 + FOOTER (dentro de Elements) ── */}
       <Elements stripe={stripePromise} options={elementsOptions}>
-        <InnerForm group={group} quantity={quantity} total={total} showAdjust={!unlocks} />
+        <InnerForm
+          group={group}
+          quantity={quantity}
+          total={total}
+          showAdjust={!unlocks}
+          joinMode={isEsperar ? 'esperar' : 'comprar'}
+          targetPrice={isEsperar ? efectiveTargetPrice : undefined}
+        />
       </Elements>
     </div>
   );
@@ -247,11 +285,15 @@ function InnerForm({
   quantity,
   total,
   showAdjust,
+  joinMode = 'comprar',
+  targetPrice,
 }: {
   group: JoinGroup;
   quantity: number;
   total: number;
   showAdjust: boolean;
+  joinMode?: 'comprar' | 'esperar';
+  targetPrice?: number;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -287,6 +329,8 @@ function InnerForm({
           name: fullName,
           email: c.email,
           phone: c.phone,
+          join_mode: joinMode,
+          target_price: targetPrice ?? null,
           shipping: {
             name: fullName,
             phone: c.phone,
@@ -404,7 +448,12 @@ function InnerForm({
             disabled={loading || !stripe}
             className="h-12 w-full rounded-xl bg-brand text-[15px] font-semibold text-white transition-colors hover:bg-brand-dark disabled:opacity-50"
           >
-            {loading ? 'Procesando…' : `Pagar ${eur(total)}`}
+            {loading
+              ? 'Procesando…'
+              : joinMode === 'esperar'
+                ? `Reservar plaza · ${eur(total)}`
+                : `Pagar ${eur(total)}`
+            }
           </button>
           {showAdjust && (
             <p className="mt-2 text-center text-xs text-neutral-500">

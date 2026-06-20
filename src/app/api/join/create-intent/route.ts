@@ -6,7 +6,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { group_id, quantity, name, email, phone, shipping } = body ?? {};
+    const { group_id, quantity, name, email, phone, shipping, join_mode, target_price } = body ?? {};
 
     // Validación de forma (la de negocio vive en SQL)
     if (!group_id || !quantity || !name || !email || !phone || !shipping) {
@@ -65,6 +65,8 @@ export async function POST(req: Request) {
         buyer_email: email,
         buyer_phone: normalizedPhone,
         guaranteed_price: String(guaranteedPrice),
+        join_mode: join_mode || 'comprar',
+        ...(target_price != null ? { target_price: String(target_price) } : {}),
       },
     });
 
