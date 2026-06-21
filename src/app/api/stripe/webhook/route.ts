@@ -53,6 +53,8 @@ export async function POST(req: Request) {
       p_quantity: Number(m.quantity),
       p_authorized_amount: pi.amount / 100, // céntimos → EUR
       p_guaranteed_price: Number(m.guaranteed_price),
+      p_join_mode: m.join_mode || 'comprar',
+      p_target_price: m.target_price != null ? Number(m.target_price) : null,
       p_shipping: {
         name: ship.name ?? m.buyer_name,
         phone: ship.phone ?? m.buyer_phone,
