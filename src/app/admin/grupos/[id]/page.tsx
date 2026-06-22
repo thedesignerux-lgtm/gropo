@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import CloseGroupButton from './CloseGroupButton'
+import GenerateLabelsButton from './GenerateLabelsButton'
 import EditGroupForm from './EditGroupForm'
 import AssignSellerForm from './AssignSellerForm'
 import { resolveGroupBadge } from '@/lib/statusBadge'
@@ -258,6 +259,19 @@ export default async function AdminGroupDetailPage({ params }: { params: { id: s
             productName={group.product_name}
             disabled={group.status === 'closed' || group.status === 'cancelled' || group.status === 'closing'}
           />
+        </div>
+      </section>
+
+      {/* ── GENERAR ETIQUETAS ── */}
+      <section className="border-t border-gray-200 pt-6">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-gray-900">Generar etiquetas de envío</p>
+            <p className="text-xs text-gray-400 mt-0.5">
+              Una etiqueta Sendcloud por miembro adjudicado (instruido/pagado). Normalmente tras el cierre.
+            </p>
+          </div>
+          <GenerateLabelsButton groupId={id} />
         </div>
       </section>
 

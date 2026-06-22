@@ -5,6 +5,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 import { sendClosePaymentEmails } from '@/lib/emails/sendClose'
 import { captureGroupPayments } from '@/lib/stripe-capture'
 import { sendAdminAlert } from '@/lib/resend'
+import { generateShippingLabels, type ShippingResult } from '@/lib/shipping-sendcloud'
 
 export interface CloseResult {
   result: string
@@ -101,4 +102,16 @@ export async function updateGroup(
 
   revalidatePath(`/admin/grupos/${groupId}`)
   return {}
+}
+
+export async function generateLabels(
+  groupId: string,
+): Promise<{ error?: string; data?: ShippingResult }> {
+  try {
+    const result = await generateShippingLabels(groupId)
+    revalidatePath(`/admin/grupos/${groupId}`)
+    return { data: result }
+  } catch (e: any) {
+    return { error: e?.message ?? 'Error generando etiquetas' }
+  }
 }
