@@ -2,6 +2,7 @@
 
 import { Fragment, useState } from 'react'
 import type { Tier, Milestone } from '@/lib/mock-data'
+import JoinModeSelector from '@/components/JoinModeSelector'
 
 function fmt(n: number): string {
   return (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
@@ -110,82 +111,6 @@ function NextTierCallout({ unitsToNext, nextPrice, savingsPerPerson }: {
   )
 }
 
-/* ── Participation option card ── */
-type ParticipationMode = 'comprar' | 'esperar' | 'seguir'
-
-function ParticipationCard({ mode, selected, onClick, currentPrice, targetPrice }: {
-  mode: ParticipationMode
-  selected: boolean
-  onClick: () => void
-  currentPrice: number
-  targetPrice?: number
-}) {
-  const configs = {
-    comprar: {
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-          <polyline points="22 4 12 14.01 9 11.01" />
-        </svg>
-      ),
-      title: 'Comprar ahora',
-      subtitle: `${fmt(currentPrice)} o mejor`,
-      desc: 'Reservo mi plaza al precio actual o mejor.',
-    },
-    esperar: {
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <circle cx="12" cy="12" r="10" />
-          <polyline points="12 6 12 12 16 14" />
-        </svg>
-      ),
-      title: `Esperar a ${targetPrice ? fmt(targetPrice) : '—'}`,
-      subtitle: 'Compra automática',
-      desc: 'Entraré automáticamente cuando se alcance este precio.',
-    },
-    seguir: {
-      icon: (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-          <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-        </svg>
-      ),
-      title: 'Seguir producto',
-      subtitle: 'Solo actualizaciones',
-      desc: 'No quiero comprar ahora, solo seguir el progreso del grupo.',
-    },
-  }
-
-  const config = configs[mode]
-
-  return (
-    <button
-      onClick={onClick}
-      className={`w-full text-left rounded-xl border-2 p-4 transition-all ${
-        selected
-          ? 'border-brand bg-brand/3'
-          : 'border-neutral-100 hover:border-neutral-200 bg-white'
-      }`}
-    >
-      <div className="flex items-start gap-3">
-        <span className={`flex-shrink-0 mt-0.5 ${selected ? 'text-brand' : 'text-neutral-400'}`}>
-          {config.icon}
-        </span>
-        <div className="flex-1 min-w-0">
-          <p className={`text-sm font-semibold ${selected ? 'text-brand' : 'text-neutral-900'}`}>
-            {config.title}
-          </p>
-          <p className="text-xs text-neutral-500 mt-0.5">{config.subtitle}</p>
-          <p className="text-xs text-neutral-400 mt-1">{config.desc}</p>
-        </div>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`flex-shrink-0 mt-1 ${selected ? 'text-brand' : 'text-neutral-300'}`}>
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
-      </div>
-    </button>
-  )
-}
-
 /* ── Main Right Sidebar ── */
 interface Props {
   groupId: string
@@ -206,10 +131,8 @@ export default function GroupRightSidebar({
   groupId, tiers, milestones, totalUnits, bestPrice, nextPrice,
   pvp, maxStock, closesAt, unitsToNext, nextTier, activated,
 }: Props) {
-  const [selectedMode, setSelectedMode] = useState<ParticipationMode>('comprar')
-
-  // Target price for "esperar" mode — use the next tier price if available
-  const targetPrice = nextTier?.price ?? (tiers.length > 0 ? tiers[tiers.length - 1].price : bestPrice)
+  const [joinMode, setJoinMode] = useState<'comprar' | 'esperar'>('comprar')
+  const [joinTarget, setJoinTarget] = useState<number | undefined>(undefined)
 
   // Savings per person if next tier is reached
   const savingsPerPerson = nextTier ? bestPrice - nextTier.price : 0
@@ -221,9 +144,7 @@ export default function GroupRightSidebar({
   const hours = Math.max(0, Math.floor((diffMs % 86400000) / 3600000))
   const countdownLabel = days > 0 ? `${days}d ${hours}h` : `${hours}h`
 
-  const ctaHref = selectedMode === 'seguir'
-    ? '#'
-    : `/grupo/${groupId}/unirme${selectedMode === 'esperar' ? `?mode=esperar&target=${targetPrice}` : ''}`
+  const ctaHref = `/grupo/${groupId}/unirme${joinMode === 'esperar' && joinTarget ? `?mode=esperar&target=${joinTarget}` : ''}`
 
   return (
     <aside className="w-[340px] flex-shrink-0 flex flex-col gap-4">
@@ -241,31 +162,12 @@ export default function GroupRightSidebar({
         />
       )}
 
-      {/* Participation options */}
-      <div>
-        <h3 className="text-sm font-semibold text-neutral-900 mb-3">Elige cómo participar</h3>
-        <div className="flex flex-col gap-2">
-          <ParticipationCard
-            mode="comprar"
-            selected={selectedMode === 'comprar'}
-            onClick={() => setSelectedMode('comprar')}
-            currentPrice={bestPrice}
-          />
-          <ParticipationCard
-            mode="esperar"
-            selected={selectedMode === 'esperar'}
-            onClick={() => setSelectedMode('esperar')}
-            currentPrice={bestPrice}
-            targetPrice={targetPrice}
-          />
-          <ParticipationCard
-            mode="seguir"
-            selected={selectedMode === 'seguir'}
-            onClick={() => setSelectedMode('seguir')}
-            currentPrice={bestPrice}
-          />
-        </div>
-      </div>
+      <JoinModeSelector
+        tiers={tiers}
+        currentPrice={bestPrice}
+        totalUnits={totalUnits}
+        onChange={(m, tp) => { setJoinMode(m); setJoinTarget(tp) }}
+      />
 
       {/* Info grid */}
       <div className="grid grid-cols-3 gap-3 text-center">

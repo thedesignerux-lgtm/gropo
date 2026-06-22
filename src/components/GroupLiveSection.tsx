@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { getActivationState, getMilestones } from '@/lib/mock-data'
 import type { Tier, Milestone } from '@/lib/mock-data'
 import GroupCountdown from './GroupCountdown'
+import JoinModeSelector from '@/components/JoinModeSelector'
 
 function fmt(n: number | undefined | null): string {
   if (n === undefined || n === null) return '—'
@@ -97,6 +98,8 @@ export default function GroupLiveSection({
 }: Props) {
   const [bestPrice, setBestPrice] = useState(initialBestPrice)
   const [totalUnits, setTotalUnits] = useState(initialTotalUnits)
+  const [joinMode, setJoinMode] = useState<'comprar' | 'esperar'>('comprar')
+  const [joinTarget, setJoinTarget] = useState<number | undefined>(undefined)
 
   useEffect(() => {
     console.log('GroupLiveSection montado, groupId:', groupId)
@@ -277,6 +280,17 @@ export default function GroupLiveSection({
         </div>
       </div>
 
+      {tiers.length > 1 && (
+        <div className="px-4 pb-2">
+          <JoinModeSelector
+            tiers={tiers}
+            currentPrice={bestPrice}
+            totalUnits={totalUnits}
+            onChange={(m, tp) => { setJoinMode(m); setJoinTarget(tp) }}
+          />
+        </div>
+      )}
+
       {/* CTA */}
       <div className="sticky bottom-0 z-20 bg-white border-t border-[#EEEEEE] flex items-center gap-3 px-4 py-3">
         <button
@@ -289,7 +303,7 @@ export default function GroupLiveSection({
           </svg>
         </button>
         <Link
-          href={`/grupo/${groupId}/unirme`}
+          href={`/grupo/${groupId}/unirme${joinMode === 'esperar' && joinTarget ? `?mode=esperar&target=${joinTarget}` : ''}`}
           className="flex-1 bg-brand text-white font-semibold text-base py-4 rounded-xl text-center hover:bg-brand-dark active:scale-[0.98] transition-all"
         >
           Unirme a la vonda
