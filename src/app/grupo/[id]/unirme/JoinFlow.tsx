@@ -242,13 +242,18 @@ export default function JoinFlow({
         </div>
 
         {/* ── BANNER A/B ── */}
-        {unlocks ? (
-          // Estado A — DESBLOQUEA
+        {isEsperar ? (
+          // Modo esperar — informativo, sin celebración de desbloqueo
+          <p className="mt-3 rounded-xl bg-brand/5 px-3 py-2.5 text-sm font-medium text-neutral-600">
+            Reservas tu plaza a {eur(efectiveTargetPrice)}/ud. Solo se confirma si la vonda baja a ese precio antes del cierre.
+          </p>
+        ) : unlocks ? (
+          // Estado A — DESBLOQUEA (solo comprar ahora)
           <p className="mt-3 rounded-xl bg-brand/10 px-3 py-2.5 text-sm font-semibold text-brand">
             🎉 ¡Desbloqueado! Tu compra baja el precio a {eur(pricePerUnit)}/ud.
           </p>
         ) : nextTier ? (
-          // Estado B — NO desbloquea
+          // Estado B — NO desbloquea (solo comprar ahora)
           <p className="mt-3 rounded-xl bg-neutral-50 px-3 py-2.5 text-sm font-medium text-neutral-600">
             {missing} {missing === 1 ? 'unidad más' : 'unidades más'} para {eur(nextTier.price)}/ud.
           </p>
@@ -258,7 +263,7 @@ export default function JoinFlow({
         <div className="mt-3 rounded-2xl border border-neutral-100 bg-white p-3.5">
           <div className="flex items-baseline justify-between">
             <span className="text-sm text-neutral-500">
-              {unlocks ? `Subtotal (${quantity} uds)` : 'Total actual'}
+              {isEsperar || unlocks ? `Subtotal (${quantity} uds)` : 'Total actual'}
             </span>
             <span className="text-lg font-bold text-neutral-900">{eur(displayTotal)}</span>
           </div>
