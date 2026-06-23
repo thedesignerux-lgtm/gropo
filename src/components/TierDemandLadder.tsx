@@ -23,17 +23,19 @@ export default function TierDemandLadder({ groupId }: { groupId: string }) {
       }
     }
     load()
-    const channel = supabase
-      .channel(`tier-demand-${groupId}`)
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'events', filter: `group_id=eq.${groupId}` },
-        (payload) => {
-          const ev = payload.new as any
-          if (ev.type === 'member_joined' || ev.type === 'price_dropped') load()
-        }
-      )
-      .subscribe()
+    // Canal con nombre único por instancia para evitar colisión con otros
+    // canales realtime de la misma página (GroupLiveSection, GroupDesktopView).
+    const channelName = `tier-demand-${groupId}-${Math.random().toString(36).slice(2)}`
+    const channel = supabase.channel(channelName)
+    channel.on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'events', filter: `group_id=eq.${groupId}` },
+      (payload) => {
+        const ev = payload.new as any
+        if (ev.type === 'member_joined' || ev.type === 'price_dropped') load()
+      },
+    )
+    channel.subscribe()
     return () => {
       cancelled = true
       supabase.removeChannel(channel)
