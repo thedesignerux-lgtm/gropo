@@ -208,12 +208,23 @@ export default function GroupRightSidebar({
             href={ctaHref}
             className="flex-1 bg-brand text-white font-semibold text-base py-3.5 rounded-xl text-center hover:bg-brand-dark active:scale-[0.98] transition-all block"
           >
-            <span className="block text-base font-semibold">Reservar mi plaza</span>
-            <span className="block text-xs font-normal opacity-80">Entrar al grupo ahora</span>
+            {joinMode === 'esperar' && joinTarget ? (
+              <>
+                <span className="block text-base font-semibold">Unirme por {fmt(joinTarget)} máx.</span>
+                <span className="block text-xs font-normal opacity-80">Asegura tu compra a este precio o menos</span>
+              </>
+            ) : (
+              <>
+                <span className="block text-base font-semibold">Comprar ahora · {fmt(bestPrice)}</span>
+                <span className="block text-xs font-normal opacity-80">Reservo mi plaza al precio actual</span>
+              </>
+            )}
           </a>
         </div>
         <p className="text-xs text-neutral-400 text-center mt-2">
-          Sin compromiso · Puedes cambiar de opción después
+          {joinMode === 'esperar'
+            ? 'Sin cargos ahora. Cancela cuando quieras.'
+            : 'Sin compromiso · Puedes cambiar de opción después'}
         </p>
       </div>
     </aside>
