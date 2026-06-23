@@ -76,10 +76,18 @@ export default function JoinFlow({
   });
   const prevPrice = useRef<number | null>(null);
 
+  const sorted = useMemo(() => [...group.tiers].sort((a, b) => a.minUnits - b.minUnits), [group.tiers]);
+  const isEsperar = joinMode === 'esperar';
+  const pricePerUnit = quote.pricePerUnit ?? group.current_price;
+  const efectiveTargetPrice = targetPrice ?? (sorted.length > 0 ? sorted[sorted.length - 1].price : pricePerUnit);
+
   // Quote en vivo: precio por unidad proyectado a (total_units + qty).
   useEffect(() => {
     const ac = new AbortController();
-    fetch(`/api/group/${group.id}/quote?units=${quantity}`, { signal: ac.signal })
+    fetch(
+      `/api/group/${group.id}/quote?units=${quantity}${isEsperar ? `&target=${efectiveTargetPrice}` : ''}`,
+      { signal: ac.signal },
+    )
       .then((r) => r.json())
       .then((d) => {
         const p = d.pricePerUnit != null ? Number(d.pricePerUnit) : null;
@@ -90,16 +98,9 @@ export default function JoinFlow({
       })
       .catch(() => {});
     return () => ac.abort();
-  }, [group.id, quantity]);
-
-  // Tramos ordenados (curva de precios pública). Se usan para el target del
-  // modo esperar y para el cálculo del siguiente umbral.
-  const sorted = useMemo(() => [...group.tiers].sort((a, b) => a.minUnits - b.minUnits), [group.tiers]);
+  }, [group.id, quantity, isEsperar, efectiveTargetPrice]);
 
   // ── PROYECCIÓN (reactiva a total_units + qty) ──
-  const isEsperar = joinMode === 'esperar'
-  const pricePerUnit = quote.pricePerUnit ?? group.current_price;
-  const efectiveTargetPrice = targetPrice ?? (sorted.length > 0 ? sorted[sorted.length - 1].price : pricePerUnit)
   const total = pricePerUnit * quantity;
   // En modo esperar, el importe mostrado y retenido es el target × qty
   // (lo que el comprador acepta pagar como máximo), no el proyectado actual.

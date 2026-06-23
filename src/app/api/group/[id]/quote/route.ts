@@ -12,10 +12,12 @@ export async function GET(
 ) {
   const { searchParams } = new URL(req.url);
   const units = Math.max(1, Math.min(10, Number(searchParams.get('units') ?? 1)));
- 
+  const targetRaw = searchParams.get('target');
+  const target = targetRaw != null && targetRaw !== '' ? Number(targetRaw) : null;
   const { data, error } = await supabaseAdmin.rpc('compute_price', {
     p_group_id: params.id,
     p_extra_units: units,
+    p_extra_target: target,
   });
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
