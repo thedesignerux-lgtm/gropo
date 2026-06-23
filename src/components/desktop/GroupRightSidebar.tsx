@@ -3,6 +3,7 @@
 import { Fragment, useState } from 'react'
 import type { Tier, Milestone } from '@/lib/mock-data'
 import JoinModeSelector from '@/components/JoinModeSelector'
+import TierDemandLadder from '@/components/TierDemandLadder'
 
 function fmt(n: number): string {
   return (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
@@ -149,18 +150,7 @@ export default function GroupRightSidebar({
   return (
     <aside className="w-[340px] flex-shrink-0 flex flex-col gap-4">
       {/* Tier bar */}
-      {milestones.length >= 2 && (
-        <DesktopTierBar milestones={milestones} totalUnits={totalUnits} />
-      )}
-
-      {/* Next tier callout */}
-      {nextTier && unitsToNext > 0 && (
-        <NextTierCallout
-          unitsToNext={unitsToNext}
-          nextPrice={nextTier.price}
-          savingsPerPerson={savingsPerPerson}
-        />
-      )}
+      <TierDemandLadder groupId={groupId} />
 
       <JoinModeSelector
         tiers={tiers}

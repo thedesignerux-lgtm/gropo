@@ -7,6 +7,7 @@ import { getActivationState, getMilestones } from '@/lib/mock-data'
 import type { Tier, Milestone } from '@/lib/mock-data'
 import GroupCountdown from './GroupCountdown'
 import JoinModeSelector from '@/components/JoinModeSelector'
+import TierDemandLadder from '@/components/TierDemandLadder'
 
 function fmt(n: number | undefined | null): string {
   if (n === undefined || n === null) return '—'
@@ -218,14 +219,9 @@ export default function GroupLiveSection({
         </div>
 
         {/* Tier bar */}
-        {milestones.length >= 2 && (
-          <div style={{ marginBottom: 6 }}>
-            <p className="text-xs font-semibold uppercase text-neutral-400 tracking-widest" style={{ marginBottom: 6 }}>
-              Tramos de precio
-            </p>
-            <TierBar milestones={milestones} totalUnits={totalUnits} />
-          </div>
-        )}
+        <div style={{ marginBottom: 6 }}>
+          <TierDemandLadder groupId={groupId} />
+        </div>
 
         {/* Orange box */}
         {progressMsg && (
