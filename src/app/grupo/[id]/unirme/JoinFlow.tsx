@@ -92,13 +92,20 @@ export default function JoinFlow({
     return () => ac.abort();
   }, [group.id, quantity]);
 
-  // ── PROYECCIÓN (reactiva a total_units + qty) ──
-  const pricePerUnit = quote.pricePerUnit ?? group.current_price;
-  const total = pricePerUnit * quantity;
-  const savingsPerUnit = Math.max(0, group.pvp - pricePerUnit);
-
-  // Siguiente tramo a partir del tramo aplicable a las unidades ACTUALES.
+  // Tramos ordenados (curva de precios pública). Se usan para el target del
+  // modo esperar y para el cálculo del siguiente umbral.
   const sorted = useMemo(() => [...group.tiers].sort((a, b) => a.minUnits - b.minUnits), [group.tiers]);
+
+  // ── PROYECCIÓN (reactiva a total_units + qty) ──
+  const isEsperar = joinMode === 'esperar'
+  const pricePerUnit = quote.pricePerUnit ?? group.current_price;
+  const efectiveTargetPrice = targetPrice ?? (sorted.length > 0 ? sorted[sorted.length - 1].price : pricePerUnit)
+  const total = pricePerUnit * quantity;
+  // En modo esperar, el importe mostrado y retenido es el target × qty
+  // (lo que el comprador acepta pagar como máximo), no el proyectado actual.
+  const displayPricePerUnit = isEsperar ? efectiveTargetPrice : pricePerUnit;
+  const displayTotal = displayPricePerUnit * quantity;
+  const savingsPerUnit = Math.max(0, group.pvp - pricePerUnit);
   const nextTier = useMemo(() => {
     let curIdx = 0;
     for (let i = 0; i < sorted.length; i++) if (sorted[i].minUnits <= group.total_units) curIdx = i;
@@ -112,8 +119,8 @@ export default function JoinFlow({
   // Stripe Elements: importe = total de producto proyectado (= el cargo real,
   // que el servidor recalcula idéntico). El front no maneja ningún "hold".
   const amountCents = useMemo(
-    () => Math.max(50, Math.round(pricePerUnit * quantity * 100)),
-    [pricePerUnit, quantity],
+    () => Math.max(50, Math.round(displayPricePerUnit * quantity * 100)),
+    [displayPricePerUnit, quantity],
   );
   const elementsOptions = useMemo(
     () => ({
@@ -130,9 +137,6 @@ export default function JoinFlow({
   // Barra de estado por unidades: progreso REAL de la vonda hacia el próximo tramo.
   const barTarget = nextTier ? nextTier.minUnits : Math.max(group.total_units, 1);
   const barFrac = barTarget > 0 ? Math.min(1, group.total_units / barTarget) : 1;
-
-  const isEsperar = joinMode === 'esperar'
-  const efectiveTargetPrice = targetPrice ?? (sorted.length > 0 ? sorted[sorted.length - 1].price : pricePerUnit)
 
   return (
     <div>
@@ -175,7 +179,7 @@ export default function JoinFlow({
           <h1 className="truncate text-base font-semibold text-neutral-900">{group.product_name}</h1>
           {group.product_spec && <p className="truncate text-sm text-neutral-400">{group.product_spec}</p>}
           <div className="mt-1.5 flex items-baseline gap-2">
-            <span className="text-xl font-bold text-brand">{eur(pricePerUnit)}</span>
+            <span className="text-xl font-bold text-brand">{eur(displayPricePerUnit)}</span>
             <span className="text-xs text-neutral-400">/ud</span>
             {group.pvp > pricePerUnit && (
               <span className="text-sm text-neutral-400 line-through">{eur(group.pvp)}</span>
@@ -255,7 +259,7 @@ export default function JoinFlow({
             <span className="text-sm text-neutral-500">
               {unlocks ? `Subtotal (${quantity} uds)` : 'Total actual'}
             </span>
-            <span className="text-lg font-bold text-neutral-900">{eur(total)}</span>
+            <span className="text-lg font-bold text-neutral-900">{eur(displayTotal)}</span>
           </div>
           {savingsPerUnit > 0 && (
             <div className="mt-1 text-right text-xs font-semibold text-brand">
@@ -270,7 +274,7 @@ export default function JoinFlow({
         <InnerForm
           group={group}
           quantity={quantity}
-          total={total}
+          total={displayTotal}
           showAdjust={!unlocks}
           joinMode={isEsperar ? 'esperar' : 'comprar'}
           targetPrice={isEsperar ? efectiveTargetPrice : undefined}
@@ -455,9 +459,14 @@ function InnerForm({
                 : `Pagar ${eur(total)}`
             }
           </button>
-          {showAdjust && (
+          {showAdjust && joinMode !== 'esperar' && (
             <p className="mt-2 text-center text-xs text-neutral-500">
               Pagas el precio actual. Se ajustará a la baja si la vonda crece.
+            </p>
+          )}
+          {joinMode === 'esperar' && (
+            <p className="mt-2 text-center text-xs text-neutral-500">
+              Solo pagas si la vonda baja a tu precio objetivo. Si no, se libera sin cargo.
             </p>
           )}
         </div>

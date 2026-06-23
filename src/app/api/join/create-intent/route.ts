@@ -26,7 +26,39 @@ export async function POST(req: Request) {
 
     const guaranteedPrice = Number(prep.guaranteed_price);
     const normalizedPhone = prep.phone as string;
-    const amountCents = Math.round(guaranteedPrice * quantity * 100);
+    // Importe a retener. Por defecto = precio proyectado × qty (comprador "ahora").
+    // Para esperadores = target × qty, validando que el target sea un tramo REAL
+    // de la puja ganadora (server-authoritative: nunca confiar en el front).
+    let holdPrice = guaranteedPrice;
+    if (join_mode === 'esperar') {
+      if (target_price == null) {
+        return NextResponse.json(
+          { error: 'Falta el precio objetivo' },
+          { status: 400 },
+        );
+      }
+      const { data: bid, error: bidError } = await supabaseAdmin
+        .from('bids')
+        .select('tiers')
+        .eq('id', prep.best_bid_id)
+        .single();
+      if (bidError || !bid) {
+        return NextResponse.json(
+          { error: 'No se pudo validar el precio objetivo' },
+          { status: 400 },
+        );
+      }
+      const tierPrices = ((bid as any).tiers ?? []).map((t: any) => Number(t.price));
+      const target = Number(target_price);
+      if (!tierPrices.includes(target)) {
+        return NextResponse.json(
+          { error: 'El precio objetivo no es válido' },
+          { status: 400 },
+        );
+      }
+      holdPrice = target;
+    }
+    const amountCents = Math.round(holdPrice * quantity * 100);
 
     // 2) Cliente de Stripe (historial limpio en el dashboard)
     const customer = await stripe.customers.create({
