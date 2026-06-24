@@ -24,7 +24,9 @@ export default function HomeDesktopView({ products }: { products: GroupProduct[]
       {/* Top bar */}
       <header className="bg-white border-b border-neutral-100 sticky top-0 z-30">
         <div className="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
-          <a href="/" className="text-xl font-bold text-neutral-900 tracking-tight">vonda</a>
+          <a href="/" aria-label="Vonda - inicio">
+            <img src="/logo.png" alt="Vonda" className="h-8 w-auto" />
+          </a>
 
           <div className="flex-1 max-w-md mx-8">
             <div className="relative">
