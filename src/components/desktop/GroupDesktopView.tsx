@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { getActivationState, getMilestones } from '@/lib/mock-data'
-import type { Tier, Milestone } from '@/lib/mock-data'
 import GroupSidebar, { type TabId } from './GroupSidebar'
 import GroupRightSidebar from './GroupRightSidebar'
 import GroupCenterContent from './GroupCenterContent'
@@ -12,6 +10,8 @@ import CountdownChip from '@/components/CountdownChip'
 function fmt(n: number): string {
   return (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
 }
+
+interface Tier { minUnits: number; price: number }
 
 interface Props {
   groupId: string
@@ -37,7 +37,7 @@ export default function GroupDesktopView({
   const [totalUnits, setTotalUnits] = useState(initialTotalUnits)
   const [activeTab, setActiveTab] = useState<TabId>('resumen')
 
-  // Real-time sync (same as GroupLiveSection)
+  // Real-time sync
   useEffect(() => {
     let cancelled = false
 
@@ -90,10 +90,6 @@ export default function GroupDesktopView({
     }
   }, [groupId])
 
-  const { activated, unitsToActivate, nextTier, unitsToNext } = getActivationState(tiers, totalUnits, minExecution)
-  const milestones: Milestone[] = getMilestones(tiers, minExecution)
-  const nextPrice = nextTier?.price ?? bestPrice
-
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
       {/* Top bar */}
@@ -126,14 +122,12 @@ export default function GroupDesktopView({
           {/* Right side */}
           <div className="flex items-center gap-4">
             <CountdownChip />
-            {/* Notifications */}
             <button className="relative text-neutral-500 hover:text-neutral-700 transition-colors">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
                 <path d="M13.73 21a2 2 0 0 1-3.46 0" />
               </svg>
             </button>
-            {/* Avatar */}
             <div className="flex items-center gap-2 cursor-pointer">
               <div className="w-8 h-8 rounded-full bg-neutral-200 flex items-center justify-center text-xs font-semibold text-neutral-600">
                 V
@@ -153,13 +147,13 @@ export default function GroupDesktopView({
           <GroupSidebar
             activeTab={activeTab}
             onTabChange={setActiveTab}
-            conversationCount={12}
+            conversationCount={0}
             participantCount={totalUnits}
-            questionCount={3}
+            questionCount={0}
             productName={name}
             bestPrice={bestPrice}
             pvp={pvp}
-            nextPrice={nextPrice}
+            nextPrice={bestPrice}
             groupId={groupId}
           />
 
@@ -175,11 +169,7 @@ export default function GroupDesktopView({
               totalUnits={totalUnits}
               maxStock={maxStock}
               tiers={tiers}
-              activated={activated}
-              unitsToNext={unitsToNext}
-              nextTier={nextTier}
-              waitingCount={12}
-              waitingPrice={nextTier?.price}
+              groupId={groupId}
             />
           </main>
 
@@ -187,16 +177,10 @@ export default function GroupDesktopView({
           <GroupRightSidebar
             groupId={groupId}
             tiers={tiers}
-            milestones={milestones}
-            totalUnits={totalUnits}
             bestPrice={bestPrice}
-            nextPrice={nextPrice}
             pvp={pvp}
             maxStock={maxStock}
             closesAt={closesAt}
-            unitsToNext={unitsToNext}
-            nextTier={nextTier}
-            activated={activated}
           />
         </div>
       </div>

@@ -22,6 +22,10 @@ export interface StepPricingResult {
   unitsToNext: number
 }
 
+/**
+ * @deprecated Para la ficha de producto, usar useTierDemand hook en su lugar.
+ * Esta función sigue siendo válida para las tarjetas del Home (ProductCard, DesktopProductCard).
+ */
 export function getStepPricing(tiers: Tier[], currentUnits: number): StepPricingResult {
   let idx = 0
   for (let i = 0; i < tiers.length; i++) {
@@ -42,8 +46,10 @@ export interface Milestone {
   price: number
 }
 
-// Hitos de la barra: el primero es la ACTIVACIÓN (min_execution unidades al
-// precio del tramo 1); el resto, las bajadas de precio de los tramos siguientes.
+/**
+ * @deprecated Para la ficha de producto, usar useTierDemand + ProgressToNextPrice.
+ * Sigue siendo válida para las tarjetas del Home.
+ */
 export function getMilestones(tiers: Tier[], minExecution: number): Milestone[] {
   if (tiers.length === 0) return []
   return [
@@ -59,7 +65,10 @@ export interface ActivationState {
   unitsToNext: number
 }
 
-// Estado de activación + siguiente tramo, compartido entre la ficha y la tarjeta.
+/**
+ * @deprecated Para la ficha de producto, usar useTierDemand hook.
+ * Sigue siendo válida para las tarjetas del Home.
+ */
 export function getActivationState(tiers: Tier[], totalUnits: number, minExecution: number): ActivationState {
   const step = tiers.length > 0 ? getStepPricing(tiers, totalUnits) : null
   return {

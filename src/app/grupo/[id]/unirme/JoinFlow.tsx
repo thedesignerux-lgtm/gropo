@@ -81,6 +81,11 @@ export default function JoinFlow({
   const pricePerUnit = quote.pricePerUnit ?? group.current_price;
   const efectiveTargetPrice = targetPrice ?? (sorted.length > 0 ? sorted[sorted.length - 1].price : pricePerUnit);
 
+  // ¿El target del esperador ya se alcanza con su entrada?
+  const targetReached = isEsperar && pricePerUnit <= efectiveTargetPrice;
+  // Modo visual: si el target ya se alcanza, colapsar a "comprar"
+  const visualMode = isEsperar && !targetReached ? 'esperar' : 'comprar';
+
   // Quote en vivo: precio por unidad proyectado a (total_units + qty).
   useEffect(() => {
     const ac = new AbortController();
@@ -102,9 +107,8 @@ export default function JoinFlow({
 
   // ── PROYECCIÓN (reactiva a total_units + qty) ──
   const total = pricePerUnit * quantity;
-  // En modo esperar, el importe mostrado y retenido es el target × qty
-  // (lo que el comprador acepta pagar como máximo), no el proyectado actual.
-  const displayPricePerUnit = isEsperar ? efectiveTargetPrice : pricePerUnit;
+  // Si esperar pero target ya alcanzado → mostrar R (precio real), no T
+  const displayPricePerUnit = (isEsperar && !targetReached) ? efectiveTargetPrice : pricePerUnit;
   const displayTotal = displayPricePerUnit * quantity;
   const savingsPerUnit = Math.max(0, group.pvp - pricePerUnit);
   const nextTier = useMemo(() => {
@@ -117,11 +121,11 @@ export default function JoinFlow({
   const unlocks = !!nextTier && projected >= nextTier.minUnits; // Estado A
   const missing = nextTier ? Math.max(0, nextTier.minUnits - projected) : 0; // Estado B
 
-  // Stripe Elements: importe = total de producto proyectado (= el cargo real,
-  // que el servidor recalcula idéntico). El front no maneja ningún "hold".
+  // Hold para Stripe: siempre target × qty para esperadores (techo de seguridad)
+  const holdPricePerUnit = isEsperar ? efectiveTargetPrice : pricePerUnit;
   const amountCents = useMemo(
-    () => Math.max(50, Math.round(displayPricePerUnit * quantity * 100)),
-    [displayPricePerUnit, quantity],
+    () => Math.max(50, Math.round(holdPricePerUnit * quantity * 100)),
+    [holdPricePerUnit, quantity],
   );
   const elementsOptions = useMemo(
     () => ({
@@ -141,8 +145,8 @@ export default function JoinFlow({
 
   return (
     <div>
-      {/* ── MODO ESPERAR BANNER ── */}
-      {isEsperar && (
+      {/* ── MODO ESPERAR / TARGET REACHED BANNER ── */}
+      {visualMode === 'esperar' ? (
         <section className="px-4 pt-4">
           <div className="rounded-2xl bg-brand/5 border border-brand/20 p-4">
             <div className="flex items-start gap-3">
@@ -159,7 +163,24 @@ export default function JoinFlow({
             </div>
           </div>
         </section>
-      )}
+      ) : targetReached ? (
+        <section className="px-4 pt-4">
+          <div className="rounded-2xl bg-green-50 border border-green-200 p-4">
+            <div className="flex items-start gap-3">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600 flex-shrink-0 mt-0.5">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                <polyline points="22 4 12 14.01 9 11.01" />
+              </svg>
+              <div>
+                <p className="text-sm font-semibold text-neutral-900">Compras ahora a {eur(pricePerUnit)}</p>
+                <p className="text-xs text-neutral-500 mt-1">
+                  Con tus {quantity} {quantity === 1 ? 'unidad' : 'unidades'}, el grupo desbloquea {eur(pricePerUnit)}/ud — más barato que tu objetivo de {eur(efectiveTargetPrice)}.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       {/* ── RESUMEN DE PRODUCTO (precio proyectado, reactivo) ── */}
       <section className="flex gap-3.5 px-4 pt-4">
@@ -242,18 +263,18 @@ export default function JoinFlow({
         </div>
 
         {/* ── BANNER A/B ── */}
-        {isEsperar ? (
+        {visualMode === 'esperar' ? (
           // Modo esperar — informativo, sin celebración de desbloqueo
           <p className="mt-3 rounded-xl bg-brand/5 px-3 py-2.5 text-sm font-medium text-neutral-600">
             Reservas tu plaza a {eur(efectiveTargetPrice)}/ud. Solo se confirma si la vonda baja a ese precio antes del cierre.
           </p>
-        ) : unlocks ? (
-          // Estado A — DESBLOQUEA (solo comprar ahora)
+        ) : unlocks || targetReached ? (
+          // Estado A — DESBLOQUEA o target ya alcanzado
           <p className="mt-3 rounded-xl bg-brand/10 px-3 py-2.5 text-sm font-semibold text-brand">
             🎉 ¡Desbloqueado! Tu compra baja el precio a {eur(pricePerUnit)}/ud.
           </p>
         ) : nextTier ? (
-          // Estado B — NO desbloquea (solo comprar ahora)
+          // Estado B — NO desbloquea
           <p className="mt-3 rounded-xl bg-neutral-50 px-3 py-2.5 text-sm font-medium text-neutral-600">
             {missing} {missing === 1 ? 'unidad más' : 'unidades más'} para {eur(nextTier.price)}/ud.
           </p>
@@ -281,8 +302,9 @@ export default function JoinFlow({
           group={group}
           quantity={quantity}
           total={displayTotal}
-          showAdjust={!unlocks}
+          showAdjust={!unlocks && !targetReached}
           joinMode={isEsperar ? 'esperar' : 'comprar'}
+          visualMode={visualMode}
           targetPrice={isEsperar ? efectiveTargetPrice : undefined}
         />
       </Elements>
@@ -296,6 +318,7 @@ function InnerForm({
   total,
   showAdjust,
   joinMode = 'comprar',
+  visualMode = 'comprar',
   targetPrice,
 }: {
   group: JoinGroup;
@@ -303,6 +326,7 @@ function InnerForm({
   total: number;
   showAdjust: boolean;
   joinMode?: 'comprar' | 'esperar';
+  visualMode?: 'comprar' | 'esperar';
   targetPrice?: number;
 }) {
   const stripe = useStripe();
@@ -460,17 +484,17 @@ function InnerForm({
           >
             {loading
               ? 'Procesando…'
-              : joinMode === 'esperar'
+              : visualMode === 'esperar'
                 ? `Reservar plaza · ${eur(total)}`
-                : `Pagar ${eur(total)}`
+                : `Comprar ahora · ${eur(total)}`
             }
           </button>
-          {showAdjust && joinMode !== 'esperar' && (
+          {showAdjust && visualMode !== 'esperar' && (
             <p className="mt-2 text-center text-xs text-neutral-500">
               Pagas el precio actual. Se ajustará a la baja si la vonda crece.
             </p>
           )}
-          {joinMode === 'esperar' && (
+          {visualMode === 'esperar' && (
             <p className="mt-2 text-center text-xs text-neutral-500">
               Solo pagas si la vonda baja a tu precio objetivo. Si no, se libera sin cargo.
             </p>

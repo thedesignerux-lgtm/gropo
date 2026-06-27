@@ -1,11 +1,13 @@
 'use client'
 
 import type { TabId } from './GroupSidebar'
-import type { Tier } from '@/lib/mock-data'
+import { useTierDemand } from '@/hooks/useTierDemand'
 
 function fmt(n: number): string {
   return (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
 }
+
+interface Tier { minUnits: number; price: number }
 
 interface Props {
   activeTab: TabId
@@ -17,45 +19,24 @@ interface Props {
   totalUnits: number
   maxStock: number
   tiers: Tier[]
-  activated: boolean
-  unitsToNext: number
-  nextTier: Tier | null
-  /* counts for the "esperando" segment */
-  waitingCount?: number
-  waitingPrice?: number
+  groupId: string
 }
 
 /* ── Resumen tab (main product view) ── */
 function ResumenTab({
-  name, spec, imageUrl, pvp, bestPrice, totalUnits, maxStock,
-  activated, unitsToNext, nextTier, waitingCount = 0, waitingPrice,
+  name, spec, imageUrl, pvp, bestPrice, totalUnits, maxStock, groupId,
 }: Omit<Props, 'activeTab' | 'tiers'>) {
-  const savings = pvp - bestPrice
+  const { tiers: demandTiers, currentPrice, nextTier, missing } = useTierDemand(groupId)
+  const displayPrice = currentPrice > 0 ? currentPrice : bestPrice
+  const savings = pvp - displayPrice
   const savingsPct = pvp > 0 ? Math.round((savings / pvp) * 100) : 0
-  const buyingNow = totalUnits - waitingCount
-  const barTotal = maxStock > 0 ? maxStock : Math.max(totalUnits, 30)
-
-  // Activity feed (placeholder data — will be dynamic)
-  const activities = [
-    { name: 'Laura', action: 'se unió al grupo', time: 'Hace 15 min' },
-    { name: 'Javier', action: `cambió a esperar a ${waitingPrice ? fmt(waitingPrice) : '—'}`, time: 'Hace 44 min' },
-    { name: 'Marta', action: 'se unió al grupo', time: 'Hace 1 h' },
-    { name: 'Carlos', action: 'compró ahora', time: 'Hace 2 h' },
-    { name: 'Ana', action: `cambió a esperar a ${waitingPrice ? fmt(waitingPrice) : '—'}`, time: 'Hace 3 h' },
-  ]
-
-  // Comments (placeholder)
-  const comments = [
-    { name: 'Javier', text: 'Gran producto a muy buen precio. Si somos 4 más lo conseguimos!', time: 'Hace 1 h', likes: 3, hearts: 3 },
-    { name: 'Marta', text: 'Ya queda poco! 💪', time: 'Hace 2 h', likes: 0, hearts: 2 },
-  ]
 
   return (
     <div className="space-y-6">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-xs text-neutral-400 uppercase tracking-wide">
         <span>CICLISMO</span>
-        <span>›</span>
+        <span>&rsaquo;</span>
         <span>CUBIERTAS</span>
       </div>
 
@@ -88,20 +69,19 @@ function ResumenTab({
             <span className="text-sm font-medium text-brand-green">Vendedor verificado</span>
           </div>
 
-          {/* Fire callout — "X comprarían a Y€" */}
-          {nextTier && waitingCount > 0 && (
+          {/* Next tier callout — real data from tier_demand */}
+          {nextTier && missing > 0 && (
             <div className="bg-orange-50 rounded-xl p-3.5 mb-4">
               <div className="flex items-start gap-2">
-                <span className="text-lg">🔥</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-[#993C1D] flex-shrink-0 mt-0.5">
+                  <path d="M12 2c1 3 3.5 5 6 6-1 4-3 7-6 10-3-3-5-6-6-10 2.5-1 5-3 6-6z" />
+                </svg>
                 <div>
                   <p className="text-base font-semibold text-neutral-900">
-                    {waitingCount} comprarían a {fmt(nextTier.price)}
+                    Faltan {missing} ud{missing === 1 ? '' : 's'} para {fmt(nextTier.price)}
                   </p>
                   <p className="text-sm text-neutral-500 mt-0.5">
-                    Solo faltan {unitsToNext} persona{unitsToNext === 1 ? '' : 's'} para activar
-                  </p>
-                  <p className="text-sm text-neutral-500">
-                    {waitingCount} compras automáticas a {fmt(nextTier.price)}
+                    El precio baja automáticamente para todos cuando se alcancen {nextTier.minUnits} uds
                   </p>
                 </div>
               </div>
@@ -111,8 +91,8 @@ function ResumenTab({
           {/* Price */}
           <div className="mb-4">
             <div className="flex items-baseline gap-3">
-              <span className="text-3xl font-bold text-neutral-900">{fmt(bestPrice)}</span>
-              {pvp > bestPrice && (
+              <span className="text-3xl font-bold text-neutral-900">{fmt(displayPrice)}</span>
+              {pvp > displayPrice && (
                 <span className="text-lg text-neutral-400 line-through">{fmt(pvp)}</span>
               )}
             </div>
@@ -125,126 +105,47 @@ function ResumenTab({
         </div>
       </div>
 
-      {/* Progress bar: comprando ahora vs esperando */}
+      {/* Progress bar: total demand */}
       <div className="bg-white rounded-xl border border-neutral-100 p-4">
         <div className="flex items-center justify-between text-sm mb-3">
-          <span className="flex items-center gap-2 text-brand-green font-medium">
-            <span className="w-2.5 h-2.5 rounded-full bg-brand-green" />
-            {buyingNow > 0 ? buyingNow : totalUnits} comprando ahora
+          <span className="flex items-center gap-2 text-neutral-700 font-medium">
+            <span className="w-2.5 h-2.5 rounded-full bg-brand" />
+            {totalUnits} unidades en el grupo
           </span>
-          {waitingCount > 0 && (
-            <span className="flex items-center gap-2 text-brand font-medium">
-              <span className="w-2.5 h-2.5 rounded-full bg-brand" />
-              {waitingCount} esperando {waitingPrice ? fmt(waitingPrice) : ''}
-            </span>
-          )}
         </div>
-        <div className="w-full h-3 bg-neutral-100 rounded-full overflow-hidden flex">
+        <div className="w-full h-3 bg-neutral-100 rounded-full overflow-hidden">
           <div
-            className="h-full bg-brand-green rounded-l-full"
-            style={{ width: `${(buyingNow / barTotal) * 100}%`, transition: 'width 300ms' }}
+            className="h-full bg-brand rounded-full"
+            style={{ width: `${maxStock > 0 ? (totalUnits / maxStock) * 100 : 50}%`, transition: 'width 300ms' }}
           />
-          {waitingCount > 0 && (
-            <div
-              className="h-full bg-brand"
-              style={{ width: `${(waitingCount / barTotal) * 100}%`, transition: 'width 300ms' }}
-            />
-          )}
         </div>
         <div className="flex items-center justify-between mt-2 text-xs text-neutral-400">
-          <span>{totalUnits} interesados en total</span>
-          <span>{totalUnits} / {maxStock > 0 ? maxStock : '∞'} para desbloquear</span>
+          <span>{totalUnits} uds actuales</span>
+          <span>{maxStock > 0 ? `${maxStock} stock máximo` : ''}</span>
         </div>
       </div>
 
-      {/* Two-column: About + Activity */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* About */}
-        <div className="bg-white rounded-xl border border-neutral-100 p-5">
-          <h3 className="text-sm font-semibold text-neutral-900 mb-3">Sobre el producto</h3>
-          <p className="text-sm text-neutral-600 leading-relaxed mb-3">
-            El referente en rendimiento. Máximo agarre, baja resistencia a la rodadura y protección antipinchazos. Ideal para entrenamientos y competiciones.
-          </p>
-          <ul className="space-y-2">
-            {[
-              'Compuesto BlackChili para mayor agarre',
-              'Protección Vectran Breaker antipinchazos',
-              'Baja resistencia a la rodadura',
-              'Durabilidad y kilometraje superior',
-            ].map((feat) => (
-              <li key={feat} className="flex items-start gap-2 text-sm text-neutral-600">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-brand-green flex-shrink-0 mt-0.5">
-                  <polyline points="20 6 9 17 4 12" />
-                </svg>
-                {feat}
-              </li>
-            ))}
-          </ul>
-          <button className="mt-4 text-sm text-brand font-medium hover:underline flex items-center gap-1">
-            Ver más detalles
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Activity feed */}
-        <div className="bg-white rounded-xl border border-neutral-100 p-5">
-          <h3 className="text-sm font-semibold text-neutral-900 mb-3">Actividad reciente</h3>
-          <div className="space-y-3">
-            {activities.map((a, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-neutral-100 flex items-center justify-center text-xs font-semibold text-neutral-500 flex-shrink-0">
-                  {a.name[0]}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-neutral-700">
-                    <span className="font-medium">{a.name}</span>{' '}
-                    <span className="text-neutral-500">{a.action}</span>
-                  </p>
-                </div>
-                <span className="text-xs text-neutral-400 flex-shrink-0">{a.time}</span>
-              </div>
-            ))}
-          </div>
-          <button className="mt-4 text-sm text-brand font-medium hover:underline flex items-center gap-1">
-            Ver toda la actividad
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      {/* Comments */}
+      {/* About */}
       <div className="bg-white rounded-xl border border-neutral-100 p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-neutral-900">Lo que dicen los participantes</h3>
-          <button className="text-sm text-brand font-medium hover:underline flex items-center gap-1.5">
-            Ver conversación
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
-          </button>
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          {comments.map((c, i) => (
-            <div key={i} className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-full bg-neutral-100 flex items-center justify-center text-sm font-semibold text-neutral-500 flex-shrink-0">
-                {c.name[0]}
-              </div>
-              <div className="min-w-0">
-                <p className="text-sm font-medium text-neutral-900">{c.name}</p>
-                <p className="text-sm text-neutral-600 mt-0.5">{c.text}</p>
-                <div className="flex items-center gap-3 mt-1.5 text-xs text-neutral-400">
-                  <span>{c.time}</span>
-                  {c.likes > 0 && <span>💬 {c.likes}</span>}
-                  {c.hearts > 0 && <span>❤️ {c.hearts}</span>}
-                </div>
-              </div>
-            </div>
+        <h3 className="text-sm font-semibold text-neutral-900 mb-3">Sobre el producto</h3>
+        <p className="text-sm text-neutral-600 leading-relaxed mb-3">
+          El referente en rendimiento. Máximo agarre, baja resistencia a la rodadura y protección antipinchazos. Ideal para entrenamientos y competiciones.
+        </p>
+        <ul className="space-y-2">
+          {[
+            'Compuesto BlackChili para mayor agarre',
+            'Protección Vectran Breaker antipinchazos',
+            'Baja resistencia a la rodadura',
+            'Durabilidad y kilometraje superior',
+          ].map((feat) => (
+            <li key={feat} className="flex items-start gap-2 text-sm text-neutral-600">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-brand-green flex-shrink-0 mt-0.5">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              {feat}
+            </li>
           ))}
-        </div>
+        </ul>
       </div>
     </div>
   )

@@ -1,82 +1,20 @@
 'use client'
 
-import { useState, useEffect, Fragment } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { getActivationState, getMilestones } from '@/lib/mock-data'
-import type { Tier, Milestone } from '@/lib/mock-data'
+import { useTierDemand } from '@/hooks/useTierDemand'
 import GroupCountdown from './GroupCountdown'
-import JoinModeSelector from '@/components/JoinModeSelector'
+import JoinModeSelector, { type ProjectionResult } from '@/components/JoinModeSelector'
 import TierDemandLadder from '@/components/TierDemandLadder'
+import ProgressToNextPrice from '@/components/ProgressToNextPrice'
 
 function fmt(n: number | undefined | null): string {
   if (n === undefined || n === null) return '—'
   return (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
 }
 
-// El relleno refleja total_units sobre el eje de unidades: un hito se ilumina
-// (verde) cuando total_units alcanza su umbral de unidades, NO según el tramo
-// de precio. Con total_units = 0 ningún hito está alcanzado.
-function TierBar({ milestones, totalUnits }: { milestones: Milestone[]; totalUnits: number }) {
-  let currentIndex = -1
-  milestones.forEach((m, i) => { if (totalUnits >= m.units) currentIndex = i })
-
-  // Progreso 0 → min_execution (units del primer hito). Ancho fijo pequeño que
-  // se rellena con total_units/min_execution; lleno justo al activarse.
-  const activationFrac = milestones.length > 0 && milestones[0].units > 0
-    ? Math.min(1, totalUnits / milestones[0].units)
-    : 1
-
-  return (
-    <div className="flex items-center w-full">
-      {milestones.length > 0 && (
-        <div className="h-[3px] bg-gray-200 rounded-full overflow-hidden flex-shrink-0" style={{ width: 20 }}>
-          <div
-            className="h-full bg-brand rounded-full"
-            style={{ width: `${activationFrac * 100}%`, transition: 'width 300ms ease' }}
-          />
-        </div>
-      )}
-      {milestones.map((m, i) => {
-        const reached = totalUnits >= m.units
-        const isCurrent = i === currentIndex
-        return (
-          <Fragment key={m.units}>
-            {i > 0 && (() => {
-              const prevUnits = milestones[i - 1].units
-              const currUnits = m.units
-              const span = currUnits - prevUnits
-              const frac = span > 0
-                ? Math.max(0, Math.min(1, (totalUnits - prevUnits) / span))
-                : (totalUnits >= currUnits ? 1 : 0)
-              return (
-                <div className="flex-1 h-[3px] bg-gray-200 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-brand rounded-full"
-                    style={{ width: `${frac * 100}%`, transition: 'width 300ms ease' }}
-                  />
-                </div>
-              )
-            })()}
-            <div className="flex flex-col items-center">
-              <span className={`text-xs font-semibold leading-none mb-1.5 whitespace-nowrap ${
-                isCurrent ? 'text-teal-700' : 'text-neutral-900'
-              }`}>
-                {m.price % 1 === 0 ? m.price : m.price.toFixed(2).replace('.', ',')}€
-              </span>
-              <div className={`w-4 h-4 rounded-full border-2 ${
-                reached ? 'bg-brand border-brand' : 'bg-white border-gray-300'
-              }`} />
-              <span className="text-xs font-normal text-neutral-400 leading-none mt-1.5 whitespace-nowrap">
-                {m.units}uds
-              </span>
-            </div>
-          </Fragment>
-        )
-      })}
-    </div>
-  )
-}
+interface Tier { minUnits: number; price: number }
 
 interface Props {
   groupId: string
@@ -97,38 +35,31 @@ export default function GroupLiveSection({
   initialBestPrice, initialTotalUnits,
   bidCount, tiers, maxStock, minExecution, closesAt,
 }: Props) {
-  const [bestPrice, setBestPrice] = useState(initialBestPrice)
   const [totalUnits, setTotalUnits] = useState(initialTotalUnits)
   const [joinMode, setJoinMode] = useState<'comprar' | 'esperar'>('comprar')
   const [joinTarget, setJoinTarget] = useState<number | undefined>(undefined)
+  const [quantity, setQuantity] = useState(1)
+  const [projection, setProjection] = useState<ProjectionResult | null>(null)
+
+  // tier_demand hook = source of truth for current price
+  const { tiers: demandTiers, currentPrice, nextTier, missing } = useTierDemand(groupId)
+
+  // Use currentPrice from tier_demand if available, else initial
+  const displayPrice = currentPrice > 0 ? currentPrice : initialBestPrice
 
   useEffect(() => {
-    console.log('GroupLiveSection montado, groupId:', groupId)
     let cancelled = false
 
-    // Re-consulta el estado ACTUAL del grupo (total_units de la tabla +
-    // precio vía compute_price) y pisa los props initial* del SSR. Así la
-    // pantalla se autocorrige aunque el HTML inicial haya llegado rancio.
     async function syncFromServer() {
       const { data: g } = await supabase
         .from('groups')
-        .select('total_units, current_price, next_price')
+        .select('total_units')
         .eq('id', groupId)
         .single()
-      const { data: rpc } = await supabase.rpc('compute_price', { p_group_id: groupId })
       if (cancelled) return
-
-      const row = Array.isArray(rpc) ? rpc[0] : (rpc as any)
-      const best =
-        row?.best_price != null ? Number(row.best_price)
-        : g?.current_price != null ? Number(g.current_price)
-        : null
-
       if (g?.total_units != null) setTotalUnits(Number(g.total_units))
-      if (best != null) setBestPrice(best)
     }
 
-    // 1) al montar
     syncFromServer()
 
     const channel = supabase
@@ -142,19 +73,13 @@ export default function GroupLiveSection({
           filter: `group_id=eq.${groupId}`,
         },
         (payload) => {
-          console.log('Realtime evento recibido:', payload)
           const eventData = payload.new as any
           if (eventData.type === 'member_joined' || eventData.type === 'price_dropped') {
-            const newBest: number = eventData.payload.new_price
-            setBestPrice(newBest)
             setTotalUnits(eventData.payload.total_units)
           }
         }
       )
       .subscribe((status) => {
-        console.log('Realtime status:', status)
-        // 2) en cada (re)conexión del canal, re-sincroniza por si el socket
-        // estuvo caído y nos perdimos eventos INSERT.
         if (status === 'SUBSCRIBED') syncFromServer()
       })
 
@@ -162,21 +87,16 @@ export default function GroupLiveSection({
       cancelled = true
       supabase.removeChannel(channel)
     }
-  }, [groupId, tiers])
+  }, [groupId])
 
-  const savings = pvp > 0 ? pvp - bestPrice : 0
-  const { activated, unitsToActivate, nextTier, unitsToNext } = getActivationState(tiers, totalUnits, minExecution)
-  const milestones: Milestone[] = getMilestones(tiers, minExecution)
+  const savings = pvp > 0 ? pvp - displayPrice : 0
 
-  // Mensaje naranja según el estado del grupo.
-  let progressMsg: string | null = null
-  if (tiers.length > 0) {
-    if (!activated) {
-      progressMsg = `Falta${unitsToActivate === 1 ? '' : 'n'} ${unitsToActivate} para activar el grupo a ${fmt(tiers[0].price)}`
-    } else if (nextTier) {
-      progressMsg = `Falta${unitsToNext === 1 ? '' : 'n'} ${unitsToNext} para bajar a ${fmt(nextTier.price)}`
-    }
-  }
+  const handleProjection = useCallback((result: ProjectionResult | null) => {
+    setProjection(result)
+  }, [])
+
+  const ctaPrice = projection ? projection.price : displayPrice
+  const ctaHref = `/grupo/${groupId}/unirme${joinMode === 'esperar' && joinTarget ? `?mode=esperar&target=${joinTarget}` : ''}`
 
   return (
     <>
@@ -189,27 +109,20 @@ export default function GroupLiveSection({
 
         {/* Price + badge + PVP */}
         <div style={{ marginBottom: 6 }}>
-          {!activated && (
-            <p className="text-xs font-medium text-neutral-500" style={{ marginBottom: 2 }}>
-              {`Precio del grupo al activarse (${minExecution} uds)`}
-            </p>
-          )}
           <div className="flex items-center justify-between gap-2" style={{ marginBottom: 2 }}>
             <span
-              className={`text-3xl font-bold leading-none ${activated ? 'text-teal-700' : 'text-neutral-900'}`}
+              className="text-3xl font-bold leading-none text-neutral-900"
               style={{ transition: 'all 300ms ease' }}
             >
-              {fmt(bestPrice)}
+              {fmt(displayPrice)}
             </span>
             {savings > 0.01 && (
-              <span className={`inline-flex items-center gap-1 text-xs font-semibold px-3.5 py-2 rounded-full flex-shrink-0 ${
-                activated ? 'bg-green-50 text-green-700' : 'bg-neutral-100 text-neutral-600'
-              }`}>
+              <span className="inline-flex items-center gap-1 text-xs font-semibold px-3.5 py-2 rounded-full flex-shrink-0 bg-green-50 text-green-700">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/>
                   <line x1="7" y1="7" x2="7.01" y2="7"/>
                 </svg>
-                {`${activated ? 'Ahorras' : 'Ahorrarás'} ${fmt(savings)}`}
+                Ahorras {fmt(savings)}
               </span>
             )}
           </div>
@@ -218,17 +131,26 @@ export default function GroupLiveSection({
           )}
         </div>
 
-        {/* Tier bar */}
+        {/* Progress to next price */}
         <div style={{ marginBottom: 6 }}>
-          <TierDemandLadder groupId={groupId} />
+          <ProgressToNextPrice currentPrice={displayPrice} nextTier={nextTier} missing={missing} />
         </div>
 
-        {/* Orange box */}
-        {progressMsg && (
-          <div className="bg-[#FFF3ED] rounded-xl" style={{ marginBottom: 6, padding: '6px 12px' }}>
-            <p className="text-sm font-normal text-orange-600">{progressMsg}</p>
-          </div>
-        )}
+        {/* Tier demand ladder */}
+        <div style={{ marginBottom: 6 }}>
+          {demandTiers.length > 0 ? (
+            <TierDemandLadder tiers={demandTiers} currentPrice={displayPrice} />
+          ) : (
+            <TierDemandLadder groupId={groupId} />
+          )}
+        </div>
+
+        {/* How it works note */}
+        <div className="bg-neutral-50 rounded-xl p-3" style={{ marginBottom: 6 }}>
+          <p className="text-xs text-neutral-500">
+            El precio baja a medida que se unen más compradores. Cuantos más seáis, menos paga cada uno.
+          </p>
+        </div>
 
         {/* Metrics bar */}
         <div className="border-t border-[#EEEEEE]">
@@ -276,34 +198,97 @@ export default function GroupLiveSection({
         </div>
       </div>
 
+      {/* Join mode selector */}
       {tiers.length > 1 && (
         <div className="px-4 pb-2">
           <JoinModeSelector
+            groupId={groupId}
             tiers={tiers}
-            currentPrice={bestPrice}
+            currentPrice={displayPrice}
             totalUnits={totalUnits}
+            quantity={quantity}
+            demandTiers={demandTiers}
             onChange={(m, tp) => { setJoinMode(m); setJoinTarget(tp) }}
+            onProjection={handleProjection}
           />
         </div>
       )}
 
-      {/* CTA */}
-      <div className="sticky bottom-0 z-20 bg-white border-t border-[#EEEEEE] flex items-center gap-3 px-4 py-3">
-        <button
-          className="w-14 h-14 flex items-center justify-center rounded-xl border border-gray-200 text-gray-400 flex-shrink-0"
-          aria-label="Guardar en favoritos"
-        >
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-            <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-            <path d="M19.5 13.572l-7.5 7.428l-7.5 -7.428m0 0a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"/>
-          </svg>
-        </button>
-        <Link
-          href={`/grupo/${groupId}/unirme${joinMode === 'esperar' && joinTarget ? `?mode=esperar&target=${joinTarget}` : ''}`}
-          className="flex-1 bg-brand text-white font-semibold text-base py-4 rounded-xl text-center hover:bg-brand-dark active:scale-[0.98] transition-all"
-        >
-          Unirme a la vonda
-        </Link>
+      {/* Sticky bottom: quantity + projection banner + CTA */}
+      <div className="sticky bottom-0 z-20 bg-white border-t border-[#EEEEEE] px-4 py-3">
+        {/* Quantity selector */}
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm font-medium text-neutral-700">Cantidad</span>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setQuantity(q => Math.max(1, q - 1))}
+              className="w-8 h-8 rounded-full border border-neutral-200 flex items-center justify-center text-neutral-600 hover:border-brand transition-colors"
+              aria-label="Menos"
+            >
+              −
+            </button>
+            <span className="text-base font-semibold text-neutral-900 tabular-nums w-6 text-center">{quantity}</span>
+            <button
+              type="button"
+              onClick={() => setQuantity(q => Math.min(10, q + 1))}
+              className="w-8 h-8 rounded-full border border-neutral-200 flex items-center justify-center text-neutral-600 hover:border-brand transition-colors"
+              aria-label="Más"
+            >
+              +
+            </button>
+          </div>
+        </div>
+
+        {/* Total estimate */}
+        {quantity > 1 && (
+          <p className="text-xs text-neutral-500 text-right mb-2">
+            Total estimado: {fmt(ctaPrice * quantity)}
+          </p>
+        )}
+
+        {/* Projection banner */}
+        {projection && (
+          <div className={`rounded-xl p-2.5 mb-2 text-sm ${
+            projection.unlocks
+              ? 'bg-green-50 text-green-700'
+              : 'bg-neutral-50 text-neutral-600'
+          }`}>
+            {projection.unlocks ? (
+              <p className="font-medium">
+                Con tus {quantity} ud{quantity > 1 ? 's' : ''}, el grupo baja a {fmt(projection.price)} para todos
+              </p>
+            ) : (
+              <p>
+                Con tus {quantity} ud{quantity > 1 ? 's' : ''}, el grupo sigue en {fmt(projection.price)}
+                {nextTier && <span> &middot; faltan {missing} para bajar a {fmt(nextTier.price)}</span>}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* CTA row */}
+        <div className="flex items-center gap-3">
+          <button
+            className="w-14 h-14 flex items-center justify-center rounded-xl border border-gray-200 text-gray-400 flex-shrink-0"
+            aria-label="Guardar en favoritos"
+          >
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+              <path d="M19.5 13.572l-7.5 7.428l-7.5 -7.428m0 0a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"/>
+            </svg>
+          </button>
+          <Link
+            href={ctaHref}
+            className="flex-1 bg-brand text-white font-semibold text-base py-4 rounded-xl text-center hover:bg-brand-dark active:scale-[0.98] transition-all"
+          >
+            {joinMode === 'esperar' && joinTarget ? (
+              `Reservar plaza · ${fmt(joinTarget)} máx.`
+            ) : (
+              `Comprar ahora · ${fmt(ctaPrice)}`
+            )}
+          </Link>
+        </div>
       </div>
     </>
   )

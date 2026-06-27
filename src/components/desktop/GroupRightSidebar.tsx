@@ -1,200 +1,143 @@
 'use client'
 
-import { Fragment, useState } from 'react'
-import type { Tier, Milestone } from '@/lib/mock-data'
-import JoinModeSelector from '@/components/JoinModeSelector'
+import { useState, useEffect, useCallback } from 'react'
+import { useTierDemand } from '@/hooks/useTierDemand'
+import JoinModeSelector, { type ProjectionResult } from '@/components/JoinModeSelector'
 import TierDemandLadder from '@/components/TierDemandLadder'
+import ProgressToNextPrice from '@/components/ProgressToNextPrice'
 
 function fmt(n: number): string {
   return (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
 }
 
-/* ── Horizontal Tier Bar (desktop style) ── */
-function DesktopTierBar({ milestones, totalUnits }: { milestones: Milestone[]; totalUnits: number }) {
-  let currentIndex = -1
-  milestones.forEach((m, i) => { if (totalUnits >= m.units) currentIndex = i })
+interface Tier { minUnits: number; price: number }
 
-  return (
-    <div className="bg-white rounded-2xl border border-neutral-100 p-5">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-neutral-900">Tramos de precio</h3>
-        <button className="text-neutral-400 hover:text-neutral-600 transition-colors" title="Info">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="16" x2="12" y2="12" />
-            <line x1="12" y1="8" x2="12.01" y2="8" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Price labels */}
-      <div className="flex items-end justify-between mb-2">
-        {milestones.map((m) => (
-          <span key={m.units} className="text-xs font-semibold text-neutral-700 text-center" style={{ width: `${100 / milestones.length}%` }}>
-            {fmt(m.price)}
-          </span>
-        ))}
-      </div>
-
-      {/* Dot + line visualization */}
-      <div className="flex items-center w-full">
-        {milestones.map((m, i) => {
-          const reached = totalUnits >= m.units
-          const isCurrent = i === currentIndex
-          return (
-            <Fragment key={m.units}>
-              {i > 0 && (() => {
-                const prev = milestones[i - 1].units
-                const span = m.units - prev
-                const frac = span > 0
-                  ? Math.max(0, Math.min(1, (totalUnits - prev) / span))
-                  : (totalUnits >= m.units ? 1 : 0)
-                return (
-                  <div className="flex-1 h-[3px] bg-neutral-200 rounded-full overflow-hidden">
-                    <div className="h-full bg-brand rounded-full" style={{ width: `${frac * 100}%`, transition: 'width 300ms ease' }} />
-                  </div>
-                )
-              })()}
-              <div className="relative flex flex-col items-center">
-                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                  reached ? 'bg-brand border-brand' : 'bg-white border-neutral-300'
-                } ${isCurrent ? 'ring-2 ring-brand/20' : ''}`}>
-                  {reached && (
-                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                  )}
-                </div>
-              </div>
-            </Fragment>
-          )
-        })}
-      </div>
-
-      {/* Unit labels */}
-      <div className="flex items-start justify-between mt-2">
-        {milestones.map((m) => (
-          <span key={m.units} className="text-[11px] text-neutral-400 text-center" style={{ width: `${100 / milestones.length}%` }}>
-            {m.units} uds
-          </span>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-/* ── Next tier callout ── */
-function NextTierCallout({ unitsToNext, nextPrice, savingsPerPerson }: {
-  unitsToNext: number; nextPrice: number; savingsPerPerson: number
-}) {
-  return (
-    <div className="bg-brand/5 border border-brand/15 rounded-xl p-3.5 flex items-start gap-3">
-      <div className="w-8 h-8 rounded-full bg-brand/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-          <circle cx="9" cy="7" r="4" />
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-        </svg>
-      </div>
-      <div>
-        <p className="text-sm font-semibold text-neutral-900">
-          {unitsToNext} persona{unitsToNext === 1 ? '' : 's'} más
-        </p>
-        <p className="text-xs text-neutral-600 mt-0.5">
-          Todos bajaréis automáticamente a {fmt(nextPrice)}
-        </p>
-        <p className="text-xs text-brand font-medium mt-0.5">
-          Ahorro de {fmt(savingsPerPerson)} por persona
-        </p>
-      </div>
-    </div>
-  )
-}
-
-/* ── Main Right Sidebar ── */
 interface Props {
   groupId: string
   tiers: Tier[]
-  milestones: Milestone[]
-  totalUnits: number
   bestPrice: number
-  nextPrice: number
   pvp: number
   maxStock: number
   closesAt: string
-  unitsToNext: number
-  nextTier: Tier | null
-  activated: boolean
 }
 
 export default function GroupRightSidebar({
-  groupId, tiers, milestones, totalUnits, bestPrice, nextPrice,
-  pvp, maxStock, closesAt, unitsToNext, nextTier, activated,
+  groupId, tiers, bestPrice, pvp, maxStock, closesAt,
 }: Props) {
   const [joinMode, setJoinMode] = useState<'comprar' | 'esperar'>('comprar')
   const [joinTarget, setJoinTarget] = useState<number | undefined>(undefined)
+  const [quantity, setQuantity] = useState(1)
+  const [projection, setProjection] = useState<ProjectionResult | null>(null)
+  const [summary, setSummary] = useState<{ firmUnits: number; reserveUnits: number; maxStock: number } | null>(null)
 
-  // Savings per person if next tier is reached
-  const savingsPerPerson = nextTier ? bestPrice - nextTier.price : 0
+  // tier_demand hook
+  const { tiers: demandTiers, currentPrice, nextTier, missing } = useTierDemand(groupId)
+  const displayPrice = currentPrice > 0 ? currentPrice : bestPrice
 
-  // Countdown label
+  // Fetch group summary
+  useEffect(() => {
+    async function load() {
+      try {
+        const res = await fetch(`/api/group/${groupId}/summary`)
+        const data = await res.json()
+        setSummary(data)
+      } catch {
+        // silent
+      }
+    }
+    load()
+  }, [groupId])
+
+  const handleProjection = useCallback((result: ProjectionResult | null) => {
+    setProjection(result)
+  }, [])
+
+  const ctaPrice = projection ? projection.price : displayPrice
+  const ctaHref = `/grupo/${groupId}/unirme${joinMode === 'esperar' && joinTarget ? `?mode=esperar&target=${joinTarget}` : ''}`
+
+  // Countdown
   const closesDate = new Date(closesAt)
   const diffMs = closesDate.getTime() - Date.now()
   const days = Math.max(0, Math.floor(diffMs / 86400000))
   const hours = Math.max(0, Math.floor((diffMs % 86400000) / 3600000))
   const countdownLabel = days > 0 ? `${days}d ${hours}h` : `${hours}h`
 
-  const ctaHref = `/grupo/${groupId}/unirme${joinMode === 'esperar' && joinTarget ? `?mode=esperar&target=${joinTarget}` : ''}`
-
   return (
     <aside className="w-[340px] flex-shrink-0 flex flex-col gap-4">
-      {/* Tier bar */}
-      <TierDemandLadder groupId={groupId} />
+      {/* 1. Progress to next price */}
+      <ProgressToNextPrice currentPrice={displayPrice} nextTier={nextTier} missing={missing} />
 
-      <JoinModeSelector
-        tiers={tiers}
-        currentPrice={bestPrice}
-        totalUnits={totalUnits}
-        onChange={(m, tp) => { setJoinMode(m); setJoinTarget(tp) }}
-      />
+      {/* 2. Tier demand ladder */}
+      {demandTiers.length > 0 ? (
+        <TierDemandLadder tiers={demandTiers} currentPrice={displayPrice} />
+      ) : (
+        <TierDemandLadder groupId={groupId} />
+      )}
 
-      {/* Info grid */}
-      <div className="grid grid-cols-3 gap-3 text-center">
-        <div>
-          <p className="text-xs text-neutral-400">Unidades disponibles</p>
-          <p className="text-sm font-semibold text-neutral-900">{maxStock > 0 ? maxStock : '—'}</p>
+      {/* 3. Join mode selector */}
+      {tiers.length > 1 && (
+        <JoinModeSelector
+          groupId={groupId}
+          tiers={tiers}
+          currentPrice={displayPrice}
+          totalUnits={summary ? summary.firmUnits + summary.reserveUnits : 0}
+          quantity={quantity}
+          demandTiers={demandTiers}
+          onChange={(m, tp) => { setJoinMode(m); setJoinTarget(tp) }}
+          onProjection={handleProjection}
+        />
+      )}
+
+      {/* 4. Projection banner */}
+      {projection && (
+        <div className={`rounded-xl p-3 text-sm ${
+          projection.unlocks
+            ? 'bg-green-50 text-green-700'
+            : 'bg-neutral-50 text-neutral-600'
+        }`}>
+          {projection.unlocks ? (
+            <p className="font-medium">
+              Con tus {quantity} ud{quantity > 1 ? 's' : ''}, el grupo baja a {fmt(projection.price)} para todos
+            </p>
+          ) : (
+            <p>
+              Con tus {quantity} ud{quantity > 1 ? 's' : ''}, el grupo sigue en {fmt(projection.price)}
+              {nextTier && <span> &middot; faltan {missing} para {fmt(nextTier.price)}</span>}
+            </p>
+          )}
         </div>
-        <div>
-          <p className="text-xs text-neutral-400">Cierra en</p>
-          <p className="text-sm font-semibold text-neutral-900">{countdownLabel}</p>
-        </div>
-        <div>
-          <p className="text-xs text-neutral-400">Envío estimado</p>
-          <p className="text-sm font-semibold text-neutral-900">3-5 días</p>
-        </div>
-      </div>
+      )}
 
-      {/* Trust */}
-      <div className="flex items-center justify-between text-xs text-neutral-500">
-        <span className="flex items-center gap-1.5">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-            <polyline points="22 4 12 14.01 9 11.01" />
-          </svg>
-          Pago seguro
-        </span>
-        <span className="flex items-center gap-1.5">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="1 4 1 10 7 10" />
-            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
-          </svg>
-          Devoluciones fáciles
-        </span>
-      </div>
-
-      {/* CTA */}
+      {/* 5. Quantity + Total + CTA */}
       <div>
+        {/* Quantity selector */}
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-sm font-medium text-neutral-700">Cantidad</span>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setQuantity(q => Math.max(1, q - 1))}
+              className="w-8 h-8 rounded-full border border-neutral-200 flex items-center justify-center text-neutral-600 hover:border-brand transition-colors"
+            >
+              −
+            </button>
+            <span className="text-base font-semibold text-neutral-900 tabular-nums w-6 text-center">{quantity}</span>
+            <button
+              type="button"
+              onClick={() => setQuantity(q => Math.min(10, q + 1))}
+              className="w-8 h-8 rounded-full border border-neutral-200 flex items-center justify-center text-neutral-600 hover:border-brand transition-colors"
+            >
+              +
+            </button>
+          </div>
+        </div>
+
+        {quantity > 1 && (
+          <p className="text-xs text-neutral-500 text-right mb-2">
+            Total estimado: {fmt(ctaPrice * quantity)}
+          </p>
+        )}
+
         <div className="flex items-center gap-3">
           <button
             className="w-12 h-12 flex items-center justify-center rounded-xl border border-neutral-200 text-neutral-400 hover:text-brand hover:border-brand transition-colors flex-shrink-0"
@@ -210,12 +153,12 @@ export default function GroupRightSidebar({
           >
             {joinMode === 'esperar' && joinTarget ? (
               <>
-                <span className="block text-base font-semibold">Unirme por {fmt(joinTarget)} máx.</span>
+                <span className="block text-base font-semibold">Reservar plaza · {fmt(joinTarget)} máx.</span>
                 <span className="block text-xs font-normal opacity-80">Asegura tu compra a este precio o menos</span>
               </>
             ) : (
               <>
-                <span className="block text-base font-semibold">Comprar ahora · {fmt(bestPrice)}</span>
+                <span className="block text-base font-semibold">Comprar ahora · {fmt(ctaPrice)}</span>
                 <span className="block text-xs font-normal opacity-80">Reservo mi plaza al precio actual</span>
               </>
             )}
@@ -226,6 +169,94 @@ export default function GroupRightSidebar({
             ? 'Sin cargos ahora. Cancela cuando quieras.'
             : 'Sin compromiso · Puedes cambiar de opción después'}
         </p>
+      </div>
+
+      {/* 6. Group summary (firmes / reservas) */}
+      {summary && (
+        <div className="bg-white rounded-xl border border-neutral-100 p-4">
+          <h3 className="text-sm font-semibold text-neutral-900 mb-3">Resumen del grupo</h3>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-2 text-sm text-neutral-600">
+                <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                Compradores firmes
+              </span>
+              <span className="text-sm font-semibold text-neutral-900">{summary.firmUnits} uds</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-2 text-sm text-neutral-600">
+                <span className="w-2.5 h-2.5 rounded-full bg-brand" />
+                Reservas pendientes
+              </span>
+              <span className="text-sm font-semibold text-neutral-900">{summary.reserveUnits} uds</span>
+            </div>
+            {summary.maxStock > 0 && (
+              <div className="flex items-center justify-between pt-2 border-t border-neutral-100">
+                <span className="text-sm text-neutral-500">Stock máximo</span>
+                <span className="text-sm font-semibold text-neutral-900">{summary.maxStock} uds</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 7. Ficha técnica */}
+      <div className="bg-white rounded-xl border border-neutral-100 p-4">
+        <h3 className="text-sm font-semibold text-neutral-900 mb-3">Detalles</h3>
+        <div className="space-y-2 text-sm">
+          <div className="flex justify-between">
+            <span className="text-neutral-500">Cierra en</span>
+            <span className="font-medium text-neutral-900">{countdownLabel}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-neutral-500">Envío estimado</span>
+            <span className="font-medium text-neutral-900">3-5 días</span>
+          </div>
+          {maxStock > 0 && (
+            <div className="flex justify-between">
+              <span className="text-neutral-500">Stock máximo</span>
+              <span className="font-medium text-neutral-900">{maxStock} uds</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 8. Por qué comprar en grupo */}
+      <div className="bg-white rounded-xl border border-neutral-100 p-4">
+        <h3 className="text-sm font-semibold text-neutral-900 mb-3">Por qué comprar en grupo</h3>
+        <ul className="space-y-2.5">
+          {[
+            { icon: 'tag', text: 'Precios más bajos que comprando solo' },
+            { icon: 'shield', text: 'Pago seguro · Stripe' },
+            { icon: 'truck', text: 'Envío incluido a toda España' },
+            { icon: 'refresh', text: 'Devoluciones fáciles · 14 días' },
+          ].map((item) => (
+            <li key={item.text} className="flex items-start gap-2.5 text-sm text-neutral-600">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-green-500 flex-shrink-0 mt-0.5">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              {item.text}
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Trust badges */}
+      <div className="flex items-center justify-between text-xs text-neutral-500">
+        <span className="flex items-center gap-1.5">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+            <polyline points="22 4 12 14.01 9 11.01" />
+          </svg>
+          Pago seguro
+        </span>
+        <span className="flex items-center gap-1.5">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="1 4 1 10 7 10" />
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10" />
+          </svg>
+          Devoluciones fáciles
+        </span>
       </div>
     </aside>
   )
