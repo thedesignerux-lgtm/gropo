@@ -12,6 +12,7 @@ export type TierRow = {
 export function useTierDemand(groupId: string) {
   const [tiers, setTiers] = useState<TierRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
     let cancelled = false
@@ -22,6 +23,7 @@ export function useTierDemand(groupId: string) {
         const data = await res.json()
         if (cancelled) return
         setTiers(Array.isArray(data.tiers) ? data.tiers : [])
+        setRefreshKey(k => k + 1)
       } catch {
         // silencioso
       } finally {
@@ -55,9 +57,11 @@ export function useTierDemand(groupId: string) {
     ? Math.min(...unlockedTiers.map(t => t.price))
     : tiers.length > 0 ? Math.max(...tiers.map(t => t.price)) : 0
 
-  const sortedByPrice = [...tiers].sort((a, b) => a.price - b.price)
-  const nextTier = sortedByPrice.find(t => !t.unlocked) ?? null
+  // nextTier = tramo más cercano POR DEBAJO del precio actual que NO esté desbloqueado
+  const nextTier = [...tiers]
+    .filter(t => !t.unlocked && t.price < currentPrice)
+    .sort((a, b) => b.price - a.price)[0] ?? null
   const missing = nextTier ? Math.max(0, nextTier.minUnits - nextTier.demand) : 0
 
-  return { tiers, loading, currentPrice, nextTier, missing }
+  return { tiers, loading, currentPrice, nextTier, missing, refreshKey }
 }

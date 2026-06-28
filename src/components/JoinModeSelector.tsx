@@ -41,7 +41,6 @@ export default function JoinModeSelector({
   )
   const [collapsed, setCollapsed] = useState(false)
 
-  // Debounce quote calls
   const quoteTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const fetchQuote = useCallback(async (m: 'comprar' | 'esperar', tp: number | undefined, qty: number) => {
@@ -59,9 +58,9 @@ export default function JoinModeSelector({
       const unlocks = R < currentPrice
       onProjection({ price: R, unlocks })
 
-      // Collapse: esperar with target already reached
       if (m === 'esperar' && tp != null && R <= tp) {
         setCollapsed(true)
+        onChange('comprar')
       } else {
         setCollapsed(false)
       }
@@ -69,9 +68,8 @@ export default function JoinModeSelector({
       onProjection(null)
       setCollapsed(false)
     }
-  }, [groupId, currentPrice, onProjection])
+  }, [groupId, currentPrice, onProjection, onChange])
 
-  // Fetch quote whenever mode, target, or quantity changes
   useEffect(() => {
     if (quoteTimer.current) clearTimeout(quoteTimer.current)
     quoteTimer.current = setTimeout(() => {
@@ -80,7 +78,6 @@ export default function JoinModeSelector({
     return () => { if (quoteTimer.current) clearTimeout(quoteTimer.current) }
   }, [mode, targetPrice, quantity, fetchQuote])
 
-  // Sync target if tiers change
   useEffect(() => {
     if (mode === 'esperar' && !waitableTiers.some(t => t.price === targetPrice)) {
       if (waitableTiers.length > 0) {
@@ -93,7 +90,6 @@ export default function JoinModeSelector({
     }
   }, [waitableTiers, mode, targetPrice])
 
-  // Sync targetPrice when data arrives after mount
   useEffect(() => {
     if (targetPrice === 0 && waitableTiers.length > 0) {
       setTargetPrice(waitableTiers[0].price)
@@ -119,7 +115,6 @@ export default function JoinModeSelector({
     onChange('esperar', price)
   }
 
-  // Compute missing for each waitable tier from demandTiers
   function getMissing(tierPrice: number): number | null {
     if (!demandTiers) return null
     const dt = demandTiers.find(d => d.price === tierPrice)
@@ -131,7 +126,6 @@ export default function JoinModeSelector({
     <div>
       <h3 className="text-sm font-semibold text-neutral-900 mb-3">Elige cómo participar</h3>
       <div className="flex flex-col gap-2">
-        {/* Comprar ahora */}
         <button
           type="button"
           onClick={handleComprar}
@@ -157,7 +151,6 @@ export default function JoinModeSelector({
           </div>
         </button>
 
-        {/* Esperar a precio */}
         {!collapsed && (
           <div
             className={`rounded-xl border-2 transition-all ${
@@ -212,7 +205,6 @@ export default function JoinModeSelector({
           </div>
         )}
 
-        {/* Collapse note */}
         {collapsed && (
           <p className="text-xs text-green-600 font-medium px-1">
             Tu precio objetivo de {fmtPrice(targetPrice)} ya se alcanza con tu entrada. Compra directamente.

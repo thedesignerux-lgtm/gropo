@@ -30,11 +30,11 @@ export default function GroupRightSidebar({
   const [projection, setProjection] = useState<ProjectionResult | null>(null)
   const [summary, setSummary] = useState<{ firmUnits: number; reserveUnits: number; maxStock: number } | null>(null)
 
-  // tier_demand hook
-  const { tiers: demandTiers, currentPrice, nextTier, missing } = useTierDemand(groupId)
+  // tier_demand hook — refreshKey triggers summary re-fetch
+  const { tiers: demandTiers, currentPrice, nextTier, missing, refreshKey } = useTierDemand(groupId)
   const displayPrice = currentPrice > 0 ? currentPrice : bestPrice
 
-  // Fetch group summary
+  // Fetch group summary — re-runs when realtime data arrives
   useEffect(() => {
     async function load() {
       try {
@@ -46,7 +46,7 @@ export default function GroupRightSidebar({
       }
     }
     load()
-  }, [groupId])
+  }, [groupId, refreshKey])
 
   const handleProjection = useCallback((result: ProjectionResult | null) => {
     setProjection(result)

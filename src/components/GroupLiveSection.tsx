@@ -1,8 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
 import { useTierDemand } from '@/hooks/useTierDemand'
 import GroupCountdown from './GroupCountdown'
 import JoinModeSelector, { type ProjectionResult } from '@/components/JoinModeSelector'
@@ -35,59 +34,21 @@ export default function GroupLiveSection({
   initialBestPrice, initialTotalUnits,
   bidCount, tiers, maxStock, minExecution, closesAt,
 }: Props) {
-  const [totalUnits, setTotalUnits] = useState(initialTotalUnits)
   const [joinMode, setJoinMode] = useState<'comprar' | 'esperar'>('comprar')
   const [joinTarget, setJoinTarget] = useState<number | undefined>(undefined)
   const [quantity, setQuantity] = useState(1)
   const [projection, setProjection] = useState<ProjectionResult | null>(null)
 
-  // tier_demand hook = source of truth for current price
+  // tier_demand hook = source of truth for current price AND participation count
   const { tiers: demandTiers, currentPrice, nextTier, missing } = useTierDemand(groupId)
 
   // Use currentPrice from tier_demand if available, else initial
   const displayPrice = currentPrice > 0 ? currentPrice : initialBestPrice
 
-  useEffect(() => {
-    let cancelled = false
-
-    async function syncFromServer() {
-      const { data: g } = await supabase
-        .from('groups')
-        .select('total_units')
-        .eq('id', groupId)
-        .single()
-      if (cancelled) return
-      if (g?.total_units != null) setTotalUnits(Number(g.total_units))
-    }
-
-    syncFromServer()
-
-    const channel = supabase
-      .channel(`group-${groupId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'events',
-          filter: `group_id=eq.${groupId}`,
-        },
-        (payload) => {
-          const eventData = payload.new as any
-          if (eventData.type === 'member_joined' || eventData.type === 'price_dropped') {
-            setTotalUnits(eventData.payload.total_units)
-          }
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') syncFromServer()
-      })
-
-    return () => {
-      cancelled = true
-      supabase.removeChannel(channel)
-    }
-  }, [groupId])
+  // Total participants = demand at the cheapest tier (includes ALL members)
+  const totalParticipants = demandTiers.length > 0
+    ? Math.max(...demandTiers.map(t => t.demand))
+    : initialTotalUnits
 
   const savings = pvp > 0 ? pvp - displayPrice : 0
 
@@ -155,7 +116,7 @@ export default function GroupLiveSection({
         {/* Metrics bar */}
         <div className="border-t border-[#EEEEEE]">
           <div className="flex divide-x divide-[#EEEEEE]" style={{ padding: '8px 0' }}>
-            {/* Col 1 — Stock */}
+            {/* Col 1 — Participantes */}
             <div className="flex-1 flex flex-col items-center gap-1 px-2">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-400 flex-shrink-0">
                 <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
@@ -165,9 +126,9 @@ export default function GroupLiveSection({
                 <line x1="12" y1="12" x2="4" y2="7.5"/>
               </svg>
               <span className="text-sm font-normal text-neutral-700 text-center leading-tight">
-                {maxStock > 0 ? `${totalUnits} / ${maxStock} uds` : `${totalUnits} uds`}
+                {maxStock > 0 ? `${totalParticipants} / ${maxStock} uds` : `${totalParticipants} uds`}
               </span>
-              <span className="text-xs text-neutral-400 text-center leading-tight">de stock</span>
+              <span className="text-xs text-neutral-400 text-center leading-tight">en el grupo</span>
             </div>
 
             {/* Col 2 — Sellers */}
@@ -205,7 +166,7 @@ export default function GroupLiveSection({
             groupId={groupId}
             tiers={tiers}
             currentPrice={displayPrice}
-            totalUnits={totalUnits}
+            totalUnits={totalParticipants}
             quantity={quantity}
             demandTiers={demandTiers}
             onChange={(m, tp) => { setJoinMode(m); setJoinTarget(tp) }}
