@@ -28,19 +28,21 @@ export default function JoinModeSelector({
   groupId, tiers, currentPrice, totalUnits, quantity,
   demandTiers, onChange, onProjection,
 }: JoinModeSelectorProps) {
+  const [mode, setMode] = useState<'comprar' | 'esperar'>('comprar')
+  const [collapsed, setCollapsed] = useState(false)
+  const [projectedPrice, setProjectedPrice] = useState<number | null>(null)
+  const filterPrice = projectedPrice != null ? Math.min(projectedPrice, currentPrice) : currentPrice
+
   const waitableTiers = useMemo(() =>
     [...tiers]
-      .filter(t => t.price < currentPrice)
+      .filter(t => t.price < filterPrice)
       .sort((a, b) => b.price - a.price),
-    [tiers, currentPrice]
+    [tiers, filterPrice]
   )
 
-  const [mode, setMode] = useState<'comprar' | 'esperar'>('comprar')
   const [targetPrice, setTargetPrice] = useState<number>(
     waitableTiers[0]?.price ?? 0
   )
-  const [collapsed, setCollapsed] = useState(false)
-  const [projectedPrice, setProjectedPrice] = useState<number | null>(null)
 
   const quoteTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
