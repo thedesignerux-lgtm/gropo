@@ -1,11 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
-import GroupSidebar, { type TabId } from './GroupSidebar'
-import GroupRightSidebar from './GroupRightSidebar'
 import GroupCenterContent from './GroupCenterContent'
-import CountdownChip from '@/components/CountdownChip'
+import GroupRightSidebar from './GroupRightSidebar'
 
 function fmt(n: number): string {
   return (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
@@ -33,154 +29,93 @@ export default function GroupDesktopView({
   initialBestPrice, initialTotalUnits,
   bidCount, tiers, maxStock, minExecution, closesAt,
 }: Props) {
-  const [bestPrice, setBestPrice] = useState(initialBestPrice)
-  const [totalUnits, setTotalUnits] = useState(initialTotalUnits)
-  const [activeTab, setActiveTab] = useState<TabId>('resumen')
-
-  // Real-time sync
-  useEffect(() => {
-    let cancelled = false
-
-    async function syncFromServer() {
-      const { data: g } = await supabase
-        .from('groups')
-        .select('total_units, current_price, next_price')
-        .eq('id', groupId)
-        .single()
-      const { data: rpc } = await supabase.rpc('compute_price', { p_group_id: groupId })
-      if (cancelled) return
-
-      const row = Array.isArray(rpc) ? rpc[0] : (rpc as any)
-      const best =
-        row?.best_price != null ? Number(row.best_price)
-        : g?.current_price != null ? Number(g.current_price)
-        : null
-
-      if (g?.total_units != null) setTotalUnits(Number(g.total_units))
-      if (best != null) setBestPrice(best)
-    }
-
-    syncFromServer()
-
-    const channel = supabase
-      .channel(`group-desktop-${groupId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'events',
-          filter: `group_id=eq.${groupId}`,
-        },
-        (payload) => {
-          const eventData = payload.new as any
-          if (eventData.type === 'member_joined' || eventData.type === 'price_dropped') {
-            setBestPrice(eventData.payload.new_price)
-            setTotalUnits(eventData.payload.total_units)
-          }
-        }
-      )
-      .subscribe((status) => {
-        if (status === 'SUBSCRIBED') syncFromServer()
-      })
-
-    return () => {
-      cancelled = true
-      supabase.removeChannel(channel)
-    }
-  }, [groupId])
+  const closesLabel = new Date(closesAt).toLocaleDateString('es-ES', {
+    day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  })
+  const diffMs = Math.max(0, new Date(closesAt).getTime() - Date.now())
+  const days = Math.floor(diffMs / 86400000)
+  const hours = Math.floor((diffMs % 86400000) / 3600000)
+  const remainingLabel = days > 0 ? `${days}d ${hours}h restantes` : `${hours}h restantes`
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
-      {/* Top bar */}
       <header className="bg-white border-b border-neutral-100 sticky top-0 z-30">
-        <div className="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
-          {/* Logo */}
-          <a href="/" aria-label="Vonda - inicio">
-            <img
-              src="/logo.png"
-              alt="Vonda"
-              className="h-8 w-auto"
-            />
+        <div className="max-w-[1360px] mx-auto px-8 h-14 flex items-center justify-between">
+          <a href="/" className="flex items-center gap-2 text-sm font-medium text-neutral-600 hover:text-neutral-900 transition-colors">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Volver a grupos
           </a>
-
-          {/* Search */}
-          <div className="flex-1 max-w-md mx-8">
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Busca tu producto..."
-                className="w-full h-10 pl-10 pr-4 rounded-full border border-neutral-200 bg-white text-sm text-neutral-700 placeholder:text-neutral-400 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand"
-              />
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          <div className="flex items-center gap-5">
+            <button className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-brand transition-colors">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/>
+                <polyline points="16 6 12 2 8 6"/>
+                <line x1="12" y1="2" x2="12" y2="15"/>
               </svg>
-            </div>
-          </div>
-
-          {/* Right side */}
-          <div className="flex items-center gap-4">
-            <CountdownChip />
-            <button className="relative text-neutral-500 hover:text-neutral-700 transition-colors">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-              </svg>
+              Compartir
             </button>
-            <div className="flex items-center gap-2 cursor-pointer">
-              <div className="w-8 h-8 rounded-full bg-neutral-200 flex items-center justify-center text-xs font-semibold text-neutral-600">
-                V
-              </div>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-400">
-                <polyline points="6 9 12 15 18 9" />
+            <button className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-brand transition-colors">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19.5 13.572l-7.5 7.428-7.5-7.428a5 5 0 117.5-6.566 5 5 0 117.5 6.572"/>
               </svg>
-            </div>
+              Guardar
+            </button>
           </div>
         </div>
       </header>
 
-      {/* Main 3-column layout */}
-      <div className="max-w-[1400px] mx-auto px-6 py-6">
-        <div className="flex gap-8">
-          {/* Left sidebar */}
-          <GroupSidebar
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            conversationCount={0}
-            participantCount={totalUnits}
-            questionCount={0}
-            productName={name}
-            bestPrice={bestPrice}
-            pvp={pvp}
-            nextPrice={bestPrice}
-            groupId={groupId}
-          />
+      <div className="max-w-[1360px] mx-auto px-8 py-8">
+        <div className="flex gap-8 items-start">
+          {/* LEFT: Product card */}
+          <div className="w-[300px] flex-shrink-0">
+            <div className="bg-white rounded-2xl border border-neutral-100 overflow-hidden sticky top-[80px]">
+              <div className="aspect-square bg-[#F8F8F8] flex items-center justify-center p-6">
+                {imageUrl ? (
+                  <img src={imageUrl} alt={name} className="w-full h-full object-contain" />
+                ) : (
+                  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-neutral-200">
+                    <rect x="3" y="3" width="18" height="18" rx="2"/>
+                    <circle cx="8.5" cy="8.5" r="1.5"/>
+                    <polyline points="21 15 16 10 5 21"/>
+                  </svg>
+                )}
+              </div>
+              <div className="p-5">
+                <h1 className="text-lg font-bold text-neutral-900 leading-tight mb-1">{name}</h1>
+                {spec && <p className="text-sm text-neutral-500 mb-3">{spec}</p>}
+                <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 px-2.5 py-1 rounded-full mb-3">
+                  <span className="w-1.5 h-1.5 rounded-full bg-green-500"/>
+                  Grupo abierto
+                </span>
+                <div className="flex items-center gap-2 text-sm text-neutral-500">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="9"/>
+                    <polyline points="12 7 12 12 15 15"/>
+                  </svg>
+                  <span>Cierre: {closesLabel}</span>
+                </div>
+                <p className="text-xs text-neutral-400 ml-[22px] mt-0.5">{remainingLabel}</p>
+              </div>
+            </div>
+          </div>
 
-          {/* Center content */}
+          {/* CENTER: Pricing & participation */}
           <main className="flex-1 min-w-0">
             <GroupCenterContent
-              activeTab={activeTab}
-              name={name}
-              spec={spec}
-              imageUrl={imageUrl}
-              pvp={pvp}
-              bestPrice={bestPrice}
-              totalUnits={totalUnits}
-              maxStock={maxStock}
-              tiers={tiers}
               groupId={groupId}
+              pvp={pvp}
+              tiers={tiers}
+              maxStock={maxStock}
+              initialBestPrice={initialBestPrice}
             />
           </main>
 
-          {/* Right sidebar */}
+          {/* RIGHT: Summary sidebar */}
           <GroupRightSidebar
             groupId={groupId}
-            tiers={tiers}
-            bestPrice={bestPrice}
-            pvp={pvp}
             maxStock={maxStock}
-            closesAt={closesAt}
           />
         </div>
       </div>
