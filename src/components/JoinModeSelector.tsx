@@ -31,13 +31,14 @@ export default function JoinModeSelector({
   const [mode, setMode] = useState<'comprar' | 'esperar'>('comprar')
   const [collapsed, setCollapsed] = useState(false)
   const [projectedPrice, setProjectedPrice] = useState<number | null>(null)
-  const filterPrice = mode === 'comprar' && projectedPrice != null ? Math.min(projectedPrice, currentPrice) : currentPrice
+  const [comprarProjectedPrice, setComprarProjectedPrice] = useState<number | null>(null)
+  const filterPrice = comprarProjectedPrice != null ? Math.min(comprarProjectedPrice, currentPrice) : currentPrice
 
   const waitableTiers = useMemo(() =>
     [...tiers]
       .filter(t => t.price < filterPrice)
       .sort((a, b) => b.price - a.price),
-    [tiers, filterPrice, mode]
+    [tiers, filterPrice]
   )
 
   const [targetPrice, setTargetPrice] = useState<number>(
@@ -62,6 +63,7 @@ export default function JoinModeSelector({
       const unlocks = R < currentPrice
       onProjection({ price: R, unlocks })
       setProjectedPrice(R)
+      if (m === 'comprar') setComprarProjectedPrice(R)
 
       if (m === 'esperar' && tp != null && R <= tp) {
         setCollapsed(true)
