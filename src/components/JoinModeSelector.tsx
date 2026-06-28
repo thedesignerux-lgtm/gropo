@@ -31,13 +31,13 @@ export default function JoinModeSelector({
   const [mode, setMode] = useState<'comprar' | 'esperar'>('comprar')
   const [collapsed, setCollapsed] = useState(false)
   const [projectedPrice, setProjectedPrice] = useState<number | null>(null)
-  const filterPrice = projectedPrice != null ? Math.min(projectedPrice, currentPrice) : currentPrice
+  const filterPrice = mode === 'comprar' && projectedPrice != null ? Math.min(projectedPrice, currentPrice) : currentPrice
 
   const waitableTiers = useMemo(() =>
     [...tiers]
       .filter(t => t.price < filterPrice)
       .sort((a, b) => b.price - a.price),
-    [tiers, filterPrice]
+    [tiers, filterPrice, mode]
   )
 
   const [targetPrice, setTargetPrice] = useState<number>(
