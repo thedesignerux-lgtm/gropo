@@ -60,7 +60,11 @@ export function useTierDemand(groupId: string) {
   // nextTier = tramo más cercano POR DEBAJO del precio actual que NO esté desbloqueado
   const nextTier = [...tiers]
     .filter(t => !t.unlocked && t.price < currentPrice)
-    .sort((a, b) => b.price - a.price)[0] ?? null
+    .sort((a, b) => {
+      const missingA = Math.max(0, a.minUnits - a.demand)
+      const missingB = Math.max(0, b.minUnits - b.demand)
+      return missingA - missingB
+    })[0] ?? null
   const missing = nextTier ? Math.max(0, nextTier.minUnits - nextTier.demand) : 0
 
   return { tiers, loading, currentPrice, nextTier, missing, refreshKey }
