@@ -89,6 +89,14 @@ export default function JoinModeSelector({
     }
   }, [currentPrice])
 
+  // When projection shows a better price, auto-select it and filter the list
+  useEffect(() => {
+    if (projectedPrice != null && projectedPrice < currentPrice && selectedPrice >= currentPrice) {
+      setSelectedPrice(projectedPrice)
+      onChange('esperar', projectedPrice)
+    }
+  }, [projectedPrice, currentPrice])
+
   function handleSelect(price: number) {
     setSelectedPrice(price)
     if (price >= currentPrice) {
@@ -98,7 +106,12 @@ export default function JoinModeSelector({
     }
   }
 
-  if (allTiers.length <= 1) return null
+  const effectivePrice = projectedPrice != null && projectedPrice < currentPrice
+    ? projectedPrice
+    : currentPrice
+  const displayTiers = allTiers.filter(t => t.price <= effectivePrice || t.price === selectedPrice)
+
+  if (displayTiers.length <= 1) return null
 
   return (
     <div>
@@ -108,13 +121,13 @@ export default function JoinModeSelector({
       </p>
 
       <div className="space-y-2">
-        {allTiers.map((t, i) => {
+        {displayTiers.map((t, i) => {
           const isSelected = selectedPrice === t.price
           const isCurrent = t.price >= currentPrice
           const dt = demandTiers?.find(d => d.price === t.price)
           const missing = dt ? Math.max(0, dt.minUnits - dt.demand) : t.minUnits
           const isFirst = i === 0
-          const isLast = i === allTiers.length - 1
+          const isLast = i === displayTiers.length - 1
           const viability = isCurrent && isFirst
             ? { text: 'Disponible ahora', color: 'text-green-600' }
             : getViabilityLabel(missing, false, isLast)
