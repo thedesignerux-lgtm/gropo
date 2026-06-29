@@ -37,12 +37,15 @@ export default function TierDemandLadder(props: Props) {
   // Sort by price descending (most expensive = base = left, cheapest = goal = right)
   const sorted = [...tiers].sort((a, b) => b.price - a.price)
 
-  // Ocultar tramos dominados: si un tramo más barato necesita menos unidades, el caro sobra
-  const filtered = sorted.filter((t, i) => {
+  const filtered = sorted.filter(t => {
+    // Siempre mostrar tramos desbloqueados
     if (t.unlocked) return true
+    // Ocultar tramos más caros o iguales al precio actual (ya se paga menos)
+    if (t.price >= currentPrice) return false
+    // Entre los restantes: ocultar si hay un tramo más barato que necesita menos unidades
     const missing = Math.max(0, t.minUnits - t.demand)
-    return !sorted.some((other, j) =>
-      j > i && !other.unlocked &&
+    return !sorted.some(other =>
+      other.price < t.price && !other.unlocked && other.price < currentPrice &&
       Math.max(0, other.minUnits - other.demand) <= missing
     )
   })
