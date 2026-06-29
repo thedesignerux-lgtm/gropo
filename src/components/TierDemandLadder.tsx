@@ -37,6 +37,16 @@ export default function TierDemandLadder(props: Props) {
   // Sort by price descending (most expensive = base = left, cheapest = goal = right)
   const sorted = [...tiers].sort((a, b) => b.price - a.price)
 
+  // Ocultar tramos dominados: si un tramo más barato necesita menos unidades, el caro sobra
+  const filtered = sorted.filter((t, i) => {
+    if (t.unlocked) return true
+    const missing = Math.max(0, t.minUnits - t.demand)
+    return !sorted.some((other, j) =>
+      j > i && !other.unlocked &&
+      Math.max(0, other.minUnits - other.demand) <= missing
+    )
+  })
+
   return (
     <div className="bg-white rounded-xl border border-neutral-100 p-5">
       <h3 className="text-sm font-semibold text-neutral-900 mb-1">Metas de precio</h3>
@@ -46,7 +56,7 @@ export default function TierDemandLadder(props: Props) {
 
       {/* Horizontal ladder */}
       <div className="flex items-center w-full">
-        {sorted.map((t, i) => {
+        {filtered.map((t, i) => {
           const isCurrent = t.price === currentPrice
           const missing = Math.max(0, t.minUnits - t.demand)
 
@@ -83,8 +93,8 @@ export default function TierDemandLadder(props: Props) {
               </div>
 
               {/* Connecting line (except after last) */}
-              {i < sorted.length - 1 && (() => {
-                const nextT = sorted[i + 1]
+              {i < filtered.length - 1 && (() => {
+                const nextT = filtered[i + 1]
                 const lineUnlocked = t.unlocked && nextT.unlocked
                 const frac = t.unlocked && !nextT.unlocked && nextT.minUnits > 0
                   ? Math.min(1, nextT.demand / nextT.minUnits)
