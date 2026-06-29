@@ -36,10 +36,18 @@ export default function JoinModeSelector({
   groupId, tiers, currentPrice, totalUnits, quantity,
   demandTiers, onChange, onProjection,
 }: JoinModeSelectorProps) {
-  const allTiers = useMemo(() =>
-    [...tiers].sort((a, b) => b.price - a.price),
-    [tiers]
-  )
+  const allTiers = useMemo(() => {
+    const sorted = [...tiers].sort((a, b) => b.price - a.price)
+    return sorted.filter(t => {
+      if (t.price >= currentPrice) return true
+      const missing = Math.max(0, t.minUnits - (demandTiers?.find(d => d.price === t.price)?.demand ?? 0))
+      return !sorted.some(other => {
+        if (other.price >= t.price || other.price >= currentPrice) return false
+        const otherMissing = Math.max(0, other.minUnits - (demandTiers?.find(d => d.price === other.price)?.demand ?? 0))
+        return otherMissing <= missing
+      })
+    })
+  }, [tiers, currentPrice, demandTiers])
 
   const [selectedPrice, setSelectedPrice] = useState<number>(currentPrice)
   const [projectedPrice, setProjectedPrice] = useState<number | null>(null)

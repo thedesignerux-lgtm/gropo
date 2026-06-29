@@ -63,7 +63,8 @@ export function useTierDemand(groupId: string) {
     .sort((a, b) => {
       const missingA = Math.max(0, a.minUnits - a.demand)
       const missingB = Math.max(0, b.minUnits - b.demand)
-      return missingA - missingB
+      if (missingA !== missingB) return missingA - missingB
+      return a.price - b.price
     })[0] ?? null
   const missing = nextTier ? Math.max(0, nextTier.minUnits - nextTier.demand) : 0
 
