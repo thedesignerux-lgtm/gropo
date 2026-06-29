@@ -11,7 +11,8 @@ interface Props {
 export default function GroupRightSidebar({ groupId, maxStock }: Props) {
   const [summary, setSummary] = useState<{ firmUnits: number; reserveUnits: number; maxStock: number } | null>(null)
   const { tiers: demandTiers, refreshKey } = useTierDemand(groupId)
-  const totalParticipants = demandTiers.length > 0 ? Math.max(...demandTiers.map(t => t.demand)) : 0
+  const rawParticipants = demandTiers.length > 0 ? Math.max(...demandTiers.map(t => t.demand)) : 0
+  const totalParticipants = maxStock > 0 ? Math.min(rawParticipants, maxStock) : rawParticipants
 
   useEffect(() => {
     async function load() {
