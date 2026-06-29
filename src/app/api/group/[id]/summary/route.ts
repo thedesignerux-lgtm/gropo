@@ -10,9 +10,16 @@ export async function GET(
 ) {
   const groupId = params.id
 
+  const { data: group } = await supabaseAdmin
+    .from('groups')
+    .select('current_price')
+    .eq('id', groupId)
+    .single()
+  const currentPrice = group?.current_price ? Number(group.current_price) : 0
+
   const { data, error } = await supabaseAdmin
     .from('group_members')
-    .select('join_mode, quantity, payment_status')
+    .select('join_mode, quantity, payment_status, target_price')
     .eq('group_id', groupId)
     .in('payment_status', ['authorized', 'instructed', 'paid'])
 
@@ -21,7 +28,9 @@ export async function GET(
   let firmUnits = 0
   let reserveUnits = 0
   for (const m of data ?? []) {
-    if (m.join_mode === 'comprar') firmUnits += m.quantity
+    const isFirm = m.join_mode === 'comprar' ||
+      (m.join_mode === 'esperar' && m.target_price != null && Number(m.target_price) >= currentPrice)
+    if (isFirm) firmUnits += m.quantity
     else reserveUnits += m.quantity
   }
 
