@@ -44,6 +44,14 @@ export async function POST(req: Request) {
     const ship = pi.shipping ?? {};
     const addr = ship.address ?? {};
 
+    // Guard: solo procesamos PIs nacidos de nuestro checkout (llevan group_id en metadata).
+    // Un PI ajeno (creado a mano en el dashboard u otro flujo) se ignora con 200
+    // para que Stripe no lo reintente eternamente.
+    if (!m.group_id) {
+      console.log(`[webhook] PI ${pi.id} sin group_id en metadata — ignorado`);
+      return NextResponse.json({ received: true });
+    }
+
     const { data, error } = await supabaseAdmin.rpc('confirm_join', {
       p_payment_intent_id: pi.id,
       p_group_id: m.group_id,
@@ -79,7 +87,28 @@ export async function POST(req: Request) {
         await stripe.paymentIntents.cancel(pi.id);
         console.log(`[webhook] hold liberado (${data.reason}) PI ${pi.id}`);
       } catch (e: any) {
-        console.error('[webhook] no se pudo cancelar el PI:', e?.message);
+        // ¿El PI ya estaba cancelado (reintento tardío / hold expirado)? Entonces es éxito.
+        let yaLiberado = false;
+        try {
+          const fresh = await stripe.paymentIntents.retrieve(pi.id);
+          yaLiberado = fresh.status === 'canceled';
+        } catch {
+          // Si ni siquiera podemos consultarlo, tratamos como fallo → 500 abajo.
+        }
+        if (yaLiberado) {
+          console.log(`[webhook] PI ${pi.id} ya estaba cancelado — ok`);
+        } else {
+          // 500 → Stripe REINTENTARÁ el webhook con backoff durante días.
+          // El reintento es seguro: confirm_join es idempotente, volverá a
+          // devolver needs_release y se reintentará la cancelación.
+          // Sin esto, un fallo puntual dejaría al cliente ~7 días con el
+          // dinero retenido y nadie se enteraría.
+          console.error('[webhook] no se pudo cancelar el PI:', e?.message);
+          return NextResponse.json(
+            { error: `No se pudo liberar el hold: ${e?.message}` },
+            { status: 500 }
+          );
+        }
       }
     } else if (data?.status === 'confirmed') {
       console.log(`[webhook] confirmed PI ${pi.id}`);
