@@ -198,23 +198,21 @@ export async function addBidToGroup(
       .eq('group_id', groupId)
 
     if (count === 1) {
-      const { data: petition } = await supabaseAdmin
-        .from('events')
-        .select('payload')
-        .eq('group_id', groupId)
-        .eq('type', 'petition_created')
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle()
+      const { data: group } = await supabaseAdmin
+        .from('groups')
+        .select('product_name, created_by')
+        .eq('id', groupId)
+        .single()
 
-      const payload = petition?.payload as { email?: string; name?: string } | undefined
-      if (payload?.email) {
-        const { data: group } = await supabaseAdmin
-          .from('groups')
-          .select('product_name')
-          .eq('id', groupId)
-          .single()
+      const { data: petitioner } = group?.created_by
+        ? await supabaseAdmin
+            .from('users')
+            .select('email, name')
+            .eq('id', group.created_by)
+            .single()
+        : { data: null }
 
+      if (petitioner?.email) {
         const base =
           process.env.NEXT_PUBLIC_SITE_URL ||
           (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
@@ -223,16 +221,16 @@ export async function addBidToGroup(
         // verificado, destinatario no permitido en sandbox, etc.): devuelve
         // el error en .error. Hay que inspeccionarlo o el fallo es silencioso.
         const { data: sent, error: sendError } = await sendPetitionMatched({
-          to: payload.email,
-          nombre: payload.name,
+          to: petitioner.email,
+          nombre: petitioner.name ?? undefined,
           productName: group?.product_name ?? 'tu producto',
           groupUrl: `${base}/grupo/${groupId}`,
         })
 
         if (sendError) {
-          console.error(`[addBidToGroup] Resend rechazó el email a ${payload.email} (puja cargada igualmente):`, sendError)
+          console.error(`[addBidToGroup] Resend rechazó el email a ${petitioner.email} (puja cargada igualmente):`, sendError)
         } else {
-          console.log(`[addBidToGroup] email de petición enviado a ${payload.email} (id: ${sent?.id ?? '—'})`)
+          console.log(`[addBidToGroup] email de petición enviado a ${petitioner.email} (id: ${sent?.id ?? '—'})`)
         }
       }
     }
