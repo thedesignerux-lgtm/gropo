@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { sendPetitionMatched } from '@/lib/resend'
+import { requireAdmin } from '@/lib/admin-auth'
 
 export interface Tier {
   min_units: number
@@ -31,6 +32,9 @@ function sellerEmail(name: string): string {
 }
 
 export async function createGroup(input: CreateGroupInput): Promise<{ error?: string }> {
+  const authError = requireAdmin()
+  if (authError) return { error: authError }
+
   const { product_name, product_spec, product_url, image_url, pvp, closes_at, seller_name, price_mode, min_execution, max_stock, payment_info, tiers } = input
 
   // Validations
@@ -122,6 +126,9 @@ export async function addBidToGroup(
   groupId: string,
   input: AddBidInput,
 ): Promise<{ error?: string }> {
+  const authError = requireAdmin()
+  if (authError) return { error: authError }
+
   const { tiers, price_mode, min_execution, max_stock, payment_info, seller_name, closes_at, pvp } = input
 
   // Validaciones (mismas reglas que createGroup)

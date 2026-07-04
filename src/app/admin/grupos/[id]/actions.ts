@@ -6,6 +6,7 @@ import { sendClosePaymentEmails } from '@/lib/emails/sendClose'
 import { captureGroupPayments } from '@/lib/stripe-capture'
 import { sendAdminAlert } from '@/lib/resend'
 import { generateShippingLabels, type ShippingResult } from '@/lib/shipping-sendcloud'
+import { requireAdmin } from '@/lib/admin-auth'
 
 export interface CloseResult {
   result: string
@@ -20,6 +21,9 @@ export interface CloseResult {
 export async function closeGroup(
   groupId: string,
 ): Promise<{ error?: string; data?: CloseResult }> {
+  const authError = requireAdmin()
+  if (authError) return { error: authError }
+
   const { data, error } = await supabaseAdmin.rpc('close_group', { p_group_id: groupId })
   if (error) return { error: error.message }
 
@@ -79,6 +83,9 @@ export async function updateGroup(
   groupId: string,
   input: UpdateGroupInput,
 ): Promise<{ error?: string }> {
+  const authError = requireAdmin()
+  if (authError) return { error: authError }
+
   const { product_name, product_spec, product_url, image_url, pvp, closes_date } = input
 
   if (!product_name.trim()) return { error: 'El nombre del producto es obligatorio' }
@@ -107,6 +114,9 @@ export async function updateGroup(
 export async function generateLabels(
   groupId: string,
 ): Promise<{ error?: string; data?: ShippingResult }> {
+  const authError = requireAdmin()
+  if (authError) return { error: authError }
+
   try {
     const result = await generateShippingLabels(groupId)
     revalidatePath(`/admin/grupos/${groupId}`)
