@@ -19,6 +19,7 @@ import {
 import confetti from 'canvas-confetti';
 import { PROVINCIAS_ES } from '@/lib/provincias';
 import GroupCountdown from '@/components/GroupCountdown';
+import { normalizePhone } from '@/lib/phone';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -387,6 +388,16 @@ function InnerForm({
       setLoading(false);
       return;
     }
+
+    // Recordar identidad (teléfono + email) para la auto-carga de "Mis grupos".
+    // Se guarda antes de confirmPayment para sobrevivir a redirecciones 3DS.
+    try {
+      localStorage.setItem('vonda_user', JSON.stringify({
+        name: fullName,
+        email: c.email.trim(),
+        phone: normalizePhone(c.phone),
+      }));
+    } catch {}
 
     const { error: confirmError } = await stripe.confirmPayment({
       elements,
