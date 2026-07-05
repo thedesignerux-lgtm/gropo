@@ -5,6 +5,22 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 
 export async function POST(req: Request) {
   try {
+    // Rate limiting por IP (fail-open: un fallo del limitador nunca bloquea compras)
+    const ip = (req.headers.get('x-forwarded-for') ?? 'unknown').split(',')[0].trim();
+    const { data: allowed, error: rlError } = await supabaseAdmin.rpc('check_rate_limit', {
+      p_key: `create-intent:${ip}`,
+      p_max: 10,
+      p_window_seconds: 600,
+    });
+    if (rlError) {
+      console.error('rate_limit_check_failed', rlError);
+    } else if (allowed === false) {
+      return NextResponse.json(
+        { error: 'Demasiados intentos. Espera unos minutos y vuelve a intentarlo.' },
+        { status: 429 },
+      );
+    }
+
     const body = await req.json();
     const { group_id, quantity, name, email, phone, shipping, join_mode, target_price } = body ?? {};
 
