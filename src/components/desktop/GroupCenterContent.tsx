@@ -6,6 +6,7 @@ import { useTierDemand } from '@/hooks/useTierDemand'
 import TierDemandLadder from '@/components/TierDemandLadder'
 import JoinModeSelector, { type ProjectionResult } from '@/components/JoinModeSelector'
 import BestPriceReached from '@/components/BestPriceReached'
+import PriceJourney from '@/components/PriceJourney'
 
 function fmt(n: number): string {
   return (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
@@ -96,53 +97,95 @@ export default function GroupCenterContent({
         />
       )}
 
-      {/* ROW 2: Cómo baja el precio */}
-      {demandTiers.length > 0 ? (
-        <TierDemandLadder tiers={demandTiers} currentPrice={displayPrice} />
-      ) : (
-        <TierDemandLadder groupId={groupId} />
+      {/* Quantity + CTA — arriba cuando mejor precio alcanzado */}
+      {isBestPrice && (
+        <div className="bg-white rounded-2xl border border-neutral-100 p-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-medium text-neutral-700">Cantidad</span>
+              <div className="flex items-center gap-3">
+                <button type="button" onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                  className="w-9 h-9 rounded-lg border border-neutral-200 flex items-center justify-center text-neutral-600 hover:border-brand transition-colors text-lg">−</button>
+                <span className="text-base font-semibold text-neutral-900 tabular-nums w-6 text-center">{quantity}</span>
+                <button type="button" onClick={() => setQuantity(q => Math.min(10, q + 1))}
+                  className="w-9 h-9 rounded-lg border border-neutral-200 flex items-center justify-center text-neutral-600 hover:border-brand transition-colors text-lg">+</button>
+              </div>
+              <span className="text-xs text-neutral-400">unidad{quantity > 1 ? 'es' : ''}</span>
+            </div>
+
+            <Link href={ctaHref}
+              className="bg-green-600 text-white font-semibold text-base px-8 py-3.5 rounded-xl hover:bg-green-700 active:scale-[0.98] transition-all flex items-center gap-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0110 0v4"/>
+              </svg>
+              Comprar · {fmt(selectedMaxPrice)}
+            </Link>
+          </div>
+          <p className="text-xs text-neutral-400 text-center mt-3">Pago 100% seguro con Stripe</p>
+        </div>
       )}
 
-      {/* ROW 3: PMA Selector */}
-      <div className="bg-white rounded-2xl border border-neutral-100 p-5">
-        <JoinModeSelector
-          groupId={groupId}
-          tiers={tiers}
-          currentPrice={displayPrice}
-          totalUnits={totalParticipants}
-          quantity={quantity}
-          demandTiers={demandTiers}
-          onChange={(m, tp) => { setJoinMode(m); setJoinTarget(tp) }}
-          onProjection={handleProjection}
-        />
-      </div>
+      {/* Recorrido de precio (solo cuando mejor precio alcanzado) */}
+      {isBestPrice && (
+        <PriceJourney pvp={pvp} currentPrice={displayPrice} tiers={demandTiers} />
+      )}
 
-      {/* ROW 4: Quantity + CTA */}
-      <div className="bg-white rounded-2xl border border-neutral-100 p-5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <span className="text-sm font-medium text-neutral-700">Cantidad</span>
-            <div className="flex items-center gap-3">
-              <button type="button" onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                className="w-9 h-9 rounded-lg border border-neutral-200 flex items-center justify-center text-neutral-600 hover:border-brand transition-colors text-lg">−</button>
-              <span className="text-base font-semibold text-neutral-900 tabular-nums w-6 text-center">{quantity}</span>
-              <button type="button" onClick={() => setQuantity(q => Math.min(10, q + 1))}
-                className="w-9 h-9 rounded-lg border border-neutral-200 flex items-center justify-center text-neutral-600 hover:border-brand transition-colors text-lg">+</button>
-            </div>
-            <span className="text-xs text-neutral-400">unidad{quantity > 1 ? 'es' : ''}</span>
-          </div>
+      {/* Cómo baja el precio (solo cuando hay siguiente descuento) */}
+      {!isBestPrice && (
+        <>
+          {demandTiers.length > 0 ? (
+            <TierDemandLadder tiers={demandTiers} currentPrice={displayPrice} />
+          ) : (
+            <TierDemandLadder groupId={groupId} />
+          )}
+        </>
+      )}
 
-          <Link href={ctaHref}
-            className="bg-brand text-white font-semibold text-base px-8 py-3.5 rounded-xl hover:bg-brand-dark active:scale-[0.98] transition-all flex items-center gap-2">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-              <path d="M7 11V7a5 5 0 0110 0v4"/>
-            </svg>
-            {nextTier ? `Comprar (Máx. ${fmt(selectedMaxPrice)})` : `Comprar · ${fmt(selectedMaxPrice)}`}
-          </Link>
+      {/* PMA Selector (solo cuando hay siguiente descuento) */}
+      {!isBestPrice && (
+        <div className="bg-white rounded-2xl border border-neutral-100 p-5">
+          <JoinModeSelector
+            groupId={groupId}
+            tiers={tiers}
+            currentPrice={displayPrice}
+            totalUnits={totalParticipants}
+            quantity={quantity}
+            demandTiers={demandTiers}
+            onChange={(m, tp) => { setJoinMode(m); setJoinTarget(tp) }}
+            onProjection={handleProjection}
+          />
         </div>
-        <p className="text-xs text-neutral-400 text-center mt-3">Pago 100% seguro con Stripe</p>
-      </div>
+      )}
+
+      {/* Quantity + CTA (solo cuando hay siguiente descuento) */}
+      {!isBestPrice && (
+        <div className="bg-white rounded-2xl border border-neutral-100 p-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <span className="text-sm font-medium text-neutral-700">Cantidad</span>
+              <div className="flex items-center gap-3">
+                <button type="button" onClick={() => setQuantity(q => Math.max(1, q - 1))}
+                  className="w-9 h-9 rounded-lg border border-neutral-200 flex items-center justify-center text-neutral-600 hover:border-brand transition-colors text-lg">−</button>
+                <span className="text-base font-semibold text-neutral-900 tabular-nums w-6 text-center">{quantity}</span>
+                <button type="button" onClick={() => setQuantity(q => Math.min(10, q + 1))}
+                  className="w-9 h-9 rounded-lg border border-neutral-200 flex items-center justify-center text-neutral-600 hover:border-brand transition-colors text-lg">+</button>
+              </div>
+              <span className="text-xs text-neutral-400">unidad{quantity > 1 ? 'es' : ''}</span>
+            </div>
+
+            <Link href={ctaHref}
+              className="bg-brand text-white font-semibold text-base px-8 py-3.5 rounded-xl hover:bg-brand-dark active:scale-[0.98] transition-all flex items-center gap-2">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0110 0v4"/>
+              </svg>
+              {nextTier ? `Comprar (Máx. ${fmt(selectedMaxPrice)})` : `Comprar · ${fmt(selectedMaxPrice)}`}
+            </Link>
+          </div>
+          <p className="text-xs text-neutral-400 text-center mt-3">Pago 100% seguro con Stripe</p>
+        </div>
+      )}
     </div>
   )
 }
