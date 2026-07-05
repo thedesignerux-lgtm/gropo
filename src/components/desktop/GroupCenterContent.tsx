@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useTierDemand } from '@/hooks/useTierDemand'
 import TierDemandLadder from '@/components/TierDemandLadder'
 import JoinModeSelector, { type ProjectionResult } from '@/components/JoinModeSelector'
+import BestPriceReached from '@/components/BestPriceReached'
 
 function fmt(n: number): string {
   return (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
@@ -36,6 +37,9 @@ export default function GroupCenterContent({
     : 0
 
   const savings = pvp > 0 && pvp > displayPrice ? pvp - displayPrice : 0
+  const savingsPct = pvp > 0 ? Math.round((savings / pvp) * 100) : 0
+  const isBestPrice = !nextTier
+  const remaining = Math.max(0, maxStock - totalParticipants)
 
   const handleProjection = useCallback((result: ProjectionResult | null) => {
     setProjection(result)
@@ -46,37 +50,51 @@ export default function GroupCenterContent({
 
   return (
     <div className="space-y-5">
-      {/* ROW 1: Precio normal · Precio del grupo · Próximo descuento */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white rounded-2xl border border-neutral-100 p-5 flex flex-col justify-center">
-          <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-1">Precio normal</p>
-          <p className="text-2xl font-bold text-neutral-300 line-through">{fmt(pvp)}</p>
+      {/* ROW 1: Precios */}
+      {isBestPrice ? (
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-white rounded-2xl border border-neutral-100 p-5 flex flex-col justify-center">
+            <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-1">Precio habitual</p>
+            <p className="text-2xl font-bold text-neutral-300 line-through">{fmt(pvp)}</p>
+          </div>
+          <div className="bg-white rounded-2xl border border-neutral-100 p-5 flex flex-col justify-center">
+            <p className="text-xs font-semibold text-green-600 uppercase tracking-wide mb-1">Tu precio hoy</p>
+            <p className="text-3xl font-bold text-green-600">{fmt(displayPrice)}</p>
+            {savings > 0.01 && (
+              <p className="text-sm font-semibold text-green-600 mt-1">Ahorras {fmt(savings)} ({savingsPct}%)</p>
+            )}
+          </div>
         </div>
-
-        <div className="bg-white rounded-2xl border border-neutral-100 p-5 flex flex-col justify-center">
-          <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-1">Precio del grupo</p>
-          <p className="text-3xl font-bold text-brand">{fmt(displayPrice)}</p>
-          {savings > 0.01 && (
-            <p className="text-xs font-semibold text-green-600 mt-1">Ahorras {fmt(savings)}</p>
-          )}
-        </div>
-
-        {nextTier ? (
+      ) : (
+        <div className="grid grid-cols-3 gap-4">
+          <div className="bg-white rounded-2xl border border-neutral-100 p-5 flex flex-col justify-center">
+            <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-1">Precio normal</p>
+            <p className="text-2xl font-bold text-neutral-300 line-through">{fmt(pvp)}</p>
+          </div>
+          <div className="bg-white rounded-2xl border border-neutral-100 p-5 flex flex-col justify-center">
+            <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-1">Precio del grupo</p>
+            <p className="text-3xl font-bold text-brand">{fmt(displayPrice)}</p>
+            {savings > 0.01 && (
+              <p className="text-xs font-semibold text-green-600 mt-1">Ahorras {fmt(savings)}</p>
+            )}
+          </div>
           <div className="bg-white rounded-2xl border border-neutral-100 p-5 flex flex-col justify-center">
             <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-1">Próximo descuento</p>
-            <p className="text-3xl font-bold text-green-600">{fmt(nextTier.price)}</p>
+            <p className="text-3xl font-bold text-green-600">{fmt(nextTier!.price)}</p>
             <p className="text-xs text-neutral-500 mt-1">Faltan {missing} compra{missing !== 1 ? 's' : ''}</p>
           </div>
-        ) : (
-          <div className="bg-green-50 rounded-2xl border border-green-100 p-5 flex flex-col items-center justify-center text-center">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600 mb-2">
-              <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
-              <polyline points="22 4 12 14.01 9 11.01"/>
-            </svg>
-            <p className="text-sm font-semibold text-green-700">Mejor precio alcanzado</p>
-          </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Banner de mejor precio alcanzado */}
+      {isBestPrice && (
+        <BestPriceReached
+          currentPrice={displayPrice}
+          pvp={pvp}
+          maxStock={maxStock}
+          totalDemand={totalParticipants}
+        />
+      )}
 
       {/* ROW 2: Cómo baja el precio */}
       {demandTiers.length > 0 ? (
