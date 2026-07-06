@@ -2,11 +2,11 @@
 // SOLO servidor. Reutilizable: lo llama el Server Action de cierre manual
 // y el endpoint /api/email/close-payment (y el futuro cron).
 //
-// Regla: solo miembros con payment_status='instructed' (adjudicados) reciben
-// email. Los del excedente (pending) y los cancelados NO reciben nada.
+// Regla: miembros 'paid' reciben confirmación de compra; miembros 'instructed'
+// reciben instrucciones de pago. Excedente (pending) y cancelados NO reciben nada.
 
 import { supabaseAdmin } from '@/lib/supabase-admin'
-import { sendPaymentInstructions } from '@/lib/resend'
+import { sendPaymentInstructions, sendPurchaseConfirmation } from '@/lib/resend'
 
 export interface CloseEmailsResult {
   attempted: number
@@ -46,16 +46,16 @@ export async function sendClosePaymentEmails(groupId: string): Promise<CloseEmai
     paymentInfo = bid?.payment_info ?? null
   }
 
-  // SOLO adjudicados
+  // Adjudicados pendientes de transferencia (instructed) + cobrados por Stripe (paid)
   const { data: members } = await supabaseAdmin
     .from('group_members')
-    .select('join_order, quantity, final_price, payment_status, users(name, email)')
+    .select('join_order, quantity, final_price, captured_amount, payment_status, users(name, email)')
     .eq('group_id', groupId)
-    .eq('payment_status', 'instructed')
+    .in('payment_status', ['instructed', 'paid'])
     .order('join_order')
 
   if (!members || members.length === 0) {
-    return { attempted: 0, sent: 0, failed: 0, skipped: 'sin miembros instructed' }
+    return { attempted: 0, sent: 0, failed: 0, skipped: 'sin miembros instructed ni paid' }
   }
 
   // Plazo: ahora + 48h
@@ -72,22 +72,38 @@ export async function sendClosePaymentEmails(groupId: string): Promise<CloseEmai
 
     const finalPrice = Number(m.final_price)
     const quantity = m.quantity
-    const concepto = `VONDA-${groupPrefix}-${m.join_order}`
 
     try {
-      const { error } = await sendPaymentInstructions({
-        to: email,
-        nombre: u?.name ?? undefined,
-        productName: group.product_name,
-        quantity,
-        finalPrice,
-        total: finalPrice * quantity,
-        paymentInfo,
-        concepto,
-        deadline,
-      })
-      if (error) { failed++; console.error('close-email error', email, error) }
-      else sent++
+      if (m.payment_status === 'paid') {
+        // Cobro capturado por Stripe → confirmación de compra
+        const total = m.captured_amount != null ? Number(m.captured_amount) : finalPrice * quantity
+        const { error } = await sendPurchaseConfirmation({
+          to: email,
+          nombre: u?.name ?? undefined,
+          productName: group.product_name,
+          quantity,
+          finalPrice,
+          total,
+        })
+        if (error) { failed++; console.error('close-email error', email, error) }
+        else sent++
+      } else {
+        // Adjudicado sin captura → instrucciones de pago por transferencia
+        const concepto = `VONDA-${groupPrefix}-${m.join_order}`
+        const { error } = await sendPaymentInstructions({
+          to: email,
+          nombre: u?.name ?? undefined,
+          productName: group.product_name,
+          quantity,
+          finalPrice,
+          total: finalPrice * quantity,
+          paymentInfo,
+          concepto,
+          deadline,
+        })
+        if (error) { failed++; console.error('close-email error', email, error) }
+        else sent++
+      }
     } catch (e) {
       failed++
       console.error('close-email throw', email, e)

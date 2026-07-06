@@ -44,7 +44,7 @@ export async function closeGroup(
         await sendAdminAlert(
           `[Vonda] ${cap.failed.length} cobro(s) fallaron al cerrar la vonda`,
           `Estos holds no se pudieron capturar/liberar al cerrar ${groupId}:\n\n${detail}\n\n` +
-            `Siguen pendientes en el panel. Reintenta cerrando de nuevo o revísalos en Stripe.`,
+            `Siguen pendientes en el panel. Si el motivo es un hold caducado (status canceled/expired), reintentar el cierre NO sirve: el miembro ya ha recibido instrucciones de pago por transferencia. Verifica el PaymentIntent en Stripe y controla que la transferencia llegue dentro del plazo.`,
         )
       } catch (e) {
         console.error('sendAdminAlert (captura) falló:', e)
