@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import JoinFlow, { type JoinGroup } from './JoinFlow'
 
 export const dynamic = 'force-dynamic'
@@ -8,35 +8,37 @@ export const dynamic = 'force-dynamic'
 // → best_bid_id → bids para los tramos y el stock. El precio por unidad reactivo
 // lo calcula JoinFlow desde el quote; aquí solo se entregan los datos base.
 async function fetchVonda(id: string): Promise<JoinGroup | null> {
-  const { data: g, error } = await supabase
+  const { data: g, error } = await supabaseAdmin
     .from('groups')
     .select('id, product_name, product_spec, pvp, image_url, total_units, current_price, closes_at')
     .eq('id', id)
     .single()
   if (error || !g) return null
 
-  const { data: cp } = await supabase.rpc('compute_price', { p_group_id: id })
+  const { data: cp } = await supabaseAdmin.rpc('compute_price', { p_group_id: id })
   const row = (Array.isArray(cp) ? cp[0] : cp) as
     | { best_price?: number; best_bid_id?: string }
     | null
   const currentPrice = row?.best_price != null ? Number(row.best_price) : Number(g.current_price)
   const bestBidId = row?.best_bid_id ?? null
 
-  let tiers: { minUnits: number; price: number }[] = []
+  // Escalera FUSIONADA (D5): el flujo de unirse ve la misma curva pública que la ficha
+  const { data: ladder } = await supabaseAdmin.rpc('tier_demand', { p_group_id: id })
+  const tiers: { minUnits: number; price: number }[] =
+    (Array.isArray(ladder) ? ladder : []).map((t: any) => ({
+      minUnits: Number(t.min_units),
+      price: Number(t.price),
+    }))
+
   let maxStock = 0
   let minExecution = 0
-
   if (bestBidId) {
-    const { data: bid } = await supabase
+    const { data: bid } = await supabaseAdmin
       .from('bids')
-      .select('tiers, max_stock, min_execution')
+      .select('max_stock, min_execution')
       .eq('id', bestBidId)
       .single()
     if (bid) {
-      tiers = ((bid as any).tiers ?? []).map((t: any) => ({
-        minUnits: Number(t.min_units),
-        price: Number(t.price),
-      }))
       maxStock = Number((bid as any).max_stock ?? 0)
       minExecution = Number((bid as any).min_execution ?? 0)
     }

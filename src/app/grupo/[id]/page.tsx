@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabase-admin'
 import type { Tier } from '@/lib/mock-data'
 import HeroShareButton from '@/components/HeroShareButton'
 import GroupLiveSection from '@/components/GroupLiveSection'
@@ -8,12 +8,11 @@ import GroupDesktopView from '@/components/desktop/GroupDesktopView'
 export const dynamic = 'force-dynamic'
 
 async function fetchGroup(id: string) {
-  const { data: group, error } = await supabase
+  const { data: group, error } = await supabaseAdmin
     .from('groups')
     .select(`
       id, product_name, product_spec, pvp, image_url,
-      total_units, current_price, next_price, closes_at,
-      bids(tiers, price_mode, max_stock, min_execution)
+      total_units, current_price, next_price, closes_at
     `)
     .eq('id', id)
     .single()
@@ -22,24 +21,42 @@ async function fetchGroup(id: string) {
 
   let bestPrice = Number(group.current_price)
   let nextPrice = Number((group as any).next_price ?? group.current_price)
-  const { data: rpc } = await supabase.rpc('compute_price', { p_group_id: id })
-  if (rpc && typeof rpc === 'object') {
-    if ((rpc as any).best_price != null) bestPrice = Number((rpc as any).best_price)
-    if ((rpc as any).next_price != null) nextPrice = Number((rpc as any).next_price)
+  let bestBidId: string | null = null
+  const { data: rpc } = await supabaseAdmin.rpc('compute_price', { p_group_id: id })
+  const row = (Array.isArray(rpc) ? rpc[0] : rpc) as any
+  if (row) {
+    if (row.best_price != null) bestPrice = Number(row.best_price)
+    if (row.next_price != null) nextPrice = Number(row.next_price)
+    bestBidId = row.best_bid_id ?? null
   }
 
-  const { count: bidCount } = await supabase
-    .from('bids')
-    .select('*', { count: 'exact', head: true })
-    .eq('group_id', id)
-
-  const bid = Array.isArray(group.bids) ? group.bids[0] : null
-  const tiers: Tier[] = ((bid as any)?.tiers ?? []).map((t: any) => ({
+  // Escalera FUSIONADA (D5): única fuente pública de tramos
+  const { data: ladder } = await supabaseAdmin.rpc('tier_demand', { p_group_id: id })
+  const tiers: Tier[] = (Array.isArray(ladder) ? ladder : []).map((t: any) => ({
     minUnits: Number(t.min_units),
     price: Number(t.price),
   }))
-  const maxStock = Number((bid as any)?.max_stock ?? 0)
-  const minExecution = Number((bid as any)?.min_execution ?? 0)
+
+  // Stock mostrado = el de la puja que aporta el mejor precio actual
+  let maxStock = 0
+  let minExecution = 0
+  if (bestBidId) {
+    const { data: bid } = await supabaseAdmin
+      .from('bids')
+      .select('max_stock, min_execution')
+      .eq('id', bestBidId)
+      .single()
+    if (bid) {
+      maxStock = Number((bid as any).max_stock ?? 0)
+      minExecution = Number((bid as any).min_execution ?? 0)
+    }
+  }
+
+  const { count: bidCount } = await supabaseAdmin
+    .from('bids')
+    .select('*', { count: 'exact', head: true })
+    .eq('group_id', id)
+    .eq('status', 'active')
 
   return {
     id: group.id as string,

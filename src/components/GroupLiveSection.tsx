@@ -139,10 +139,7 @@ export default function GroupLiveSection({
                 <path d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
               </svg>
               <span className="text-sm font-normal text-neutral-700 text-center leading-tight">
-                {bidCount === 1 ? '1 vendedor' : `${bidCount} vendedores`}
-              </span>
-              <span className="text-xs text-neutral-400 text-center leading-tight">
-                {bidCount === 1 ? 'verificado' : 'verificados'}
+                Vendedor verificado
               </span>
             </div>
 
