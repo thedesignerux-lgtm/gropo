@@ -7,6 +7,7 @@ import { captureGroupPayments } from '@/lib/stripe-capture'
 import { sendAdminAlert } from '@/lib/resend'
 import { generateShippingLabels, type ShippingResult } from '@/lib/shipping-sendcloud'
 import { requireAdmin } from '@/lib/admin-auth'
+import { validateCloseWindow } from '@/lib/closeWindow'
 
 export interface CloseResult {
   result: string
@@ -92,6 +93,19 @@ export async function updateGroup(
   if (!closes_date) return { error: 'La fecha de cierre es obligatoria' }
 
   const closes_at = `${closes_date}T20:00:00+00:00`
+
+  // Regla de ventana de 7 días, anclada al hold vivo más antiguo del grupo
+  const { data: oldestMember } = await supabaseAdmin
+    .from('group_members')
+    .select('created_at')
+    .eq('group_id', groupId)
+    .in('payment_status', ['authorized', 'instructed'])
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  const windowError = validateCloseWindow(closes_at, oldestMember?.created_at ?? undefined)
+  if (windowError) return { error: windowError }
 
   const { error } = await supabaseAdmin
     .from('groups')

@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { sendPetitionMatched } from '@/lib/resend'
 import { requireAdmin } from '@/lib/admin-auth'
+import { validateCloseWindow } from '@/lib/closeWindow'
 
 export interface Tier {
   min_units: number
@@ -41,6 +42,8 @@ export async function createGroup(input: CreateGroupInput): Promise<{ error?: st
   if (!product_name.trim()) return { error: 'El nombre del producto es obligatorio' }
   if (!seller_name.trim()) return { error: 'El nombre del vendedor es obligatorio' }
   if (!closes_at) return { error: 'La fecha de cierre es obligatoria' }
+  const windowError = validateCloseWindow(closes_at)
+  if (windowError) return { error: windowError }
   if (tiers.length < 1) return { error: 'Añade al menos un tramo de precio' }
 
   for (let i = 0; i < tiers.length; i++) {
@@ -143,6 +146,23 @@ export async function addBidToGroup(
       return { error: `Tramo ${i + 1}: min_units debe ser mayor que el tramo anterior` }
     if (i > 0 && tiers[i].price >= tiers[i - 1].price)
       return { error: `Tramo ${i + 1}: precio debe ser menor que el tramo anterior` }
+  }
+
+  // Regla de ventana de 7 días (holds de Stripe)
+  if (closes_at) {
+    const windowError = validateCloseWindow(closes_at)
+    if (windowError) return { error: windowError }
+  } else {
+    // Sin fecha nueva: validar que la fecha heredada del grupo-petición sea segura
+    const { data: g } = await supabaseAdmin
+      .from('groups')
+      .select('closes_at')
+      .eq('id', groupId)
+      .single()
+    if (g?.closes_at) {
+      const windowError = validateCloseWindow(g.closes_at)
+      if (windowError) return { error: `La fecha de cierre actual del grupo no es válida — indica una nueva. ${windowError}` }
+    }
   }
 
   // GUARD: solo para asignar la PRIMERA puja
