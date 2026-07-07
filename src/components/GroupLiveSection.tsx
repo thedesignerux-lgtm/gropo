@@ -57,7 +57,15 @@ export default function GroupLiveSection({
   }, [])
 
   const ctaPrice = projection ? projection.price : displayPrice
-  const ctaHref = `/grupo/${groupId}/unirme${joinMode === 'esperar' && joinTarget ? `?mode=esperar&target=${joinTarget}` : ''}`
+
+  // Build CTA href with all params (qty, mode, target)
+  const ctaParams = new URLSearchParams()
+  if (joinMode === 'esperar' && joinTarget) {
+    ctaParams.set('mode', 'esperar')
+    ctaParams.set('target', String(joinTarget))
+  }
+  if (quantity > 1) ctaParams.set('qty', String(quantity))
+  const ctaHref = `/grupo/${groupId}/unirme${ctaParams.toString() ? `?${ctaParams.toString()}` : ''}`
 
   return (
     <>
@@ -92,9 +100,14 @@ export default function GroupLiveSection({
           )}
         </div>
 
-        {/* Progress to next price */}
+        {/* Progress to next price — now reacts to selected quantity */}
         <div style={{ marginBottom: 6 }}>
-          <ProgressToNextPrice currentPrice={displayPrice} nextTier={nextTier} missing={missing} />
+          <ProgressToNextPrice
+            currentPrice={displayPrice}
+            nextTier={nextTier}
+            missing={missing}
+            selectedQuantity={quantity}
+          />
         </div>
 
         {/* Tier demand ladder */}

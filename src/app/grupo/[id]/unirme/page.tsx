@@ -64,7 +64,7 @@ export default async function UnirmePage({
   searchParams,
 }: {
   params: { id: string }
-  searchParams: { mode?: string; target?: string }
+  searchParams: { mode?: string; target?: string; qty?: string }
 }) {
   const v = await fetchVonda(params.id)
 
@@ -79,6 +79,8 @@ export default async function UnirmePage({
   // "Esperar a precio" mode: ?mode=esperar&target=37.00
   const joinMode = searchParams.mode === 'esperar' ? 'esperar' : 'comprar'
   const targetPrice = searchParams.target ? Number(searchParams.target) : undefined
+  // Quantity from ficha: ?qty=4 (clamped to 1–10 in JoinFlow)
+  const initialQuantity = searchParams.qty ? Math.max(1, Math.min(10, parseInt(searchParams.qty) || 1)) : 1
 
   return (
     <div className="min-h-screen bg-neutral-50">
@@ -109,7 +111,12 @@ export default async function UnirmePage({
           </span>
         </header>
 
-        <JoinFlow group={v} joinMode={joinMode} targetPrice={targetPrice} />
+        <JoinFlow
+          group={v}
+          joinMode={joinMode}
+          targetPrice={targetPrice}
+          initialQuantity={initialQuantity}
+        />
       </div>
     </div>
   )

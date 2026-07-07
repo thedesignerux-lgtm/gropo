@@ -62,16 +62,18 @@ export default function JoinFlow({
   group,
   joinMode = 'comprar',
   targetPrice,
+  initialQuantity = 1,
 }: {
   group: JoinGroup
   joinMode?: 'comprar' | 'esperar'
   targetPrice?: number
+  initialQuantity?: number
 }) {
   // Tope: 10 por comprador y nunca más del stock restante de la puja ganadora.
   const remaining = group.max_stock > 0 ? Math.max(1, group.max_stock - group.total_units) : 10;
   const maxQty = Math.min(10, remaining);
 
-  const [quantity, setQuantity] = useState(1); // por defecto 1, NUNCA 0
+  const [quantity, setQuantity] = useState(initialQuantity); // viene de la ficha via ?qty=N
   const [quote, setQuote] = useState<{ pricePerUnit: number | null }>({
     pricePerUnit: group.current_price,
   });
