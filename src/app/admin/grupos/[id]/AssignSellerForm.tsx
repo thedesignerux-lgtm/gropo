@@ -8,10 +8,11 @@ const EMPTY_TIER: Tier = { min_units: 0, price: 0 }
 
 interface Props {
   groupId: string
-  initialClosesDate: string  // YYYY-MM-DD (fecha provisional de la petición)
+  initialClosesDate: string  // YYYY-MM-DD
+  isFirstBid: boolean        // G5: distingue primera puja vs. adicional
 }
 
-export default function AssignSellerForm({ groupId, initialClosesDate }: Props) {
+export default function AssignSellerForm({ groupId, initialClosesDate, isFirstBid }: Props) {
   const [open, setOpen] = useState(false)
   const [fields, setFields] = useState({
     seller_name: '',
@@ -52,18 +53,23 @@ export default function AssignSellerForm({ groupId, initialClosesDate }: Props) 
     e.preventDefault()
     setError(null)
     setLoading(true)
-    // closes_at como UTC explícito (mismo patrón que el form de creación)
-    const closes_at = `${fields.closes_date}T20:00:00+00:00`
-    const result = await addBidToGroup(groupId, {
+
+    const payload: Parameters<typeof addBidToGroup>[1] = {
       tiers,
       price_mode: fields.price_mode,
       min_execution: fields.min_execution,
       max_stock: fields.max_stock,
       payment_info: fields.payment_info,
       seller_name: fields.seller_name,
-      closes_at,
-      pvp: fields.pvp,
-    })
+    }
+
+    // Solo la primera puja actualiza fecha de cierre y PVP del grupo
+    if (isFirstBid) {
+      payload.closes_at = `${fields.closes_date}T20:00:00+00:00`
+      payload.pvp = fields.pvp
+    }
+
+    const result = await addBidToGroup(groupId, payload)
     setLoading(false)
     if (result?.error) setError(result.error)
     else setOpen(false)
@@ -78,14 +84,16 @@ export default function AssignSellerForm({ groupId, initialClosesDate }: Props) 
         onClick={() => { setOpen(true); setError(null) }}
         className="text-xs font-semibold text-brand hover:underline"
       >
-        + Asignar vendedor
+        {isFirstBid ? '+ Asignar vendedor' : '+ Añadir puja'}
       </button>
     )
   }
 
   return (
     <form onSubmit={handleSubmit} className="mt-3 bg-white rounded-2xl border border-gray-200 p-6 space-y-4 w-full">
-      <h3 className="text-base font-bold text-gray-900">Asignar vendedor (primera puja)</h3>
+      <h3 className="text-base font-bold text-gray-900">
+        {isFirstBid ? 'Asignar vendedor (primera puja)' : 'Añadir puja de otro vendedor'}
+      </h3>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="col-span-2">
@@ -101,32 +109,37 @@ export default function AssignSellerForm({ groupId, initialClosesDate }: Props) 
           />
         </div>
 
-        <div className="col-span-2 sm:col-span-1">
-          <label className={labelCls}>Fecha de cierre *</label>
-          <input
-            required
-            type="date"
-            value={fields.closes_date}
-            onChange={e => setField('closes_date', e.target.value)}
-            disabled={loading}
-            className={inputCls}
-          />
-          <p className="text-xs text-gray-400 mt-1">Cierra a las <strong>22:00 h Madrid</strong> (20:00 UTC · fijo)</p>
-        </div>
+        {/* Fecha de cierre y PVP solo en la primera puja (datos del grupo, no de la puja) */}
+        {isFirstBid && (
+          <>
+            <div className="col-span-2 sm:col-span-1">
+              <label className={labelCls}>Fecha de cierre *</label>
+              <input
+                required
+                type="date"
+                value={fields.closes_date}
+                onChange={e => setField('closes_date', e.target.value)}
+                disabled={loading}
+                className={inputCls}
+              />
+              <p className="text-xs text-gray-400 mt-1">Cierra a las <strong>22:00 h Madrid</strong> (20:00 UTC · fijo)</p>
+            </div>
 
-        <div className="col-span-2 sm:col-span-1">
-          <label className={labelCls}>PVP precio de tienda (opcional)</label>
-          <input
-            type="number"
-            min={0}
-            step={0.01}
-            value={fields.pvp}
-            onChange={e => setField('pvp', e.target.value)}
-            placeholder="54.95"
-            disabled={loading}
-            className={inputCls}
-          />
-        </div>
+            <div className="col-span-2 sm:col-span-1">
+              <label className={labelCls}>PVP precio de tienda (opcional)</label>
+              <input
+                type="number"
+                min={0}
+                step={0.01}
+                value={fields.pvp}
+                onChange={e => setField('pvp', e.target.value)}
+                placeholder="54.95"
+                disabled={loading}
+                className={inputCls}
+              />
+            </div>
+          </>
+        )}
       </div>
 
       <div className="grid grid-cols-3 gap-4">
@@ -271,7 +284,10 @@ export default function AssignSellerForm({ groupId, initialClosesDate }: Props) 
           disabled={loading}
           className="flex-1 py-2.5 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand-dark transition-colors disabled:opacity-60"
         >
-          {loading ? 'Asignando...' : 'Asignar vendedor'}
+          {loading
+            ? (isFirstBid ? 'Asignando...' : 'Añadiendo...')
+            : (isFirstBid ? 'Asignar vendedor' : 'Añadir puja')
+          }
         </button>
       </div>
     </form>

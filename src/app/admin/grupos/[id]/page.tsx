@@ -5,6 +5,7 @@ import CloseGroupButton from './CloseGroupButton'
 import GenerateLabelsButton from './GenerateLabelsButton'
 import EditGroupForm from './EditGroupForm'
 import AssignSellerForm from './AssignSellerForm'
+import WithdrawBidButton from './WithdrawBidButton'
 import { resolveGroupBadge } from '@/lib/statusBadge'
 
 export const dynamic = 'force-dynamic'
@@ -17,6 +18,14 @@ const PAYMENT_BADGE: Record<string, { label: string; cls: string }> = {
   released:    { label: 'Liberado',          cls: 'bg-gray-100 text-gray-600' },
   cancelled:   { label: 'Cancelado',         cls: 'bg-gray-100 text-gray-600' },
   auth_failed: { label: 'Autorización fallida', cls: 'bg-red-100 text-red-700' },
+}
+
+const BID_BADGE: Record<string, { label: string; cls: string }> = {
+  active:    { label: 'Activa',    cls: 'bg-green-100 text-green-700' },
+  winner:    { label: 'Ganadora',  cls: 'bg-brand/10 text-brand' },
+  outbid:    { label: 'Superada',  cls: 'bg-gray-100 text-gray-500' },
+  declined:  { label: 'Rechazada', cls: 'bg-gray-100 text-gray-500' },
+  withdrawn: { label: 'Retirada',  cls: 'bg-orange-100 text-orange-700' },
 }
 
 function fmt(n: number) {
@@ -49,15 +58,17 @@ export default async function AdminGroupDetailPage({ params }: { params: { id: s
       .from('bids')
       .select('id, price_mode, tiers, status, min_execution, max_stock, users(name)')
       .eq('group_id', id)
-      .order('created_at', { ascending: false }),
+      .order('created_at', { ascending: true }),
   ])
 
   if (!group) notFound()
 
   const memberCount = members?.length ?? 0
   const totalUnits = group.total_units ?? 0
-  const hasActiveBid = (bids ?? []).some((b) => b.status === 'active')
-  const badge = resolveGroupBadge(group.status, hasActiveBid ? 1 : 0)
+  const activeBids = (bids ?? []).filter((b) => b.status === 'active')
+  const activeBidCount = activeBids.length
+  const isGroupOpen = group.status === 'open'
+  const badge = resolveGroupBadge(group.status, activeBidCount)
 
   return (
     <div className="space-y-8">
@@ -141,8 +152,8 @@ export default async function AdminGroupDetailPage({ params }: { params: { id: s
                 {(members ?? []).map((m) => {
                   const u = m.users as any
                   const payBadge = PAYMENT_BADGE[m.payment_status] ?? PAYMENT_BADGE.pending
-                  // final_price (liquidación) si el grupo ya cerró; si no, guaranteed_price (precio de unión)
-                  const unitPrice = Number(m.final_price ?? m.guaranteed_price)
+                  const isReleased = m.payment_status === 'released' || m.payment_status === 'cancelled'
+                  const unitPrice = isReleased ? 0 : Number(m.final_price ?? m.guaranteed_price)
                   return (
                     <tr key={m.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3 text-gray-400">{m.join_order ?? '—'}</td>
@@ -150,9 +161,11 @@ export default async function AdminGroupDetailPage({ params }: { params: { id: s
                       <td className="px-4 py-3 text-gray-600">{u?.phone ?? '—'}</td>
                       <td className="px-4 py-3 text-gray-600">{u?.email ?? '—'}</td>
                       <td className="px-4 py-3 text-right text-gray-700">{m.quantity}</td>
-                      <td className="px-4 py-3 text-right text-gray-700">{fmt(unitPrice)}</td>
+                      <td className="px-4 py-3 text-right text-gray-700">
+                        {isReleased ? '—' : fmt(unitPrice)}
+                      </td>
                       <td className="px-4 py-3 text-right font-semibold text-gray-900">
-                        {fmt(unitPrice * m.quantity)}
+                        {isReleased ? '—' : fmt(unitPrice * m.quantity)}
                       </td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${payBadge.cls}`}>
@@ -170,7 +183,11 @@ export default async function AdminGroupDetailPage({ params }: { params: { id: s
                     <td className="px-4 py-3 text-right">{totalUnits}</td>
                     <td />
                     <td className="px-4 py-3 text-right">
-                      {fmt((members ?? []).reduce((s, m) => s + Number(m.final_price ?? m.guaranteed_price) * m.quantity, 0))}
+                      {fmt(
+                        (members ?? [])
+                          .filter(m => m.payment_status !== 'released' && m.payment_status !== 'cancelled')
+                          .reduce((s, m) => s + Number(m.final_price ?? m.guaranteed_price) * m.quantity, 0)
+                      )}
                     </td>
                     <td />
                   </tr>
@@ -184,23 +201,23 @@ export default async function AdminGroupDetailPage({ params }: { params: { id: s
       {/* ── PUJAS ── */}
       <section>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-bold text-gray-900">Pujas ({bids?.length ?? 0})</h2>
-          {hasActiveBid && (
-            <button
-              disabled
-              className="text-xs font-semibold text-gray-300 cursor-not-allowed"
-              title="Próximamente"
-            >
-              + Mejorar puja
-            </button>
-          )}
+          <h2 className="text-base font-bold text-gray-900">
+            Pujas ({bids?.length ?? 0})
+            {activeBidCount > 0 && (
+              <span className="text-sm font-normal text-gray-400 ml-2">
+                {activeBidCount} activa{activeBidCount > 1 ? 's' : ''}
+              </span>
+            )}
+          </h2>
         </div>
 
-        {!hasActiveBid && (
+        {/* G5: Formulario de añadir puja — siempre visible en grupos abiertos */}
+        {isGroupOpen && (
           <div className="mb-3">
             <AssignSellerForm
               groupId={id}
               initialClosesDate={group.closes_at ? group.closes_at.slice(0, 10) : ''}
+              isFirstBid={activeBidCount === 0}
             />
           </div>
         )}
@@ -209,20 +226,33 @@ export default async function AdminGroupDetailPage({ params }: { params: { id: s
           <p className="text-sm text-gray-400">Sin pujas.</p>
         ) : (
           <div className="space-y-3">
-            {bids.map((bid, i) => {
+            {bids.map((bid) => {
               const seller = (bid.users as any)?.name ?? '—'
               const tierList = Array.isArray(bid.tiers) ? bid.tiers : []
               const isActive = bid.status === 'active'
+              const bidBadge = BID_BADGE[bid.status] ?? { label: bid.status, cls: 'bg-gray-100 text-gray-500' }
               return (
                 <div key={bid.id} className={`bg-white rounded-2xl border p-5 ${isActive ? 'border-brand/40' : 'border-gray-200 opacity-60'}`}>
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold text-gray-900">{seller}</span>
-                      {i === 0 && isActive && (
-                        <span className="text-xs bg-brand text-white px-2 py-0.5 rounded-full font-semibold">Mejor puja</span>
+                      <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${bidBadge.cls}`}>
+                        {bidBadge.label}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-gray-400 capitalize">
+                        {bid.price_mode} · min {bid.min_execution} uds · max {bid.max_stock} uds
+                      </span>
+                      {/* G5: Botón retirar — solo pujas activas en grupos abiertos con 2+ pujas activas */}
+                      {isActive && isGroupOpen && activeBidCount > 1 && (
+                        <WithdrawBidButton
+                          bidId={bid.id}
+                          groupId={id}
+                          sellerName={seller}
+                        />
                       )}
                     </div>
-                    <span className="text-xs text-gray-400 capitalize">{bid.price_mode} · min {bid.min_execution} uds · max {bid.max_stock} uds</span>
                   </div>
                   <div className="flex gap-3 flex-wrap">
                     {tierList.map((t: any, j: number) => (
@@ -232,6 +262,8 @@ export default async function AdminGroupDetailPage({ params }: { params: { id: s
                       </div>
                     ))}
                   </div>
+
+                  {/* G5: Panel de retirada inline (WithdrawBidButton maneja su propio estado) */}
                 </div>
               )
             })}

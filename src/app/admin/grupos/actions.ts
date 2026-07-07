@@ -32,6 +32,32 @@ function sellerEmail(name: string): string {
   return `seller-${slug}@vonda.local`
 }
 
+/** Validaciones compartidas entre createGroup y addBidToGroup */
+function validateBidFields(
+  tiers: Tier[],
+  min_execution: number,
+  max_stock: number,
+): string | null {
+  if (tiers.length < 1) return 'Añade al menos un tramo de precio'
+  // G5 — Decisión B: min_execution ≤ max_stock
+  if (min_execution > max_stock)
+    return `La ejecución mínima (${min_execution}) no puede superar el stock máximo (${max_stock})`
+  for (let i = 0; i < tiers.length; i++) {
+    if (!Number.isFinite(tiers[i].min_units) || tiers[i].min_units < 1)
+      return `Tramo ${i + 1}: unidades mínimas deben ser ≥ 1`
+    if (!Number.isFinite(tiers[i].price) || tiers[i].price <= 0)
+      return `Tramo ${i + 1}: precio debe ser mayor que 0`
+    if (i > 0 && tiers[i].min_units <= tiers[i - 1].min_units)
+      return `Tramo ${i + 1}: min_units debe ser mayor que el tramo anterior`
+    if (i > 0 && tiers[i].price >= tiers[i - 1].price)
+      return `Tramo ${i + 1}: precio debe ser menor que el tramo anterior`
+    // G5 — Decisión B: cada tramo debe ser alcanzable dentro del stock
+    if (tiers[i].min_units > max_stock)
+      return `Tramo ${i + 1}: min_units (${tiers[i].min_units}) supera el stock máximo (${max_stock})`
+  }
+  return null
+}
+
 export async function createGroup(input: CreateGroupInput): Promise<{ error?: string }> {
   const authError = requireAdmin()
   if (authError) return { error: authError }
@@ -44,18 +70,9 @@ export async function createGroup(input: CreateGroupInput): Promise<{ error?: st
   if (!closes_at) return { error: 'La fecha de cierre es obligatoria' }
   const windowError = validateCloseWindow(closes_at)
   if (windowError) return { error: windowError }
-  if (tiers.length < 1) return { error: 'Añade al menos un tramo de precio' }
 
-  for (let i = 0; i < tiers.length; i++) {
-    if (!Number.isFinite(tiers[i].min_units) || tiers[i].min_units < 1)
-      return { error: `Tramo ${i + 1}: unidades mínimas deben ser ≥ 1` }
-    if (!Number.isFinite(tiers[i].price) || tiers[i].price <= 0)
-      return { error: `Tramo ${i + 1}: precio debe ser mayor que 0` }
-    if (i > 0 && tiers[i].min_units <= tiers[i - 1].min_units)
-      return { error: `Tramo ${i + 1}: min_units debe ser mayor que el tramo anterior` }
-    if (i > 0 && tiers[i].price >= tiers[i - 1].price)
-      return { error: `Tramo ${i + 1}: precio debe ser menor que el tramo anterior` }
-  }
+  const bidError = validateBidFields(tiers, min_execution, max_stock)
+  if (bidError) return { error: bidError }
 
   // Upsert seller
   const { data: seller, error: sellerError } = await supabaseAdmin
@@ -91,7 +108,7 @@ export async function createGroup(input: CreateGroupInput): Promise<{ error?: st
   if (groupError || !group) return { error: groupError?.message ?? 'Error al crear el grupo' }
 
   // Insert bid
-  const { error: bidError } = await supabaseAdmin
+  const { error: bidInsertError } = await supabaseAdmin
     .from('bids')
     .insert({
       group_id: group.id,
@@ -104,9 +121,9 @@ export async function createGroup(input: CreateGroupInput): Promise<{ error?: st
       status: 'active',
     })
 
-  if (bidError) {
+  if (bidInsertError) {
     await supabaseAdmin.from('groups').delete().eq('id', group.id)
-    return { error: bidError.message ?? 'Error al crear la puja' }
+    return { error: bidInsertError.message ?? 'Error al crear la puja' }
   }
 
   redirect(`/admin/grupos/${group.id}`)
@@ -123,8 +140,7 @@ export interface AddBidInput {
   pvp?: string        // string vacío/ausente → no se toca
 }
 
-// Asigna la PRIMERA puja a un grupo que ya existe (una petición sin puja).
-// No es para mejorar pujas (eso es futuro): si ya hay una activa, rechaza.
+// Añade una puja a un grupo existente (primera o adicional — multi-puja G5).
 export async function addBidToGroup(
   groupId: string,
   input: AddBidInput,
@@ -134,46 +150,32 @@ export async function addBidToGroup(
 
   const { tiers, price_mode, min_execution, max_stock, payment_info, seller_name, closes_at, pvp } = input
 
-  // Validaciones (mismas reglas que createGroup)
+  // Validaciones
   if (!seller_name.trim()) return { error: 'El nombre del vendedor es obligatorio' }
-  if (tiers.length < 1) return { error: 'Añade al menos un tramo de precio' }
-  for (let i = 0; i < tiers.length; i++) {
-    if (!Number.isFinite(tiers[i].min_units) || tiers[i].min_units < 1)
-      return { error: `Tramo ${i + 1}: unidades mínimas deben ser ≥ 1` }
-    if (!Number.isFinite(tiers[i].price) || tiers[i].price <= 0)
-      return { error: `Tramo ${i + 1}: precio debe ser mayor que 0` }
-    if (i > 0 && tiers[i].min_units <= tiers[i - 1].min_units)
-      return { error: `Tramo ${i + 1}: min_units debe ser mayor que el tramo anterior` }
-    if (i > 0 && tiers[i].price >= tiers[i - 1].price)
-      return { error: `Tramo ${i + 1}: precio debe ser menor que el tramo anterior` }
-  }
 
-  // Regla de ventana de 7 días (holds de Stripe)
+  const bidError = validateBidFields(tiers, min_execution, max_stock)
+  if (bidError) return { error: bidError }
+
+  // Verificar que el grupo está abierto
+  const { data: group, error: groupErr } = await supabaseAdmin
+    .from('groups')
+    .select('status, closes_at')
+    .eq('id', groupId)
+    .single()
+  if (groupErr || !group) return { error: 'Grupo no encontrado' }
+  if (group.status !== 'open') return { error: 'Solo se pueden añadir pujas a grupos abiertos' }
+
+  // Regla de ventana de 6,5 días (holds de Stripe)
   if (closes_at) {
     const windowError = validateCloseWindow(closes_at)
     if (windowError) return { error: windowError }
   } else {
-    // Sin fecha nueva: validar que la fecha heredada del grupo-petición sea segura
-    const { data: g } = await supabaseAdmin
-      .from('groups')
-      .select('closes_at')
-      .eq('id', groupId)
-      .single()
-    if (g?.closes_at) {
-      const windowError = validateCloseWindow(g.closes_at)
+    // Sin fecha nueva: validar que la fecha heredada del grupo sea segura
+    if (group.closes_at) {
+      const windowError = validateCloseWindow(group.closes_at)
       if (windowError) return { error: `La fecha de cierre actual del grupo no es válida — indica una nueva. ${windowError}` }
     }
   }
-
-  // GUARD: solo para asignar la PRIMERA puja
-  const { data: activeBids, error: activeErr } = await supabaseAdmin
-    .from('bids')
-    .select('id')
-    .eq('group_id', groupId)
-    .eq('status', 'active')
-    .limit(1)
-  if (activeErr) return { error: activeErr.message }
-  if (activeBids && activeBids.length > 0) return { error: 'Este grupo ya tiene vendedor asignado' }
 
   // Upsert vendedor placeholder (igual que createGroup)
   const { data: seller, error: sellerError } = await supabaseAdmin
@@ -187,7 +189,7 @@ export async function addBidToGroup(
   if (sellerError || !seller) return { error: sellerError?.message ?? 'Error al crear el vendedor' }
 
   // Insert puja
-  const { error: bidError } = await supabaseAdmin
+  const { error: bidInsertError } = await supabaseAdmin
     .from('bids')
     .insert({
       group_id: groupId,
@@ -199,10 +201,9 @@ export async function addBidToGroup(
       tiers,
       status: 'active',
     })
-  if (bidError) return { error: bidError.message ?? 'Error al crear la puja' }
+  if (bidInsertError) return { error: bidInsertError.message ?? 'Error al crear la puja' }
 
-  // El admin confirma fecha/pvp definitivos al asignar el vendedor.
-  // current_price/next_price se recalculan con compute_price (como join_group).
+  // Actualizar precio del grupo con compute_price (la fusión multi-puja lo absorbe)
   const groupUpdate: Record<string, unknown> = {}
   if (closes_at) groupUpdate.closes_at = new Date(closes_at).toISOString()
   if (pvp != null && pvp.trim()) groupUpdate.pvp = Number(pvp.trim())
@@ -211,6 +212,7 @@ export async function addBidToGroup(
   const row = Array.isArray(priced) ? priced[0] : priced
   if (row?.best_price != null) groupUpdate.current_price = Number(row.best_price)
   if (row?.next_price != null) groupUpdate.next_price = Number(row.next_price)
+  else groupUpdate.next_price = null
 
   if (Object.keys(groupUpdate).length > 0) {
     await supabaseAdmin.from('groups').update(groupUpdate).eq('id', groupId)
@@ -225,17 +227,17 @@ export async function addBidToGroup(
       .eq('group_id', groupId)
 
     if (count === 1) {
-      const { data: group } = await supabaseAdmin
+      const { data: grp } = await supabaseAdmin
         .from('groups')
         .select('product_name, created_by')
         .eq('id', groupId)
         .single()
 
-      const { data: petitioner } = group?.created_by
+      const { data: petitioner } = grp?.created_by
         ? await supabaseAdmin
             .from('users')
             .select('email, name')
-            .eq('id', group.created_by)
+            .eq('id', grp.created_by)
             .single()
         : { data: null }
 
@@ -244,13 +246,10 @@ export async function addBidToGroup(
           process.env.NEXT_PUBLIC_SITE_URL ||
           (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
 
-        // resend.emails.send NO lanza ante errores de API (dominio no
-        // verificado, destinatario no permitido en sandbox, etc.): devuelve
-        // el error en .error. Hay que inspeccionarlo o el fallo es silencioso.
         const { data: sent, error: sendError } = await sendPetitionMatched({
           to: petitioner.email,
           nombre: petitioner.name ?? undefined,
-          productName: group?.product_name ?? 'tu producto',
+          productName: grp?.product_name ?? 'tu producto',
           groupUrl: `${base}/grupo/${groupId}`,
         })
 
@@ -267,7 +266,6 @@ export async function addBidToGroup(
 
   revalidatePath(`/admin/grupos/${groupId}`)
   revalidatePath('/admin')
-  // El grupo pasa a tener puja → debe aparecer/actualizarse en las páginas públicas.
   revalidatePath('/')
   revalidatePath(`/grupo/${groupId}`)
   return {}

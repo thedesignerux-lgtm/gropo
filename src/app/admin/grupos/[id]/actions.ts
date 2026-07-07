@@ -38,8 +38,6 @@ export async function closeGroup(
     const cap = await captureGroupPayments(groupId)
     console.log(`[closeGroup] captura ${groupId}:`, JSON.stringify(cap))
     if (cap.failed.length > 0) {
-      // Captura fallida = dinero atascado: el adjudicado sigue 'instructed' y es
-      // visible en el panel. Avisamos al admin (best-effort, no rompe el cierre).
       const detail = cap.failed.map(f => `• miembro ${f.memberId} (PI ${f.paymentIntentId}): ${f.error}`).join('\n')
       try {
         await sendAdminAlert(
@@ -55,9 +53,7 @@ export async function closeGroup(
     console.error('captureGroupPayments falló (cierre OK igualmente):', e)
   }
 
-  // Emails de pago a los adjudicados — BLINDADO: el cierre ya está cometido en
-  // la BD, así que un fallo de email NO debe romper ni revertir el cierre.
-  // El dinero es primario; el email, secundario (misma regla que la unión).
+  // Emails de pago a los adjudicados — BLINDADO
   if (result?.result === 'closed' || result?.result === 'surplus') {
     try {
       await sendClosePaymentEmails(groupId)
@@ -76,8 +72,8 @@ export interface UpdateGroupInput {
   product_spec: string
   product_url: string
   image_url: string
-  pvp: string  // string vacío → null en BD; número → guardado como decimal
-  closes_date: string  // YYYY-MM-DD; se guarda como 20:00 UTC (= 22:00 Madrid CEST)
+  pvp: string
+  closes_date: string
 }
 
 export async function updateGroup(
@@ -94,7 +90,6 @@ export async function updateGroup(
 
   const closes_at = `${closes_date}T20:00:00+00:00`
 
-  // Regla de ventana de 7 días, anclada al hold vivo más antiguo del grupo
   const { data: oldestMember } = await supabaseAdmin
     .from('group_members')
     .select('created_at')
@@ -138,4 +133,94 @@ export async function generateLabels(
   } catch (e: any) {
     return { error: e?.message ?? 'Error generando etiquetas' }
   }
+}
+
+// ── G5: Retirar puja (§5.3) ──────────────────────────────────────────────────
+
+export async function withdrawBid(
+  bidId: string,
+  groupId: string,
+): Promise<{ error?: string }> {
+  const authError = requireAdmin()
+  if (authError) return { error: authError }
+
+  // 1. Verificar que la puja existe y está activa
+  const { data: bid, error: bidErr } = await supabaseAdmin
+    .from('bids')
+    .select('id, status, group_id')
+    .eq('id', bidId)
+    .single()
+  if (bidErr || !bid) return { error: 'Puja no encontrada' }
+  if (bid.status !== 'active') return { error: `La puja ya está en estado '${bid.status}'` }
+  if (bid.group_id !== groupId) return { error: 'La puja no pertenece a este grupo' }
+
+  // 2. Verificar que el grupo está abierto
+  const { data: group } = await supabaseAdmin
+    .from('groups')
+    .select('status')
+    .eq('id', groupId)
+    .single()
+  if (group?.status !== 'open') return { error: 'Solo se pueden retirar pujas de grupos abiertos' }
+
+  // 3. No se puede retirar la única puja activa
+  const { count: activeBidCount } = await supabaseAdmin
+    .from('bids')
+    .select('id', { count: 'exact', head: true })
+    .eq('group_id', groupId)
+    .eq('status', 'active')
+  if ((activeBidCount ?? 0) <= 1) return { error: 'No puedes retirar la única puja activa del grupo' }
+
+  // 4. §5.3 — Marcar como withdrawn TENTATIVAMENTE, recalcular, y verificar
+  //    que el nuevo precio no supera ningún guaranteed_price vivo.
+  //    Si falla el check, revertimos a 'active' inmediatamente.
+  //    (Race window despreciable: solo Benjamin usa el admin.)
+  const { error: withdrawErr } = await supabaseAdmin
+    .from('bids')
+    .update({ status: 'withdrawn' })
+    .eq('id', bidId)
+  if (withdrawErr) return { error: withdrawErr.message }
+
+  // Recalcular precio sin esta puja
+  const { data: priced } = await supabaseAdmin.rpc('compute_price', { p_group_id: groupId })
+  const row = Array.isArray(priced) ? priced[0] : priced
+  const newPrice = row?.best_price != null ? Number(row.best_price) : null
+
+  // Verificar contra guaranteed_prices de miembros con holds vivos
+  const { data: members } = await supabaseAdmin
+    .from('group_members')
+    .select('guaranteed_price')
+    .eq('group_id', groupId)
+    .in('payment_status', ['authorized', 'instructed', 'paid'])
+
+  if (members && members.length > 0 && newPrice != null) {
+    const minGuaranteed = Math.min(...members.map(m => Number(m.guaranteed_price)))
+    if (newPrice > minGuaranteed) {
+      // ROLLBACK: restaurar puja a activa
+      await supabaseAdmin
+        .from('bids')
+        .update({ status: 'active' })
+        .eq('id', bidId)
+      return {
+        error: `No se puede retirar: el nuevo precio (${newPrice.toFixed(2)} €) superaría el precio garantizado de algún miembro (${minGuaranteed.toFixed(2)} €). `
+          + `Para retirar esta puja, primero deben salir esos miembros o debe haber otra puja que cubra el precio.`,
+      }
+    }
+  }
+
+  // 5. Check OK — actualizar precio del grupo
+  if (newPrice != null) {
+    await supabaseAdmin
+      .from('groups')
+      .update({
+        current_price: newPrice,
+        next_price: row.next_price != null ? Number(row.next_price) : null,
+      })
+      .eq('id', groupId)
+  }
+
+  revalidatePath(`/admin/grupos/${groupId}`)
+  revalidatePath('/admin')
+  revalidatePath('/')
+  revalidatePath(`/grupo/${groupId}`)
+  return {}
 }
