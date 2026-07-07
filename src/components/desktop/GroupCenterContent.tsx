@@ -47,7 +47,19 @@ export default function GroupCenterContent({
   }, [])
 
   const selectedMaxPrice = joinMode === 'esperar' && joinTarget ? joinTarget : displayPrice
-  const ctaHref = `/grupo/${groupId}/unirme${joinMode === 'esperar' && joinTarget ? `?mode=esperar&target=${joinTarget}` : ''}`
+
+  // Build CTA href with all params (qty, mode, target)
+  const ctaParams = new URLSearchParams()
+  if (joinMode === 'esperar' && joinTarget) {
+    ctaParams.set('mode', 'esperar')
+    ctaParams.set('target', String(joinTarget))
+  }
+  if (quantity > 1) ctaParams.set('qty', String(quantity))
+  const ctaHref = `/grupo/${groupId}/unirme${ctaParams.toString() ? `?${ctaParams.toString()}` : ''}`
+
+  // Projected progress toward next tier
+  const projectedMissing = nextTier ? Math.max(0, missing - quantity) : 0
+  const wouldUnlock = nextTier ? quantity >= missing : false
 
   return (
     <div className="space-y-5">
@@ -82,7 +94,16 @@ export default function GroupCenterContent({
           <div className="bg-white rounded-2xl border border-neutral-100 p-5 flex flex-col justify-center">
             <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-1">Próximo descuento</p>
             <p className="text-3xl font-bold text-green-600">{fmt(nextTier!.price)}</p>
-            <p className="text-xs text-neutral-500 mt-1">Faltan {missing} compra{missing !== 1 ? 's' : ''}</p>
+            {wouldUnlock ? (
+              <p className="text-xs font-semibold text-green-600 mt-1">
+                ¡Con tus {quantity} ud{quantity > 1 ? 's' : ''} se desbloquea!
+              </p>
+            ) : (
+              <p className="text-xs text-neutral-500 mt-1">
+                Faltan {projectedMissing} compra{projectedMissing !== 1 ? 's' : ''}
+                {quantity > 1 && <span className="text-brand"> (tú aportas {quantity})</span>}
+              </p>
+            )}
           </div>
         </div>
       )}
