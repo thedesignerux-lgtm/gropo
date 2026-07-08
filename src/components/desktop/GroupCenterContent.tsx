@@ -57,9 +57,8 @@ export default function GroupCenterContent({
   if (quantity > 1) ctaParams.set('qty', String(quantity))
   const ctaHref = `/grupo/${groupId}/unirme${ctaParams.toString() ? `?${ctaParams.toString()}` : ''}`
 
-  // Projected progress toward next tier
-  const projectedMissing = nextTier ? Math.max(0, missing - quantity) : 0
-  const wouldUnlock = nextTier ? quantity >= missing : false
+  // ¿La cantidad seleccionada desbloquearía el siguiente tramo? (para el texto de la tarjeta)
+  const wouldUnlock = nextTier ? quantity >= missing && missing > 0 : false
 
   return (
     <div className="space-y-5">
@@ -99,10 +98,7 @@ export default function GroupCenterContent({
                 ¡Con tus {quantity} ud{quantity > 1 ? 's' : ''} se desbloquea!
               </p>
             ) : (
-              <p className="text-xs text-neutral-500 mt-1">
-                Faltan {projectedMissing} compra{projectedMissing !== 1 ? 's' : ''}
-                {quantity > 1 && <span className="text-brand"> (tú aportas {quantity})</span>}
-              </p>
+              <p className="text-xs text-neutral-500 mt-1">Faltan {missing} compra{missing !== 1 ? 's' : ''}</p>
             )}
           </div>
         </div>
@@ -156,9 +152,9 @@ export default function GroupCenterContent({
       {!isBestPrice && (
         <>
           {demandTiers.length > 0 ? (
-            <TierDemandLadder tiers={demandTiers} currentPrice={displayPrice} />
+            <TierDemandLadder tiers={demandTiers} currentPrice={displayPrice} selectedQuantity={quantity} />
           ) : (
-            <TierDemandLadder groupId={groupId} />
+            <TierDemandLadder groupId={groupId} selectedQuantity={quantity} />
           )}
         </>
       )}

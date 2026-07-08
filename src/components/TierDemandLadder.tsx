@@ -6,14 +6,15 @@ function fmt(n: number): string {
   return (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
 }
 
-interface PropsWithGroupId { groupId: string; tiers?: undefined; currentPrice?: undefined }
-interface PropsWithData { groupId?: undefined; tiers: TierRow[]; currentPrice: number }
+interface PropsWithGroupId { groupId: string; tiers?: undefined; currentPrice?: undefined; selectedQuantity?: number }
+interface PropsWithData { groupId?: undefined; tiers: TierRow[]; currentPrice: number; selectedQuantity?: number }
 type Props = PropsWithGroupId | PropsWithData
 
 export default function TierDemandLadder(props: Props) {
   const hook = useTierDemand(props.groupId ?? '')
   const tiers = props.tiers ?? hook.tiers
   const loading = props.tiers ? false : hook.loading
+  const selectedQuantity = props.selectedQuantity ?? 0
 
   if (loading || tiers.length === 0) return null
 
@@ -48,13 +49,16 @@ export default function TierDemandLadder(props: Props) {
         {filtered.map((t, i) => {
           const isCurrent = t.price === currentPrice
           const isEffectivelyUnlocked = t.unlocked || t.price >= currentPrice
-          const missing = Math.max(0, t.minUnits - t.demand)
+          // "Faltan" descuenta las unidades que el usuario está a punto de aportar
+          const realMissing = Math.max(0, t.minUnits - t.demand)
+          const projectedMissing = Math.max(0, t.minUnits - t.demand - selectedQuantity)
+          const wouldUnlock = !isEffectivelyUnlocked && selectedQuantity >= realMissing && realMissing > 0
 
           return (
             <div key={t.price} className="flex items-center flex-1 min-w-0">
               <div className="flex flex-col items-center flex-shrink-0">
                 <span className={`text-xs font-semibold mb-1.5 whitespace-nowrap ${
-                  isCurrent ? 'text-brand' : isEffectivelyUnlocked ? 'text-green-600' : 'text-neutral-700'
+                  isCurrent ? 'text-brand' : isEffectivelyUnlocked ? 'text-green-600' : wouldUnlock ? 'text-green-600' : 'text-neutral-700'
                 }`}>{fmt(t.price)}</span>
 
                 {isEffectivelyUnlocked ? (
@@ -63,14 +67,27 @@ export default function TierDemandLadder(props: Props) {
                   }`}>
                     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
                   </div>
+                ) : wouldUnlock ? (
+                  // Nodo que se desbloquearía con la cantidad seleccionada (preview)
+                  <div className="w-[22px] h-[22px] rounded-full flex items-center justify-center bg-brand/40 ring-2 ring-brand/20">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
                 ) : (
                   <div className="w-[22px] h-[22px] rounded-full bg-white border-2 border-neutral-300" />
                 )}
 
                 <span className={`text-[10px] mt-1.5 whitespace-nowrap ${
-                  isCurrent ? 'text-brand font-semibold' : isEffectivelyUnlocked ? 'text-green-600' : 'text-neutral-400'
+                  isCurrent ? 'text-brand font-semibold' : isEffectivelyUnlocked ? 'text-green-600' : wouldUnlock ? 'text-brand font-semibold' : 'text-neutral-400'
                 }`}>
-                  {isCurrent ? 'Actual' : isEffectivelyUnlocked ? 'Alcanzado' : missing > 0 ? `Faltan ${missing} compras` : ''}
+                  {isCurrent
+                    ? 'Actual'
+                    : isEffectivelyUnlocked
+                    ? 'Alcanzado'
+                    : wouldUnlock
+                    ? '¡Lo desbloqueas!'
+                    : projectedMissing > 0
+                    ? `Faltan ${projectedMissing} compras`
+                    : ''}
                 </span>
               </div>
 
@@ -78,11 +95,22 @@ export default function TierDemandLadder(props: Props) {
                 const nextT = filtered[i + 1]
                 const nextEffective = nextT.unlocked || nextT.price >= currentPrice
                 const lineUnlocked = isEffectivelyUnlocked && nextEffective
+                // Progreso de la línea: demanda real + cantidad seleccionada (preview)
+                const projectedDemand = nextT.demand + selectedQuantity
                 const frac = isEffectivelyUnlocked && !nextEffective && nextT.minUnits > 0
-                  ? Math.min(1, nextT.demand / nextT.minUnits) : (lineUnlocked ? 1 : 0)
+                  ? Math.min(1, nextT.demand / nextT.minUnits)
+                  : (lineUnlocked ? 1 : 0)
+                const projectedFrac = isEffectivelyUnlocked && !nextEffective && nextT.minUnits > 0
+                  ? Math.min(1, projectedDemand / nextT.minUnits)
+                  : frac
                 return (
-                  <div className="flex-1 h-[3px] bg-neutral-200 rounded-full overflow-hidden mx-1">
-                    <div className="h-full bg-brand rounded-full" style={{ width: `${frac * 100}%`, transition: 'width 300ms ease' }}/>
+                  <div className="flex-1 h-[3px] bg-neutral-200 rounded-full overflow-hidden mx-1 relative">
+                    {/* Proyección (más clara, detrás) */}
+                    {selectedQuantity > 0 && projectedFrac > frac && (
+                      <div className="absolute h-full bg-brand/40 rounded-full" style={{ width: `${projectedFrac * 100}%`, transition: 'width 300ms ease' }}/>
+                    )}
+                    {/* Real (sólido, delante) */}
+                    <div className="h-full bg-brand rounded-full relative z-10" style={{ width: `${frac * 100}%`, transition: 'width 300ms ease' }}/>
                   </div>
                 )
               })()}
