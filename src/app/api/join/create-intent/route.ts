@@ -43,8 +43,10 @@ export async function POST(req: Request) {
     const guaranteedPrice = Number(prep.guaranteed_price);
     const normalizedPhone = prep.phone as string;
     // Importe a retener. Por defecto = precio proyectado × qty (comprador "ahora").
-    // Para esperadores = target × qty, validando que el target sea un tramo REAL
-    // de la puja ganadora (server-authoritative: nunca confiar en el front).
+    // Para esperadores = target × qty, validando que el target sea un salto REAL
+    // de la ESCALERA FUSIONADA (G6: multi-puja — el comprador apunta a la curva
+    // pública, no a los tramos de una puja concreta; server-authoritative,
+    // nunca confiar en el front).
     let holdPrice = guaranteedPrice;
     if (join_mode === 'esperar') {
       if (target_price == null) {
@@ -53,18 +55,16 @@ export async function POST(req: Request) {
           { status: 400 },
         );
       }
-      const { data: bid, error: bidError } = await supabaseAdmin
-        .from('bids')
-        .select('tiers')
-        .eq('id', prep.best_bid_id)
-        .single();
-      if (bidError || !bid) {
+      const { data: ladder, error: ladderError } = await supabaseAdmin.rpc('tier_demand', {
+        p_group_id: group_id,
+      });
+      if (ladderError || !Array.isArray(ladder) || ladder.length === 0) {
         return NextResponse.json(
           { error: 'No se pudo validar el precio objetivo' },
           { status: 400 },
         );
       }
-      const tierPrices = ((bid as any).tiers ?? []).map((t: any) => Number(t.price));
+      const tierPrices = (ladder as any[]).map((t: any) => Number(t.price));
       const target = Number(target_price);
       if (!tierPrices.includes(target)) {
         return NextResponse.json(
