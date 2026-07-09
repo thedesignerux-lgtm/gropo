@@ -3,6 +3,7 @@
 import GroupCenterContent from './GroupCenterContent'
 import FavoriteButton from '@/components/FavoriteButton'
 import GroupRightSidebar from './GroupRightSidebar'
+import WaveProgress from '@/components/WaveProgress'
 
 interface Tier { minUnits: number; price: number }
 
@@ -82,6 +83,13 @@ export default function GroupDesktopView({
                   <span>Cierre: {closesLabel}</span>
                 </div>
                 <p className="text-xs text-neutral-400 ml-[22px] mt-0.5">{remainingLabel}</p>
+                <div className="mt-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs text-neutral-500 font-medium">Progreso</span>
+                    <span className="text-xs text-neutral-400">{initialTotalUnits} / {maxStock} uds</span>
+                  </div>
+                  <WaveProgress current={initialTotalUnits} max={maxStock > 0 ? maxStock : initialTotalUnits * 2} height={18} />
+                </div>
                 <button onClick={handleShare}
                   className="w-full mt-4 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-neutral-200 text-sm font-medium text-neutral-700 hover:border-brand hover:text-brand transition-colors">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>

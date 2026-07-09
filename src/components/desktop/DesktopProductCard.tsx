@@ -2,6 +2,7 @@ import Link from 'next/link'
 import type { GroupProduct } from '@/lib/mock-data'
 import { getStepPricing, getActivationState, getMilestones } from '@/lib/mock-data'
 import FavoriteButton from '@/components/FavoriteButton'
+import WaveProgress from '@/components/WaveProgress'
 
 function fmt(price: number): string {
   return price.toFixed(2).replace('.', ',') + ' €'
@@ -106,21 +107,7 @@ export default function DesktopProductCard({ product, isFavorited = false }: Pro
         </div>
 
         <div>
-          <div className="flex h-2 rounded-full overflow-hidden gap-px bg-white">
-            {milestones.map((m, i) => {
-              const start = i === 0 ? 0 : milestones[i - 1].units
-              const span = m.units - start
-              const fillPct = span > 0
-                ? Math.max(0, Math.min(1, (product.currentUnits - start) / span)) * 100
-                : (product.currentUnits >= m.units ? 100 : 0)
-              const bg = fillPct >= 100
-                ? '#0F9D58'
-                : fillPct > 0
-                ? `linear-gradient(to right, #0F9D58 ${fillPct}%, rgba(15,157,88,0.12) ${fillPct}%)`
-                : '#E5E7EB'
-              return <div key={m.units} className="flex-1 rounded-full" style={{ background: bg }} />
-            })}
-          </div>
+          <WaveProgress current={product.currentUnits} max={progressTarget} height={20} />
           <div className="flex justify-end text-[10px] text-neutral-400 mt-1">
             {product.currentUnits} / {progressTarget} uds
           </div>

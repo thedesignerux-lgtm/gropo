@@ -2,6 +2,7 @@ import Link from 'next/link'
 import type { GroupProduct } from '@/lib/mock-data'
 import { getStepPricing, getActivationState, getMilestones } from '@/lib/mock-data'
 import FavoriteButton from '@/components/FavoriteButton'
+import WaveProgress from '@/components/WaveProgress'
 
 function fmt(price: number): string {
   return price.toFixed(2).replace('.', ',') + ' €'
@@ -115,23 +116,9 @@ export default function ProductCard({ product, isFavorited = false }: Props) {
           )}
         </div>
 
-        {/* Segmented tier progress bar */}
-        <div className="space-y-1.5">
-          <div className="flex h-2 rounded-full overflow-hidden gap-px bg-white">
-            {milestones.map((m, i) => {
-              const start = i === 0 ? 0 : milestones[i - 1].units
-              const span = m.units - start
-              const fillPct = span > 0
-                ? Math.max(0, Math.min(1, (product.currentUnits - start) / span)) * 100
-                : (product.currentUnits >= m.units ? 100 : 0)
-              const bg = fillPct >= 100
-                ? '#1D9E75'
-                : fillPct > 0
-                ? `linear-gradient(to right, #1D9E75 ${fillPct}%, rgba(29,158,117,0.12) ${fillPct}%)`
-                : '#E5E7EB'
-              return <div key={m.units} className="flex-1" style={{ background: bg }} />
-            })}
-          </div>
+        {/* Wave progress bar */}
+        <div className="space-y-1">
+          <WaveProgress current={product.currentUnits} max={progressTarget} height={20} />
           <div className="flex justify-end text-[10px] text-gray-400">
             <span>
               {product.currentUnits}&nbsp;/&nbsp;{progressTarget}&nbsp;uds

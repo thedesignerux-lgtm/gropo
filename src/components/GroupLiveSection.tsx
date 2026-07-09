@@ -8,6 +8,7 @@ import JoinModeSelector, { type ProjectionResult } from '@/components/JoinModeSe
 import TierDemandLadder from '@/components/TierDemandLadder'
 import FavoriteButton from '@/components/FavoriteButton'
 import ProgressToNextPrice from '@/components/ProgressToNextPrice'
+import WaveProgress from '@/components/WaveProgress'
 
 function fmt(n: number | undefined | null): string {
   if (n === undefined || n === null) return '—'
@@ -128,6 +129,15 @@ export default function GroupLiveSection({
           <p className="text-xs text-neutral-500">
             El precio baja a medida que se unen más compradores. Cuantos más seáis, menos paga cada uno.
           </p>
+        </div>
+
+        {/* Wave progress */}
+        <div style={{ marginBottom: 6 }}>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-neutral-500 font-medium">Progreso del grupo</span>
+            <span className="text-xs text-neutral-400">{totalParticipants} / {maxStock > 0 ? maxStock : '∞'} uds</span>
+          </div>
+          <WaveProgress current={totalParticipants} max={maxStock > 0 ? maxStock : totalParticipants * 2} height={20} />
         </div>
 
         {/* Metrics bar */}
