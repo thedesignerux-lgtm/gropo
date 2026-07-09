@@ -53,7 +53,6 @@ export default function GroupDesktopView({
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
               Compartir
             </button>
-            <FavoriteButton groupId={groupId} size={16} className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-brand transition-colors" />
           </div>
         </div>
       </header>
@@ -70,7 +69,10 @@ export default function GroupDesktopView({
                 )}
               </div>
               <div className="p-5">
-                <h1 className="text-lg font-bold text-neutral-900 leading-tight mb-1">{name}</h1>
+                <div className="flex items-start justify-between gap-2 mb-1">
+                  <h1 className="text-lg font-bold text-neutral-900 leading-tight flex-1">{name}</h1>
+                  <FavoriteButton groupId={groupId} size={20} className="flex-shrink-0 mt-0.5" />
+                </div>
                 {spec && <p className="text-sm text-neutral-500 mb-3">{spec}</p>}
                 <span className="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 px-2.5 py-1 rounded-full mb-3">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-500"/>Grupo abierto

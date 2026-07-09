@@ -71,9 +71,12 @@ export default function GroupLiveSection({
   return (
     <>
       <div style={{ padding: '8px 16px' }}>
-        {/* Name + spec */}
+        {/* Name + bookmark */}
         <div style={{ marginBottom: 6 }}>
-          <h1 className="text-xl font-bold text-neutral-900 leading-tight" style={{ marginBottom: 2 }}>{name}</h1>
+          <div className="flex items-start justify-between gap-2" style={{ marginBottom: 2 }}>
+            <h1 className="text-xl font-bold text-neutral-900 leading-tight flex-1">{name}</h1>
+            <FavoriteButton groupId={groupId} size={22} className="flex-shrink-0 mt-0.5" />
+          </div>
           {spec && <p className="text-base font-normal text-neutral-500">{spec}</p>}
         </div>
 
@@ -241,7 +244,6 @@ export default function GroupLiveSection({
 
         {/* CTA row */}
         <div className="flex items-center gap-3">
-          <FavoriteButton groupId={groupId} size={24} className="w-14 h-14 rounded-xl border border-gray-200 flex-shrink-0" />
           <Link
             href={ctaHref}
             className="flex-1 bg-brand text-white font-semibold text-base py-4 rounded-xl text-center hover:bg-brand-dark active:scale-[0.98] transition-all"
