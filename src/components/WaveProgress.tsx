@@ -2,6 +2,38 @@
 
 import { useId } from 'react'
 
+type WaveColorScheme = 'brand' | 'orange' | 'green'
+
+const COLOR_MAP: Record<WaveColorScheme, {
+  gradientStart: string
+  gradientEnd: string
+  bg: string
+  halo: string
+  dot: string
+}> = {
+  brand: {
+    gradientStart: '#6C3CE1',
+    gradientEnd: '#8B63E8',
+    bg: '#F0EEFF',
+    halo: 'rgba(108, 60, 225, 0.12)',
+    dot: 'border-brand',
+  },
+  orange: {
+    gradientStart: '#E8590C',
+    gradientEnd: '#FF8C42',
+    bg: '#FFF4ED',
+    halo: 'rgba(232, 89, 12, 0.12)',
+    dot: 'border-orange-500',
+  },
+  green: {
+    gradientStart: '#0D9F6E',
+    gradientEnd: '#31C48D',
+    bg: '#ECFDF5',
+    halo: 'rgba(13, 159, 110, 0.12)',
+    dot: 'border-green-500',
+  },
+}
+
 interface Props {
   /** Current units */
   current: number
@@ -11,6 +43,10 @@ interface Props {
   height?: number
   /** Show the position dot */
   showDot?: boolean
+  /** Color scheme */
+  colorScheme?: WaveColorScheme
+  /** Show ambient halo behind the wave */
+  showHalo?: boolean
   /** Additional className */
   className?: string
 }
@@ -18,25 +54,26 @@ interface Props {
 /**
  * WaveProgress — Vonda brand identity progress bar.
  * Displays a wavy/onda shape filled proportionally to current/max.
- * Filled = brand purple, unfilled = neutral gray.
+ * Supports color schemes for different contexts and optional ambient halo.
  */
 export default function WaveProgress({
   current,
   max,
   height = 32,
   showDot = true,
+  colorScheme = 'brand',
+  showHalo = false,
   className = '',
 }: Props) {
   const gradientId = useId()
+  const colors = COLOR_MAP[colorScheme]
   const ratio = max > 0 ? Math.min(1, Math.max(0, current / max)) : 0
-  const width = 100 // percentage-based, scales with container
 
   // Wave parameters
-  const waves = 6 // number of wave peaks
-  const amplitude = height * 0.18 // wave height
-  const midY = height * 0.45 // vertical center of wave
+  const waves = 6
+  const amplitude = height * 0.18
+  const midY = height * 0.45
 
-  // Generate wave path
   function wavePath(startX: number, endX: number, viewWidth: number): string {
     const points: string[] = []
     const steps = 80
@@ -49,7 +86,6 @@ export default function WaveProgress({
       points.push(`${i === 0 ? 'M' : 'L'} ${(x / viewWidth) * 100} ${y}`)
     }
 
-    // Close the shape: go down, across bottom, back up
     points.push(`L ${(endX / viewWidth) * 100} ${height}`)
     points.push(`L ${(startX / viewWidth) * 100} ${height}`)
     points.push('Z')
@@ -57,66 +93,83 @@ export default function WaveProgress({
     return points.join(' ')
   }
 
-  const viewWidth = 200 // internal SVG coordinate space
+  const viewWidth = 200
   const fillEnd = viewWidth * ratio
-  const dotX = ratio * 100 // percentage for dot position
   const dotY = midY + Math.sin(ratio * waves * Math.PI * 2) * amplitude
 
   return (
-    <div className={`relative w-full ${className}`} style={{ height }}>
-      <svg
-        viewBox={`0 0 100 ${height}`}
-        preserveAspectRatio="none"
-        className="w-full h-full"
-        style={{ overflow: 'visible' }}
-      >
-        {/* Background wave (unfilled) */}
-        <path
-          d={wavePath(0, viewWidth, viewWidth)}
-          fill="#F0EEFF"
-          className="transition-all duration-500"
+    <div className={`relative w-full ${className}`} style={{ height: showHalo ? height + 16 : height }}>
+      {/* Ambient halo */}
+      {showHalo && ratio > 0 && (
+        <div
+          className="absolute inset-0 rounded-2xl transition-all duration-700"
+          style={{
+            background: `radial-gradient(ellipse at ${Math.max(10, ratio * 100)}% 50%, ${colors.halo} 0%, transparent 70%)`,
+            filter: 'blur(8px)',
+            top: -8,
+            bottom: -8,
+            left: -4,
+            right: -4,
+          }}
         />
+      )}
 
-        {/* Filled wave */}
-        {ratio > 0 && (
+      <div className="relative" style={{ height }}>
+        <svg
+          viewBox={`0 0 100 ${height}`}
+          preserveAspectRatio="none"
+          className="w-full h-full"
+          style={{ overflow: 'visible' }}
+        >
+          {/* Background wave */}
           <path
-            d={wavePath(0, fillEnd, viewWidth)}
-            fill={`url(#${gradientId})`}
+            d={wavePath(0, viewWidth, viewWidth)}
+            fill={colors.bg}
             className="transition-all duration-500"
+          />
+
+          {/* Filled wave */}
+          {ratio > 0 && (
+            <path
+              d={wavePath(0, fillEnd, viewWidth)}
+              fill={`url(#${gradientId})`}
+              className="transition-all duration-500"
+            />
+          )}
+
+          <defs>
+            <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor={colors.gradientStart} />
+              <stop offset="100%" stopColor={colors.gradientEnd} />
+            </linearGradient>
+          </defs>
+        </svg>
+
+        {/* Position dot */}
+        {showDot && ratio > 0 && ratio < 1 && (
+          <div
+            className={`absolute w-3 h-3 rounded-full bg-white border-2 ${colors.dot} shadow-sm transition-all duration-500`}
+            style={{
+              left: `${ratio * 100}%`,
+              top: `${dotY - 6}px`,
+              transform: 'translateX(-50%)',
+            }}
           />
         )}
 
-        {/* Gradient definition */}
-        <defs>
-          <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#6C3CE1" />
-            <stop offset="100%" stopColor="#8B63E8" />
-          </linearGradient>
-        </defs>
-      </svg>
-
-      {/* Position dot */}
-      {showDot && ratio > 0 && ratio < 1 && (
-        <div
-          className="absolute w-3 h-3 rounded-full bg-white border-2 border-brand shadow-sm transition-all duration-500"
-          style={{
-            left: `${ratio * 100}%`,
-            top: `${dotY - 6}px`,
-            transform: 'translateX(-50%)',
-          }}
-        />
-      )}
-
-      {/* Completion dot */}
-      {showDot && ratio >= 1 && (
-        <div
-          className="absolute w-3 h-3 rounded-full bg-brand border-2 border-white shadow-sm"
-          style={{
-            right: 0,
-            top: `${midY + Math.sin(waves * Math.PI * 2) * amplitude - 6}px`,
-          }}
-        />
-      )}
+        {/* Completion dot */}
+        {showDot && ratio >= 1 && (
+          <div
+            className="absolute w-3 h-3 rounded-full bg-white border-2 shadow-sm"
+            style={{
+              right: 0,
+              top: `${midY + Math.sin(waves * Math.PI * 2) * amplitude - 6}px`,
+              borderColor: colors.gradientStart,
+              backgroundColor: colors.gradientStart,
+            }}
+          />
+        )}
+      </div>
     </div>
   )
 }
