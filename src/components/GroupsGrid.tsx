@@ -6,8 +6,14 @@ import type { GroupProduct } from '@/lib/mock-data'
 import CountdownChip from '@/components/CountdownChip'
 import ProductCard from '@/components/ProductCard'
 
-export default function GroupsGrid({ products }: { products: GroupProduct[] }) {
+interface Props {
+  products: GroupProduct[]
+  favoriteIds?: string[]
+}
+
+export default function GroupsGrid({ products, favoriteIds = [] }: Props) {
   const [query, setQuery] = useState('')
+  const favSet = new Set(favoriteIds)
 
   const filtered = query.trim()
     ? products.filter(p => p.name.toLowerCase().includes(query.toLowerCase()))
@@ -71,7 +77,11 @@ export default function GroupsGrid({ products }: { products: GroupProduct[] }) {
           </div>
         ) : (
           filtered.map(product => (
-            <ProductCard key={product.id} product={product} />
+            <ProductCard
+              key={product.id}
+              product={product}
+              isFavorited={favSet.has(product.id)}
+            />
           ))
         )}
       </div>

@@ -1,0 +1,68 @@
+'use client'
+
+import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
+import { useUser } from '@/hooks/useUser'
+import { toggleFavorite } from '@/app/favoritos/actions'
+
+interface Props {
+  groupId: string
+  initialFavorited?: boolean
+  size?: number
+  className?: string
+}
+
+export default function FavoriteButton({ groupId, initialFavorited = false, size = 24, className = '' }: Props) {
+  const { user, loading: userLoading } = useUser()
+  const [favorited, setFavorited] = useState(initialFavorited)
+  const [isPending, startTransition] = useTransition()
+  const router = useRouter()
+
+  function handleClick(e: React.MouseEvent) {
+    e.preventDefault()
+    e.stopPropagation()
+
+    if (userLoading) return
+
+    if (!user) {
+      router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+      return
+    }
+
+    setFavorited(prev => !prev)
+    startTransition(async () => {
+      const result = await toggleFavorite(groupId)
+      if (result.error && result.error !== 'not_authenticated') {
+        setFavorited(prev => !prev)
+      } else if (result.error === 'not_authenticated') {
+        setFavorited(false)
+        router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+      } else {
+        setFavorited(result.favorited)
+      }
+    })
+  }
+
+  return (
+    <button
+      onClick={handleClick}
+      disabled={isPending}
+      className={`flex items-center justify-center transition-all active:scale-90 disabled:opacity-50 ${className}`}
+      aria-label={favorited ? 'Quitar del radar' : 'Guardar en mi radar'}
+    >
+      <svg
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill={favorited ? 'currentColor' : 'none'}
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={`transition-colors ${favorited ? 'text-red-500' : 'text-neutral-400 hover:text-neutral-600'}`}
+      >
+        <path d="M19.5 13.572l-7.5 7.428-7.5-7.428a5 5 0 117.5-6.566 5 5 0 117.5 6.572" />
+      </svg>
+    </button>
+  )
+}

@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { GroupProduct } from '@/lib/mock-data'
 import { getStepPricing, getActivationState, getMilestones } from '@/lib/mock-data'
+import FavoriteButton from '@/components/FavoriteButton'
 
 function fmt(price: number): string {
   return price.toFixed(2).replace('.', ',') + ' €'
@@ -10,17 +11,19 @@ function fmtSmart(price: number): string {
   return (price % 1 === 0 ? String(price) : price.toFixed(2).replace('.', ',')) + ' €'
 }
 
-export default function ProductCard({ product }: { product: GroupProduct }) {
+interface Props {
+  product: GroupProduct
+  isFavorited?: boolean
+}
+
+export default function ProductCard({ product, isFavorited = false }: Props) {
   const { currentPrice } = getStepPricing(product.tiers, product.currentUnits)
-  // Misma lógica de activación/siguiente-tramo que la ficha (helpers compartidos).
   const { activated, unitsToActivate, nextTier, unitsToNext } =
     getActivationState(product.tiers, product.currentUnits, product.minExecution)
   const milestones = getMilestones(product.tiers, product.minExecution)
 
   const discount = Math.round(((product.pvp - currentPrice) / product.pvp) * 100)
 
-  // Denominador del contador: hacia la activación si aún no está activado;
-  // si lo está, hacia el siguiente tramo.
   const progressTarget = !activated
     ? product.minExecution
     : nextTier ? nextTier.minUnits : product.currentUnits
@@ -84,6 +87,16 @@ export default function ProductCard({ product }: { product: GroupProduct }) {
             −{discount}%
           </div>
         )}
+
+        {/* Favorite button — bottom-right of image */}
+        <div className="absolute bottom-2 right-2">
+          <FavoriteButton
+            groupId={product.id}
+            initialFavorited={isFavorited}
+            size={18}
+            className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm shadow-sm"
+          />
+        </div>
       </div>
 
       {/* Card body */}
@@ -106,7 +119,6 @@ export default function ProductCard({ product }: { product: GroupProduct }) {
         <div className="space-y-1.5">
           <div className="flex h-2 rounded-full overflow-hidden gap-px bg-white">
             {milestones.map((m, i) => {
-              // Cada segmento va del hito anterior (0 para el primero) a este.
               const start = i === 0 ? 0 : milestones[i - 1].units
               const span = m.units - start
               const fillPct = span > 0
