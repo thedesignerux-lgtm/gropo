@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useEffect, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { toggleFavorite } from '@/app/favoritos/actions'
 
@@ -16,19 +16,25 @@ export default function FavoriteButton({ groupId, initialFavorited = false, size
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
 
+  // Sincroniza con el valor del servidor cuando cambia (evita el "doble clic")
+  useEffect(() => {
+    setFavorited(initialFavorited)
+  }, [initialFavorited])
+
   function handleClick(e: React.MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
     if (isPending) return
 
-    setFavorited(prev => !prev)
+    const next = !favorited
+    setFavorited(next)
     startTransition(async () => {
       const result = await toggleFavorite(groupId)
       if (result.error === 'not_authenticated') {
         setFavorited(false)
         router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`)
       } else if (result.error) {
-        setFavorited(prev => !prev)
+        setFavorited(!next) // revert
       } else {
         setFavorited(result.favorited)
       }
