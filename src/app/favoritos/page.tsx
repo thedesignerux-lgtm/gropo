@@ -2,8 +2,8 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase-server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
-import FavoriteButton from '@/components/FavoriteButton'
 import WaveProgress from '@/components/WaveProgress'
+import RadarCardMenu from '@/components/RadarCardMenu'
 import BottomNav from '@/components/BottomNav'
 
 export const dynamic = 'force-dynamic'
@@ -121,9 +121,8 @@ function categorize(groups: RadarGroup[]): Record<RadarCategory, RadarGroup[]> {
     } else if (g.status === 'cancelled') {
       history.push(g)
     } else if (g.status === 'open') {
-      // Hot: near a tier unlock (missing ≤ 8) or closing soon (< 24h)
       const hoursLeft = Math.max(0, (new Date(g.closesAt).getTime() - Date.now()) / 3600000)
-      if ((g.missing > 0 && g.missing <= 8) || hoursLeft < 24) {
+      if ((g.missing > 0 && g.missing <= 8) || hoursLeft < 48) {
         hot.push(g)
       } else {
         dropping.push(g)
@@ -134,7 +133,7 @@ function categorize(groups: RadarGroup[]): Record<RadarCategory, RadarGroup[]> {
   return { hot, dropping, secured, history }
 }
 
-const CATEGORY_META: Record<RadarCategory, {
+const SECTION_META: Record<RadarCategory, {
   icon: string
   title: string
   subtitle: string
@@ -143,25 +142,25 @@ const CATEGORY_META: Record<RadarCategory, {
   hot: {
     icon: '🔥',
     title: 'Necesitan tu atención',
-    subtitle: 'A punto de bajar de precio o cerrando pronto.',
+    subtitle: 'Oportunidades a punto de bajar.',
     waveColor: 'orange',
   },
   dropping: {
     icon: '⬇️',
     title: 'Han bajado recientemente',
-    subtitle: 'Grupos en los que sigues la evolución del precio.',
+    subtitle: 'Grupos que han reducido su precio.',
     waveColor: 'brand',
   },
   secured: {
     icon: '🔒',
     title: 'Plaza asegurada',
-    subtitle: 'Grupos cerrados en los que participaste o seguiste.',
+    subtitle: 'Ya has bloqueado tu precio en estos grupos.',
     waveColor: 'green',
   },
   history: {
     icon: '📦',
     title: 'Historial',
-    subtitle: 'Grupos que no alcanzaron el mínimo necesario.',
+    subtitle: 'Grupos finalizados en los que participaste.',
     waveColor: 'brand',
   },
 }
@@ -190,36 +189,76 @@ export default async function RadarPage() {
         </header>
 
         <div className="max-w-[1360px] mx-auto px-8 py-10">
-          {/* Header */}
-          <div className="flex items-center gap-3 mb-10">
+          <div className="mb-10">
             <h1 className="text-2xl font-bold text-neutral-900">Mi Radar</h1>
-            {groups.length > 0 && (
-              <span className="text-xs font-semibold bg-neutral-900 text-white px-2.5 py-1 rounded-full">
-                {groups.length}
-              </span>
-            )}
+            <p className="text-sm text-neutral-500 mt-1">Tu panel de oportunidades. El radar piensa por ti.</p>
           </div>
 
           {groups.length === 0 ? (
             <EmptyRadar />
           ) : (
-            <div className="space-y-14">
+            <div className="space-y-12">
               {orderedCats.map(cat => {
                 const items = cats[cat]
                 if (items.length === 0) return null
-                const meta = CATEGORY_META[cat]
+                const meta = SECTION_META[cat]
                 return (
                   <section key={cat}>
-                    <div className="flex items-center gap-2.5 mb-1.5">
-                      <span className="text-lg">{meta.icon}</span>
-                      <h2 className="text-lg font-bold text-neutral-900">{meta.title}</h2>
-                      <span className="text-xs font-semibold text-neutral-400 bg-neutral-100 px-2 py-0.5 rounded-full">{items.length}</span>
+                    <div className="flex items-center justify-between mb-5">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">{meta.icon}</span>
+                          <h2 className="text-base font-bold text-neutral-900">{meta.title}</h2>
+                        </div>
+                        <p className="text-xs text-neutral-500 mt-0.5 ml-8">{meta.subtitle}</p>
+                      </div>
+                      {items.length > 3 && (
+                        <span className="text-xs font-semibold text-brand hover:underline cursor-pointer">
+                          Ver todas ({items.length}) →
+                        </span>
+                      )}
                     </div>
-                    <p className="text-sm text-neutral-500 mb-6 ml-8">{meta.subtitle}</p>
 
+                    {/* Always 3 columns — all sections */}
                     <div className="grid grid-cols-3 gap-6">
                       {items.map(g => (
-                        <RadarCard key={g.id} group={g} category={cat} />
+                        <OpportunityCard key={g.id} group={g} category={cat} />
+                      ))}
+                    </div>
+                  </section>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ─── Tablet ─── */}
+      <div className="hidden md:block lg:hidden min-h-screen" style={{ backgroundColor: '#F7F9FC' }}>
+        <div className="max-w-3xl mx-auto px-6 py-8">
+          <div className="mb-8">
+            <h1 className="text-xl font-bold text-neutral-900">Mi Radar</h1>
+            <p className="text-sm text-neutral-500 mt-1">Tu panel de oportunidades.</p>
+          </div>
+
+          {groups.length === 0 ? (
+            <EmptyRadar />
+          ) : (
+            <div className="space-y-10">
+              {orderedCats.map(cat => {
+                const items = cats[cat]
+                if (items.length === 0) return null
+                const meta = SECTION_META[cat]
+                return (
+                  <section key={cat}>
+                    <div className="flex items-center gap-2 mb-4">
+                      <span>{meta.icon}</span>
+                      <h2 className="text-sm font-bold text-neutral-900">{meta.title}</h2>
+                      <span className="text-[10px] font-semibold text-neutral-400 bg-neutral-100 px-1.5 py-0.5 rounded-full">{items.length}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-5">
+                      {items.map(g => (
+                        <OpportunityCard key={g.id} group={g} category={cat} />
                       ))}
                     </div>
                   </section>
@@ -231,37 +270,32 @@ export default async function RadarPage() {
       </div>
 
       {/* ─── Mobile ─── */}
-      <div className="lg:hidden min-h-screen" style={{ backgroundColor: '#F7F9FC' }}>
-        <div className="max-w-md mx-auto min-h-screen pb-28">
-          <div className="px-4 pt-6 pb-2">
-            <div className="flex items-center gap-2.5 mb-1">
-              <h1 className="text-xl font-bold text-neutral-900">Mi Radar</h1>
-              {groups.length > 0 && (
-                <span className="text-[11px] font-semibold bg-neutral-900 text-white px-2 py-0.5 rounded-full">
-                  {groups.length}
-                </span>
-              )}
-            </div>
+      <div className="md:hidden min-h-screen" style={{ backgroundColor: '#F7F9FC' }}>
+        <div className="min-h-screen pb-28">
+          <div className="px-4 pt-6 pb-1">
+            <h1 className="text-lg font-bold text-neutral-900">Mi Radar</h1>
+            <p className="text-xs text-neutral-500 mt-0.5">Tu panel de oportunidades.</p>
           </div>
 
           {groups.length === 0 ? (
             <div className="px-4"><EmptyRadar /></div>
           ) : (
-            <div className="px-4 space-y-8 mt-2">
+            <div className="px-4 space-y-8 mt-4">
               {orderedCats.map(cat => {
                 const items = cats[cat]
                 if (items.length === 0) return null
-                const meta = CATEGORY_META[cat]
+                const meta = SECTION_META[cat]
                 return (
                   <section key={cat}>
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="flex items-center gap-2 mb-3">
                       <span className="text-base">{meta.icon}</span>
                       <h2 className="text-sm font-bold text-neutral-900">{meta.title}</h2>
                       <span className="text-[10px] font-semibold text-neutral-400 bg-neutral-100 px-1.5 py-0.5 rounded-full">{items.length}</span>
                     </div>
+                    {/* 1 column, edge-to-edge */}
                     <div className="space-y-4">
                       {items.map(g => (
-                        <RadarCard key={g.id} group={g} category={cat} />
+                        <OpportunityCard key={g.id} group={g} category={cat} />
                       ))}
                     </div>
                   </section>
@@ -276,12 +310,14 @@ export default async function RadarPage() {
   )
 }
 
-// ─── Radar Card (unified desktop + mobile) ─────────────────
+// ─── OpportunityCard ───────────────────────────────────────
+// Jerarquía: 1. Halo de Color → 2. Ticker (Ola) → 3. Precio → 4. CTA
 
-function RadarCard({ group: g, category }: { group: RadarGroup; category: RadarCategory }) {
-  const meta = CATEGORY_META[category]
+function OpportunityCard({ group: g, category }: { group: RadarGroup; category: RadarCategory }) {
+  const meta = SECTION_META[category]
   const isOpen = g.status === 'open'
   const isClosed = g.status === 'closed'
+  const isHistory = category === 'history'
 
   // Countdown
   let timeLabel = ''
@@ -289,134 +325,164 @@ function RadarCard({ group: g, category }: { group: RadarGroup; category: RadarC
     const diff = Math.max(0, new Date(g.closesAt).getTime() - Date.now())
     const d = Math.floor(diff / 86400000)
     const h = Math.floor((diff % 86400000) / 3600000)
-    timeLabel = d > 0 ? `${d}d ${h}h` : `${h}h`
+    timeLabel = d > 0 ? `${d}d ${h}h restantes` : `${h}h restantes`
   }
 
-  // Urgency label
-  let urgencyLabel = ''
-  let urgencyStyle = ''
-  if (category === 'hot' && isOpen) {
-    if (g.missing > 0 && g.missing <= 8) {
-      urgencyLabel = `Faltan ${g.missing} unidades`
-      urgencyStyle = 'text-orange-700 bg-orange-50'
-    } else {
-      urgencyLabel = `Cierra en ${timeLabel}`
-      urgencyStyle = 'text-red-700 bg-red-50'
-    }
+  // Status badge
+  let badgeLabel = ''
+  let badgeClass = ''
+  if (category === 'hot') {
+    badgeLabel = 'ATENCIÓN'
+    badgeClass = 'bg-orange-500 text-white'
   } else if (category === 'dropping') {
-    urgencyLabel = 'Siguiendo'
-    urgencyStyle = 'text-brand bg-brand/10'
+    badgeLabel = 'BAJADA'
+    badgeClass = 'bg-brand text-white'
   } else if (category === 'secured') {
-    urgencyLabel = 'Plaza asegurada'
-    urgencyStyle = 'text-green-700 bg-green-50'
-  } else if (category === 'history') {
-    urgencyLabel = 'No ejecutado'
-    urgencyStyle = 'text-neutral-500 bg-neutral-100'
+    badgeLabel = 'CONSEGUIDO'
+    badgeClass = 'bg-green-600 text-white'
+  } else {
+    badgeLabel = 'FINALIZADO'
+    badgeClass = 'bg-neutral-400 text-white'
   }
 
-  const discount = g.pvp > 0 && g.currentPrice < g.pvp
-    ? Math.round(((g.pvp - g.currentPrice) / g.pvp) * 100)
-    : 0
+  // Urgency text (right of badge)
+  let urgencyText = ''
+  if (category === 'hot' && g.missing > 0) {
+    urgencyText = `Faltan ${g.missing} unidades`
+  } else if (category === 'hot') {
+    urgencyText = `Cierra pronto`
+  }
+
+  // Savings for secured/history
+  const savings = g.pvp > 0 && g.currentPrice < g.pvp ? g.pvp - g.currentPrice : 0
+
+  // Next price (for open groups) or final price logic
+  const showPriceArrow = isOpen && g.nextPrice != null
+  const targetPrice = g.nextPrice ?? g.currentPrice
 
   return (
-    <div className="bg-white rounded-2xl overflow-hidden transition-all hover:shadow-md"
-      style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)' }}>
-
-      {/* Top: urgency badge + ⋮ menu */}
-      <div className="flex items-center justify-between px-5 pt-4 pb-1">
-        <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-full ${urgencyStyle}`}>
-          {urgencyLabel}
-        </span>
-        <div className="flex items-center gap-2">
-          {timeLabel && isOpen && category !== 'hot' && (
-            <span className="text-[10px] text-neutral-400 flex items-center gap-1">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
-              {timeLabel}
-            </span>
-          )}
-          <FavoriteButton groupId={g.id} initialFavorited={true} size={16} showToast={false} />
+    <Link href={`/grupo/${g.id}`} className="block group">
+      <div className={`bg-white rounded-2xl overflow-hidden transition-all group-hover:shadow-md ${
+        isHistory ? 'opacity-60 grayscale' : ''
+      }`}
+        style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)' }}
+      >
+        {/* ── Header: Badge + urgency + ⋮ ── */}
+        <div className="flex items-start justify-between px-5 pt-4 pb-2">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${badgeClass}`}>
+                {category === 'hot' && (
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className="opacity-80"><path d="M12 2c1 3 3.5 5 6 6-1 4-3 7-6 10-3-3-5-6-6-10 2.5-1 5-3 6-6z"/></svg>
+                )}
+                {category === 'secured' && (
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="opacity-80"><polyline points="20 6 9 17 4 12"/></svg>
+                )}
+                {badgeLabel}
+              </span>
+              {urgencyText && (
+                <span className="text-xs font-semibold text-orange-600">{urgencyText}</span>
+              )}
+            </div>
+            {timeLabel && (
+              <span className="text-[10px] text-neutral-400 flex items-center gap-1 ml-0.5">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+                {timeLabel}
+              </span>
+            )}
+            {isClosed && g.closesAt && (
+              <span className="text-[10px] text-neutral-400">
+                Finaliza en {(() => {
+                  const diff = Math.max(0, new Date(g.closesAt).getTime() - Date.now())
+                  const d = Math.floor(diff / 86400000)
+                  const h = Math.floor((diff % 86400000) / 3600000)
+                  return d > 0 ? `${d}d ${h}h` : `${h}h`
+                })()}
+              </span>
+            )}
+            {isHistory && g.closesAt && (
+              <span className="text-[10px] text-neutral-400">
+                Finalizado el {new Date(g.closesAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+              </span>
+            )}
+          </div>
+          {/* Single ⋮ menu — consolidated (Ley de Hick) */}
+          <RadarCardMenu groupId={g.id} />
         </div>
-      </div>
 
-      {/* Center: WAVE (large, ~30% of card) with halo */}
-      <div className="px-5 py-3">
-        <WaveProgress
-          current={g.totalUnits}
-          max={g.maxStock > 0 ? g.maxStock : Math.max(g.totalUnits * 2, 10)}
-          height={48}
-          showHalo
-          colorScheme={meta.waveColor}
-          showDot
-        />
-        <div className="flex items-center justify-between mt-1.5">
-          <span className="text-[11px] text-neutral-400 tabular-nums">{g.totalUnits} / {g.maxStock > 0 ? g.maxStock : '∞'} uds</span>
-          {discount > 0 && (
-            <span className="text-[11px] font-bold text-green-600">-{discount}%</span>
+        {/* ── Wave ticker (emotional, no axes) ── */}
+        <div className="px-5 py-2">
+          <WaveProgress
+            current={g.totalUnits}
+            max={g.maxStock > 0 ? g.maxStock : Math.max(g.totalUnits * 2, 10)}
+            height={56}
+            showHalo
+            colorScheme={meta.waveColor}
+            showDot={isOpen}
+          />
+        </div>
+
+        {/* ── Price block: current → next ── */}
+        <div className="px-5 pb-2">
+          {showPriceArrow ? (
+            <div className="flex items-center justify-between">
+              <span className="text-xl font-bold text-neutral-900 tabular-nums">{fmt(g.currentPrice)}</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-300 mx-2">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <polyline points="19 12 12 19 5 12" />
+              </svg>
+              <span className="text-xl font-bold text-green-600 tabular-nums">{fmt(targetPrice)}</span>
+            </div>
+          ) : (
+            <div className="flex items-baseline gap-3">
+              <span className="text-xl font-bold text-neutral-900 tabular-nums">{fmt(g.currentPrice)}</span>
+              {g.pvp > 0 && g.pvp !== g.currentPrice && (
+                <span className="text-sm text-neutral-400 line-through tabular-nums">{fmt(g.pvp)}</span>
+              )}
+            </div>
+          )}
+
+          {/* Savings callout for secured/history */}
+          {!isOpen && savings > 0.01 && (
+            <p className="text-xs font-semibold text-green-600 mt-1">
+              Ahorro conseguido: {fmt(savings)}
+            </p>
           )}
         </div>
-      </div>
 
-      {/* Price block */}
-      <div className="px-5 pb-2">
-        <div className="flex items-end gap-3">
-          <span className="text-2xl font-bold text-neutral-900 tabular-nums leading-none">
-            {fmt(g.currentPrice)}
-          </span>
-          {g.pvp > 0 && g.pvp !== g.currentPrice && (
-            <span className="text-sm text-neutral-400 line-through tabular-nums leading-none mb-0.5">
-              {fmt(g.pvp)}
-            </span>
-          )}
-        </div>
-        {isOpen && g.nextPrice && (
-          <div className="flex items-center gap-1.5 mt-1.5">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-green-600">
-              <polyline points="23 18 13.5 8.5 8.5 13.5 1 6" />
-              <polyline points="17 18 23 18 23 12" />
-            </svg>
-            <span className="text-xs font-semibold text-green-600">
-              Siguiente: {fmt(g.nextPrice)}
+        {/* ── CTA — full width (only for active groups) ── */}
+        {!isHistory && (
+          <div className="px-5 pb-4 pt-1">
+            <span className={`flex items-center justify-center w-full py-3 rounded-xl text-sm font-bold transition-all ${
+              category === 'hot'
+                ? 'bg-orange-500 text-white group-hover:bg-orange-600'
+                : category === 'secured'
+                  ? 'bg-green-600 text-white group-hover:bg-green-700'
+                  : 'bg-brand text-white group-hover:bg-brand-dark'
+            }`}>
+              {isOpen ? 'Bloquear precio' : 'Ver resultado'}
             </span>
           </div>
         )}
-      </div>
 
-      {/* CTA — full width */}
-      <div className="px-5 pb-3 pt-1">
-        <Link
-          href={`/grupo/${g.id}`}
-          className={`flex items-center justify-center w-full py-3 rounded-xl text-sm font-bold transition-all active:scale-[0.98] ${
-            isOpen
-              ? category === 'hot'
-                ? 'bg-orange-500 text-white hover:bg-orange-600'
-                : 'bg-brand text-white hover:bg-brand-dark'
-              : 'bg-neutral-100 text-neutral-700 hover:bg-neutral-200'
-          }`}
-        >
-          {isOpen
-            ? `Bloquear por ${fmt(g.currentPrice)}`
-            : isClosed
-              ? 'Ver resultado'
-              : 'Ver grupo'
-          }
-        </Link>
-      </div>
-
-      {/* Product info — bottom, secondary */}
-      <div className="border-t border-neutral-100 px-5 py-3 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-lg bg-neutral-50 flex-shrink-0 flex items-center justify-center overflow-hidden">
-          {g.imageUrl ? (
-            <img src={g.imageUrl} alt={g.name} className="w-full h-full object-cover" />
-          ) : (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-neutral-200"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-          )}
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium text-neutral-600 truncate">{g.name}</p>
-          {g.spec && <p className="text-[10px] text-neutral-400 truncate">{g.spec}</p>}
+        {/* ── Product footer (secondary) ── */}
+        <div className={`border-t border-neutral-100 px-5 py-3 flex items-center gap-3 ${
+          isHistory ? 'opacity-70' : ''
+        }`}>
+          <div className="w-9 h-9 rounded-lg bg-neutral-50 flex-shrink-0 flex items-center justify-center overflow-hidden">
+            {g.imageUrl ? (
+              <img src={g.imageUrl} alt="" className="w-full h-full object-cover" />
+            ) : (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-neutral-200" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-medium text-neutral-600 truncate">{g.name}</p>
+            {g.spec && <p className="text-[10px] text-neutral-400 truncate">{g.spec}</p>}
+          </div>
         </div>
       </div>
-    </div>
+    </Link>
   )
 }
 
@@ -426,11 +492,11 @@ function EmptyRadar() {
   return (
     <div className="flex flex-col items-center justify-center py-20 px-4">
       <div className="w-16 h-16 rounded-full bg-brand/10 flex items-center justify-center mb-5">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-brand">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-brand" aria-hidden="true">
           <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
         </svg>
       </div>
-      <p className="text-lg font-bold text-neutral-900 mb-1">Tu radar está vacío</p>
+      <p className="text-lg font-bold text-neutral-900 mb-1">Tu radar está despejado</p>
       <p className="text-sm text-neutral-500 text-center mb-5 max-w-xs">
         Explora grupos y añade productos a tu radar para seguir las mejores oportunidades.
       </p>

@@ -120,6 +120,8 @@ export default function WaveProgress({
           preserveAspectRatio="none"
           className="w-full h-full"
           style={{ overflow: 'visible' }}
+          aria-hidden="true"
+          role="presentation"
         >
           {/* Background wave */}
           <path
