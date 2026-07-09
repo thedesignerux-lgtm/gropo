@@ -83,15 +83,13 @@ export default async function Home() {
 
   return (
     <>
-      {/* Desktop */}
       <div className="hidden lg:block">
-        <HomeDesktopView products={products} />
+        <HomeDesktopView products={products} favoriteIds={favoriteIds} />
       </div>
 
-      {/* Mobile */}
       <div className="lg:hidden min-h-screen bg-gray-50">
         <div className="max-w-md mx-auto min-h-screen pb-28">
-          <GroupsGrid products={products} />
+          <GroupsGrid products={products} favoriteIds={favoriteIds} />
         </div>
         <BottomNav />
       </div>

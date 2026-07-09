@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import type { GroupProduct } from '@/lib/mock-data'
 import CountdownChip from '@/components/CountdownChip'
 import HomeSidebar from './HomeSidebar'
@@ -9,19 +8,23 @@ import DesktopProductCard from './DesktopProductCard'
 
 const CATEGORIES = ['Todos', 'Deporte', 'Tecnología', 'Hogar', 'Moda', 'Herramientas', 'Infantil', 'Otros']
 
-export default function HomeDesktopView({ products }: { products: GroupProduct[] }) {
+interface Props {
+  products: GroupProduct[]
+  favoriteIds?: string[]
+}
+
+export default function HomeDesktopView({ products, favoriteIds = [] }: Props) {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('Todos')
+  const favSet = new Set(favoriteIds)
 
   const filtered = products.filter((p) => {
     if (query.trim() && !p.name.toLowerCase().includes(query.toLowerCase())) return false
-    // Category filtering would use product metadata — for now "Todos" shows all
     return true
   })
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
-      {/* Top bar */}
       <header className="bg-white border-b border-neutral-100 sticky top-0 z-30">
         <div className="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
           <a href="/" aria-label="Vonda - inicio">
@@ -46,12 +49,11 @@ export default function HomeDesktopView({ products }: { products: GroupProduct[]
 
           <div className="flex items-center gap-4">
             <CountdownChip />
-            <button className="relative text-neutral-500 hover:text-neutral-700 transition-colors">
+            <a href="/favoritos" className="relative text-neutral-500 hover:text-red-500 transition-colors" aria-label="Mi Radar">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                <path d="M19.5 13.572l-7.5 7.428-7.5-7.428a5 5 0 117.5-6.566 5 5 0 117.5 6.572" />
               </svg>
-            </button>
+            </a>
             <div className="flex items-center gap-2 cursor-pointer">
               <div className="w-8 h-8 rounded-full bg-neutral-200 flex items-center justify-center text-xs font-semibold text-neutral-600">V</div>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-400">
@@ -62,15 +64,11 @@ export default function HomeDesktopView({ products }: { products: GroupProduct[]
         </div>
       </header>
 
-      {/* Main layout */}
       <div className="max-w-[1400px] mx-auto px-6 py-6">
         <div className="flex gap-8">
-          {/* Left sidebar */}
           <HomeSidebar />
 
-          {/* Main content */}
           <main className="flex-1 min-w-0">
-            {/* Page header */}
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-3">
                 <h1 className="text-2xl font-bold text-neutral-900">Grupos abiertos</h1>
@@ -79,7 +77,6 @@ export default function HomeDesktopView({ products }: { products: GroupProduct[]
                 </span>
               </div>
 
-              {/* Info banner */}
               <div className="flex items-center gap-2 bg-brand/5 border border-brand/10 rounded-xl px-4 py-2.5">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand flex-shrink-0">
                   <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
@@ -95,7 +92,6 @@ export default function HomeDesktopView({ products }: { products: GroupProduct[]
               </div>
             </div>
 
-            {/* Category pills + sort */}
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-2 flex-wrap">
                 {CATEGORIES.map((cat) => (
@@ -124,7 +120,6 @@ export default function HomeDesktopView({ products }: { products: GroupProduct[]
                     <option>Cierre próximo</option>
                   </select>
                 </div>
-                {/* Grid/list toggle */}
                 <div className="flex items-center border border-neutral-200 rounded-lg overflow-hidden">
                   <button className="p-2 bg-brand/10 text-brand" title="Grid">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -148,7 +143,6 @@ export default function HomeDesktopView({ products }: { products: GroupProduct[]
               </div>
             </div>
 
-            {/* Product grid — 4 columns */}
             <div className="grid grid-cols-2 xl:grid-cols-4 lg:grid-cols-3 gap-4">
               {filtered.length === 0 ? (
                 <div className="col-span-full py-16 text-center">
@@ -160,12 +154,15 @@ export default function HomeDesktopView({ products }: { products: GroupProduct[]
                 </div>
               ) : (
                 filtered.map((product) => (
-                  <DesktopProductCard key={product.id} product={product} />
+                  <DesktopProductCard
+                    key={product.id}
+                    product={product}
+                    isFavorited={favSet.has(product.id)}
+                  />
                 ))
               )}
             </div>
 
-            {/* Trust bar */}
             <div className="mt-8 border-t border-neutral-200 pt-6">
               <div className="flex items-center justify-center gap-12 text-sm text-neutral-500">
                 <div className="flex items-center gap-2">

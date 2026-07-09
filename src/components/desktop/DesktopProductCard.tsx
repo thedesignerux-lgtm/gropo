@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import type { GroupProduct } from '@/lib/mock-data'
 import { getStepPricing, getActivationState, getMilestones } from '@/lib/mock-data'
+import FavoriteButton from '@/components/FavoriteButton'
 
 function fmt(price: number): string {
   return price.toFixed(2).replace('.', ',') + ' €'
@@ -10,7 +11,12 @@ function fmtSmart(price: number): string {
   return (price % 1 === 0 ? String(price) : price.toFixed(2).replace('.', ',')) + ' €'
 }
 
-export default function DesktopProductCard({ product }: { product: GroupProduct }) {
+interface Props {
+  product: GroupProduct
+  isFavorited?: boolean
+}
+
+export default function DesktopProductCard({ product, isFavorited = false }: Props) {
   const { currentPrice } = getStepPricing(product.tiers, product.currentUnits)
   const { activated, unitsToActivate, nextTier, unitsToNext } =
     getActivationState(product.tiers, product.currentUnits, product.minExecution)
@@ -31,7 +37,6 @@ export default function DesktopProductCard({ product }: { product: GroupProduct 
         isComplete ? 'border-brand-green' : 'border-neutral-100 hover:border-neutral-200'
       }`}
     >
-      {/* Complete banner */}
       {isComplete && (
         <div className="bg-brand-green/10 px-3 py-2 flex items-center gap-2">
           <span className="text-brand-green text-xs font-bold uppercase tracking-wide">
@@ -44,7 +49,6 @@ export default function DesktopProductCard({ product }: { product: GroupProduct 
         </div>
       )}
 
-      {/* Image */}
       <div className="relative aspect-square w-full overflow-hidden bg-[#F5F5F5]">
         {product.imageUrl ? (
           <img src={product.imageUrl} alt={product.name} className="absolute inset-0 w-full h-full object-cover" />
@@ -58,7 +62,6 @@ export default function DesktopProductCard({ product }: { product: GroupProduct 
           </div>
         )}
 
-        {/* Units chip */}
         <div className="absolute top-2.5 left-2.5 flex items-center gap-1 bg-white/90 backdrop-blur-sm rounded-full px-2 py-1 text-[11px] font-semibold text-neutral-600 shadow-sm">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -69,17 +72,15 @@ export default function DesktopProductCard({ product }: { product: GroupProduct 
           {product.currentUnits} / {progressTarget} uds
         </div>
 
-        {/* Heart icon */}
-        <button
-          className="absolute top-2.5 right-2.5 w-8 h-8 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-sm text-neutral-400 hover:text-red-500 transition-colors shadow-sm"
-          onClick={(e) => { e.preventDefault(); e.stopPropagation() }}
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M19.5 13.572l-7.5 7.428l-7.5-7.428a5 5 0 1 1 7.5-6.566a5 5 0 1 1 7.5 6.572" />
-          </svg>
-        </button>
+        <div className="absolute top-2.5 right-2.5">
+          <FavoriteButton
+            groupId={product.id}
+            initialFavorited={isFavorited}
+            size={16}
+            className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm shadow-sm"
+          />
+        </div>
 
-        {/* Discount badge */}
         {product.pvp > 0 && discount > 0 && (
           <div className="absolute bottom-2.5 right-2.5 bg-brand text-white rounded-full px-2.5 py-1 text-xs font-bold shadow-sm">
             −{discount}%
@@ -87,7 +88,6 @@ export default function DesktopProductCard({ product }: { product: GroupProduct 
         )}
       </div>
 
-      {/* Body */}
       <div className="flex flex-col gap-2 p-3.5 flex-1">
         <h3 className="font-bold text-neutral-900 text-sm leading-tight line-clamp-2">
           {product.name}
@@ -96,7 +96,6 @@ export default function DesktopProductCard({ product }: { product: GroupProduct 
           <p className="text-xs text-neutral-400 leading-tight">{product.variant}</p>
         )}
 
-        {/* Price */}
         <div className="flex items-baseline gap-2 flex-wrap">
           <span className={`text-lg font-bold ${activated ? 'text-brand' : 'text-neutral-900'}`}>
             {fmt(currentPrice)}
@@ -106,7 +105,6 @@ export default function DesktopProductCard({ product }: { product: GroupProduct 
           )}
         </div>
 
-        {/* Progress bar */}
         <div>
           <div className="flex h-2 rounded-full overflow-hidden gap-px bg-white">
             {milestones.map((m, i) => {
@@ -128,7 +126,6 @@ export default function DesktopProductCard({ product }: { product: GroupProduct 
           </div>
         </div>
 
-        {/* Next tier / status callout */}
         <div className="flex items-start gap-2 rounded-xl bg-brand/5 px-3 py-2.5 mt-auto">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-brand flex-shrink-0 mt-0.5">
             <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
@@ -150,10 +147,8 @@ export default function DesktopProductCard({ product }: { product: GroupProduct 
           </div>
         </div>
 
-        {/* Social proof */}
         {product.currentUnits > 0 && (
           <div className="flex items-center gap-2 mt-1">
-            {/* Avatar stack */}
             <div className="flex -space-x-1.5">
               {Array.from({ length: Math.min(3, product.currentUnits) }).map((_, i) => (
                 <div key={i} className="w-6 h-6 rounded-full bg-neutral-200 border-2 border-white flex items-center justify-center text-[9px] font-bold text-neutral-500">
@@ -173,7 +168,6 @@ export default function DesktopProductCard({ product }: { product: GroupProduct 
         )}
       </div>
 
-      {/* Complete footer */}
       {isComplete && (
         <div className="px-3.5 pb-3.5">
           <div className="bg-brand-green/10 rounded-lg px-3 py-2 flex items-center gap-2">
