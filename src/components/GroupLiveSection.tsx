@@ -6,6 +6,7 @@ import { useTierDemand } from '@/hooks/useTierDemand'
 import GroupCountdown from './GroupCountdown'
 import JoinModeSelector, { type ProjectionResult } from '@/components/JoinModeSelector'
 import TierDemandLadder from '@/components/TierDemandLadder'
+import FavoriteButton from '@/components/FavoriteButton'
 import ProgressToNextPrice from '@/components/ProgressToNextPrice'
 
 function fmt(n: number | undefined | null): string {
@@ -240,15 +241,7 @@ export default function GroupLiveSection({
 
         {/* CTA row */}
         <div className="flex items-center gap-3">
-          <button
-            className="w-14 h-14 flex items-center justify-center rounded-xl border border-gray-200 text-gray-400 flex-shrink-0"
-            aria-label="Guardar en favoritos"
-          >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-              <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
-              <path d="M19.5 13.572l-7.5 7.428l-7.5 -7.428m0 0a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"/>
-            </svg>
-          </button>
+          <FavoriteButton groupId={groupId} size={24} className="w-14 h-14 rounded-xl border border-gray-200 flex-shrink-0" />
           <Link
             href={ctaHref}
             className="flex-1 bg-brand text-white font-semibold text-base py-4 rounded-xl text-center hover:bg-brand-dark active:scale-[0.98] transition-all"

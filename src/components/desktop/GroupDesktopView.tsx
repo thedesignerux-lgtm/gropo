@@ -1,6 +1,7 @@
 'use client'
 
 import GroupCenterContent from './GroupCenterContent'
+import FavoriteButton from '@/components/FavoriteButton'
 import GroupRightSidebar from './GroupRightSidebar'
 
 interface Tier { minUnits: number; price: number }
@@ -52,10 +53,7 @@ export default function GroupDesktopView({
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
               Compartir
             </button>
-            <button className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-brand transition-colors">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M19.5 13.572l-7.5 7.428-7.5-7.428a5 5 0 117.5-6.566 5 5 0 117.5 6.572"/></svg>
-              Guardar
-            </button>
+            <FavoriteButton groupId={groupId} size={16} className="flex items-center gap-1.5 text-sm text-neutral-500 hover:text-brand transition-colors" />
           </div>
         </div>
       </header>
