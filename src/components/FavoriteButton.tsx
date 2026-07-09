@@ -2,7 +2,6 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { useUser } from '@/hooks/useUser'
 import { toggleFavorite } from '@/app/favoritos/actions'
 
 interface Props {
@@ -13,7 +12,6 @@ interface Props {
 }
 
 export default function FavoriteButton({ groupId, initialFavorited = false, size = 24, className = '' }: Props) {
-  const { user, loading: userLoading } = useUser()
   const [favorited, setFavorited] = useState(initialFavorited)
   const [isPending, startTransition] = useTransition()
   const router = useRouter()
@@ -21,22 +19,16 @@ export default function FavoriteButton({ groupId, initialFavorited = false, size
   function handleClick(e: React.MouseEvent) {
     e.preventDefault()
     e.stopPropagation()
-
-    if (userLoading) return
-
-    if (!user) {
-      router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`)
-      return
-    }
+    if (isPending) return
 
     setFavorited(prev => !prev)
     startTransition(async () => {
       const result = await toggleFavorite(groupId)
-      if (result.error && result.error !== 'not_authenticated') {
-        setFavorited(prev => !prev)
-      } else if (result.error === 'not_authenticated') {
+      if (result.error === 'not_authenticated') {
         setFavorited(false)
         router.push(`/login?next=${encodeURIComponent(window.location.pathname)}`)
+      } else if (result.error) {
+        setFavorited(prev => !prev)
       } else {
         setFavorited(result.favorited)
       }
