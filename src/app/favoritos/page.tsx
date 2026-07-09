@@ -5,6 +5,8 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 import WaveProgress from '@/components/WaveProgress'
 import RadarCardMenu from '@/components/RadarCardMenu'
 import BottomNav from '@/components/BottomNav'
+import HomeSidebar from '@/components/desktop/HomeSidebar'
+import CountdownChip from '@/components/CountdownChip'
 
 export const dynamic = 'force-dynamic'
 
@@ -138,30 +140,50 @@ const SECTION_META: Record<RadarCategory, {
   title: string
   subtitle: string
   waveColor: 'orange' | 'brand' | 'green'
+  cardBorder: string
+  badgeLabel: string
+  badgeClass: string
+  ctaClass: string
 }> = {
   hot: {
     icon: '🔥',
     title: 'Necesitan tu atención',
     subtitle: 'Oportunidades a punto de bajar.',
     waveColor: 'orange',
+    cardBorder: 'border-orange-200 hover:border-orange-300',
+    badgeLabel: 'ATENCIÓN',
+    badgeClass: 'bg-orange-500 text-white',
+    ctaClass: 'bg-orange-500 hover:bg-orange-600 text-white',
   },
   dropping: {
     icon: '⬇️',
     title: 'Han bajado recientemente',
     subtitle: 'Grupos que han reducido su precio.',
     waveColor: 'brand',
+    cardBorder: 'border-brand/20 hover:border-brand/30',
+    badgeLabel: 'BAJADA',
+    badgeClass: 'bg-brand text-white',
+    ctaClass: 'bg-brand hover:bg-brand-dark text-white',
   },
   secured: {
     icon: '🔒',
     title: 'Plaza asegurada',
     subtitle: 'Ya has bloqueado tu precio en estos grupos.',
     waveColor: 'green',
+    cardBorder: 'border-green-200 hover:border-green-300',
+    badgeLabel: 'CONSEGUIDO',
+    badgeClass: 'bg-green-600 text-white',
+    ctaClass: 'bg-green-600 hover:bg-green-700 text-white',
   },
   history: {
     icon: '📦',
     title: 'Historial',
     subtitle: 'Grupos finalizados en los que participaste.',
     waveColor: 'brand',
+    cardBorder: 'border-neutral-200',
+    badgeLabel: 'FINALIZADO',
+    badgeClass: 'bg-neutral-400 text-white',
+    ctaClass: 'bg-neutral-100 hover:bg-neutral-200 text-neutral-700',
   },
 }
 
@@ -177,100 +199,121 @@ export default async function RadarPage() {
 
   return (
     <>
-      {/* ─── Desktop ─── */}
+      {/* ═══════════ Desktop ═══════════ */}
       <div className="hidden lg:block min-h-screen" style={{ backgroundColor: '#F7F9FC' }}>
+        {/* Header — same as Home */}
         <header className="bg-white border-b border-neutral-100 sticky top-0 z-30">
-          <div className="max-w-[1360px] mx-auto px-8 h-14 flex items-center justify-between">
-            <a href="/" className="flex items-center gap-2 text-sm font-medium text-neutral-600 hover:text-neutral-900 transition-colors">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-              Volver a grupos
+          <div className="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
+            <a href="/" aria-label="Vonda - inicio">
+              <img src="/logo.png" alt="Vonda" className="h-8 w-auto" />
             </a>
+
+            <div className="flex-1 max-w-md mx-8">
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Busca productos, marcas o categorías..."
+                  className="w-full h-10 pl-10 pr-4 rounded-full border border-neutral-200 bg-white text-sm text-neutral-700 placeholder:text-neutral-400 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+                />
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                </svg>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <CountdownChip />
+              <a href="/favoritos" className="relative text-brand" aria-label="Mi Radar">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
+                </svg>
+              </a>
+              <div className="flex items-center gap-2 cursor-pointer">
+                <div className="w-8 h-8 rounded-full bg-neutral-200 flex items-center justify-center text-xs font-semibold text-neutral-600">V</div>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-400">
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </div>
+            </div>
           </div>
         </header>
 
-        <div className="max-w-[1360px] mx-auto px-8 py-10">
-          <div className="mb-10">
-            <h1 className="text-2xl font-bold text-neutral-900">Mi Radar</h1>
-            <p className="text-sm text-neutral-500 mt-1">Tu panel de oportunidades. El radar piensa por ti.</p>
-          </div>
+        {/* Body: Sidebar + Content */}
+        <div className="max-w-[1400px] mx-auto px-6 py-6">
+          <div className="flex gap-8">
+            {/* Sidebar — reused from Home */}
+            <HomeSidebar />
 
-          {groups.length === 0 ? (
-            <EmptyRadar />
-          ) : (
-            <div className="space-y-12">
-              {orderedCats.map(cat => {
-                const items = cats[cat]
-                if (items.length === 0) return null
-                const meta = SECTION_META[cat]
-                return (
-                  <section key={cat}>
-                    <div className="flex items-center justify-between mb-5">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg">{meta.icon}</span>
-                          <h2 className="text-base font-bold text-neutral-900">{meta.title}</h2>
+            {/* Main content */}
+            <main className="flex-1 min-w-0">
+              {/* Page header */}
+              <div className="mb-8">
+                <h1 className="text-2xl font-bold text-neutral-900">Mi Radar</h1>
+                <p className="text-sm text-neutral-500 mt-1">Tu panel de oportunidades. El radar piensa por ti.</p>
+              </div>
+
+              {groups.length === 0 ? (
+                <EmptyRadar />
+              ) : (
+                <div className="space-y-10">
+                  {orderedCats.map(cat => {
+                    const items = cats[cat]
+                    if (items.length === 0) return null
+                    const meta = SECTION_META[cat]
+                    return (
+                      <section key={cat}>
+                        {/* Section header */}
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-base">{meta.icon}</span>
+                              <h2 className="text-base font-bold text-neutral-900">{meta.title}</h2>
+                            </div>
+                            <p className="text-xs text-neutral-500 mt-0.5 ml-7">{meta.subtitle}</p>
+                          </div>
+                          {items.length > 3 && (
+                            <span className="text-sm font-semibold text-brand hover:underline cursor-pointer flex items-center gap-1">
+                              Ver todas ({items.length})
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
+                            </span>
+                          )}
                         </div>
-                        <p className="text-xs text-neutral-500 mt-0.5 ml-8">{meta.subtitle}</p>
-                      </div>
-                      {items.length > 3 && (
-                        <span className="text-xs font-semibold text-brand hover:underline cursor-pointer">
-                          Ver todas ({items.length}) →
-                        </span>
-                      )}
-                    </div>
 
-                    {/* Always 3 columns — all sections */}
-                    <div className="grid grid-cols-3 gap-6">
-                      {items.map(g => (
-                        <OpportunityCard key={g.id} group={g} category={cat} />
-                      ))}
-                    </div>
-                  </section>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      </div>
+                        {/* 3-column grid — uniform across ALL sections */}
+                        <div className="grid grid-cols-3 gap-5">
+                          {items.slice(0, 6).map(g => (
+                            <OpportunityCard key={g.id} group={g} category={cat} />
+                          ))}
+                        </div>
+                      </section>
+                    )
+                  })}
+                </div>
+              )}
 
-      {/* ─── Tablet ─── */}
-      <div className="hidden md:block lg:hidden min-h-screen" style={{ backgroundColor: '#F7F9FC' }}>
-        <div className="max-w-3xl mx-auto px-6 py-8">
-          <div className="mb-8">
-            <h1 className="text-xl font-bold text-neutral-900">Mi Radar</h1>
-            <p className="text-sm text-neutral-500 mt-1">Tu panel de oportunidades.</p>
+              {/* Footer trust bar */}
+              {groups.length > 0 && (
+                <div className="mt-10 border-t border-neutral-200 pt-6">
+                  <div className="flex items-center justify-center gap-12 text-sm text-neutral-500">
+                    <div className="flex items-center gap-2">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="text-neutral-400"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                      <span className="text-xs text-neutral-500">Pago seguro</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" className="text-neutral-400"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                      <span className="text-xs text-neutral-500">Tu dinero siempre protegido</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </main>
           </div>
-
-          {groups.length === 0 ? (
-            <EmptyRadar />
-          ) : (
-            <div className="space-y-10">
-              {orderedCats.map(cat => {
-                const items = cats[cat]
-                if (items.length === 0) return null
-                const meta = SECTION_META[cat]
-                return (
-                  <section key={cat}>
-                    <div className="flex items-center gap-2 mb-4">
-                      <span>{meta.icon}</span>
-                      <h2 className="text-sm font-bold text-neutral-900">{meta.title}</h2>
-                      <span className="text-[10px] font-semibold text-neutral-400 bg-neutral-100 px-1.5 py-0.5 rounded-full">{items.length}</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-5">
-                      {items.map(g => (
-                        <OpportunityCard key={g.id} group={g} category={cat} />
-                      ))}
-                    </div>
-                  </section>
-                )
-              })}
-            </div>
-          )}
         </div>
       </div>
 
-      {/* ─── Mobile ─── */}
-      <div className="md:hidden min-h-screen" style={{ backgroundColor: '#F7F9FC' }}>
+      {/* ═══════════ Mobile ═══════════ */}
+      <div className="lg:hidden min-h-screen" style={{ backgroundColor: '#F7F9FC' }}>
         <div className="min-h-screen pb-28">
           <div className="px-4 pt-6 pb-1">
             <h1 className="text-lg font-bold text-neutral-900">Mi Radar</h1>
@@ -287,12 +330,13 @@ export default async function RadarPage() {
                 const meta = SECTION_META[cat]
                 return (
                   <section key={cat}>
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-base">{meta.icon}</span>
-                      <h2 className="text-sm font-bold text-neutral-900">{meta.title}</h2>
-                      <span className="text-[10px] font-semibold text-neutral-400 bg-neutral-100 px-1.5 py-0.5 rounded-full">{items.length}</span>
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">{meta.icon}</span>
+                        <h2 className="text-sm font-bold text-neutral-900">{meta.title}</h2>
+                        <span className="text-[10px] font-semibold text-neutral-400 bg-neutral-100 px-1.5 py-0.5 rounded-full">{items.length}</span>
+                      </div>
                     </div>
-                    {/* 1 column, edge-to-edge */}
                     <div className="space-y-4">
                       {items.map(g => (
                         <OpportunityCard key={g.id} group={g} category={cat} />
@@ -311,7 +355,6 @@ export default async function RadarPage() {
 }
 
 // ─── OpportunityCard ───────────────────────────────────────
-// Jerarquía: 1. Halo de Color → 2. Ticker (Ola) → 3. Precio → 4. CTA
 
 function OpportunityCard({ group: g, category }: { group: RadarGroup; category: RadarCategory }) {
   const meta = SECTION_META[category]
@@ -325,113 +368,98 @@ function OpportunityCard({ group: g, category }: { group: RadarGroup; category: 
     const diff = Math.max(0, new Date(g.closesAt).getTime() - Date.now())
     const d = Math.floor(diff / 86400000)
     const h = Math.floor((diff % 86400000) / 3600000)
-    timeLabel = d > 0 ? `${d}d ${h}h restantes` : `${h}h restantes`
+    timeLabel = `${d}d ${String(h).padStart(2, '0')}h restantes`
   }
 
-  // Status badge
-  let badgeLabel = ''
-  let badgeClass = ''
-  if (category === 'hot') {
-    badgeLabel = 'ATENCIÓN'
-    badgeClass = 'bg-orange-500 text-white'
-  } else if (category === 'dropping') {
-    badgeLabel = 'BAJADA'
-    badgeClass = 'bg-brand text-white'
-  } else if (category === 'secured') {
-    badgeLabel = 'CONSEGUIDO'
-    badgeClass = 'bg-green-600 text-white'
-  } else {
-    badgeLabel = 'FINALIZADO'
-    badgeClass = 'bg-neutral-400 text-white'
-  }
-
-  // Urgency text (right of badge)
+  // Urgency text
   let urgencyText = ''
   if (category === 'hot' && g.missing > 0) {
     urgencyText = `Faltan ${g.missing} unidades`
   } else if (category === 'hot') {
-    urgencyText = `Cierra pronto`
+    urgencyText = 'Cierra pronto'
+  } else if (category === 'dropping') {
+    urgencyText = 'Precio en movimiento'
   }
 
-  // Savings for secured/history
+  // Savings
   const savings = g.pvp > 0 && g.currentPrice < g.pvp ? g.pvp - g.currentPrice : 0
 
-  // Next price (for open groups) or final price logic
+  // Price arrow for open groups with next tier
   const showPriceArrow = isOpen && g.nextPrice != null
-  const targetPrice = g.nextPrice ?? g.currentPrice
 
   return (
-    <Link href={`/grupo/${g.id}`} className="block group">
-      <div className={`bg-white rounded-2xl overflow-hidden transition-all group-hover:shadow-md ${
+    <Link href={`/grupo/${g.id}`} className="block group/card">
+      <div className={`bg-white rounded-2xl border-2 overflow-hidden transition-all group-hover/card:shadow-lg ${meta.cardBorder} ${
         isHistory ? 'opacity-60 grayscale' : ''
-      }`}
-        style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.02)' }}
-      >
-        {/* ── Header: Badge + urgency + ⋮ ── */}
-        <div className="flex items-start justify-between px-5 pt-4 pb-2">
-          <div className="flex flex-col gap-1">
-            <div className="flex items-center gap-2">
-              <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${badgeClass}`}>
-                {category === 'hot' && (
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className="opacity-80"><path d="M12 2c1 3 3.5 5 6 6-1 4-3 7-6 10-3-3-5-6-6-10 2.5-1 5-3 6-6z"/></svg>
+      }`}>
+
+        {/* ── Row 1: Badge + urgency + ⋮ ── */}
+        <div className="px-4 pt-4 pb-1">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={`inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full ${meta.badgeClass}`}>
+                  {category === 'hot' && (
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className="opacity-90"><path d="M12 2c1 3 3.5 5 6 6-1 4-3 7-6 10-3-3-5-6-6-10 2.5-1 5-3 6-6z"/></svg>
+                  )}
+                  {category === 'secured' && (
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
+                  )}
+                  {meta.badgeLabel}
+                </span>
+                {urgencyText && (
+                  <span className={`text-xs font-semibold ${
+                    category === 'hot' ? 'text-orange-600' : 'text-brand'
+                  }`}>{urgencyText}</span>
                 )}
-                {category === 'secured' && (
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="opacity-80"><polyline points="20 6 9 17 4 12"/></svg>
-                )}
-                {badgeLabel}
-              </span>
-              {urgencyText && (
-                <span className="text-xs font-semibold text-orange-600">{urgencyText}</span>
+              </div>
+              {timeLabel && (
+                <span className="text-[10px] text-neutral-400 flex items-center gap-1 mt-1.5">
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
+                  {timeLabel}
+                </span>
+              )}
+              {isHistory && g.closesAt && (
+                <span className="text-[10px] text-neutral-400 mt-1 block">
+                  Finalizado el {new Date(g.closesAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
+                </span>
+              )}
+              {isClosed && g.closesAt && (
+                <span className="text-[10px] text-neutral-400 mt-1 block">
+                  Finaliza en {(() => {
+                    const diff = Math.max(0, new Date(g.closesAt).getTime() - Date.now())
+                    const d = Math.floor(diff / 86400000); const h = Math.floor((diff % 86400000) / 3600000)
+                    return d > 0 ? `${d}d ${h}h` : `${h}h`
+                  })()}
+                </span>
               )}
             </div>
-            {timeLabel && (
-              <span className="text-[10px] text-neutral-400 flex items-center gap-1 ml-0.5">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 15"/></svg>
-                {timeLabel}
-              </span>
-            )}
-            {isClosed && g.closesAt && (
-              <span className="text-[10px] text-neutral-400">
-                Finaliza en {(() => {
-                  const diff = Math.max(0, new Date(g.closesAt).getTime() - Date.now())
-                  const d = Math.floor(diff / 86400000)
-                  const h = Math.floor((diff % 86400000) / 3600000)
-                  return d > 0 ? `${d}d ${h}h` : `${h}h`
-                })()}
-              </span>
-            )}
-            {isHistory && g.closesAt && (
-              <span className="text-[10px] text-neutral-400">
-                Finalizado el {new Date(g.closesAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
-              </span>
-            )}
+            <RadarCardMenu groupId={g.id} />
           </div>
-          {/* Single ⋮ menu — consolidated (Ley de Hick) */}
-          <RadarCardMenu groupId={g.id} />
         </div>
 
-        {/* ── Wave ticker (emotional, no axes) ── */}
-        <div className="px-5 py-2">
+        {/* ── Row 2: Wave ticker (large, ~30% height, emotional, NO axes) ── */}
+        <div className="px-4 py-3">
           <WaveProgress
             current={g.totalUnits}
             max={g.maxStock > 0 ? g.maxStock : Math.max(g.totalUnits * 2, 10)}
-            height={56}
+            height={64}
             showHalo
             colorScheme={meta.waveColor}
             showDot={isOpen}
           />
         </div>
 
-        {/* ── Price block: current → next ── */}
-        <div className="px-5 pb-2">
+        {/* ── Row 3: Price block (current → ↓ → next) ── */}
+        <div className="px-4 pb-3">
           {showPriceArrow ? (
             <div className="flex items-center justify-between">
               <span className="text-xl font-bold text-neutral-900 tabular-nums">{fmt(g.currentPrice)}</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-300 mx-2">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-300 flex-shrink-0">
                 <line x1="12" y1="5" x2="12" y2="19" />
                 <polyline points="19 12 12 19 5 12" />
               </svg>
-              <span className="text-xl font-bold text-green-600 tabular-nums">{fmt(targetPrice)}</span>
+              <span className="text-xl font-bold text-green-600 tabular-nums">{fmt(g.nextPrice!)}</span>
             </div>
           ) : (
             <div className="flex items-baseline gap-3">
@@ -441,43 +469,33 @@ function OpportunityCard({ group: g, category }: { group: RadarGroup; category: 
               )}
             </div>
           )}
-
-          {/* Savings callout for secured/history */}
           {!isOpen && savings > 0.01 && (
-            <p className="text-xs font-semibold text-green-600 mt-1">
+            <p className="text-xs font-semibold text-green-600 mt-1.5">
               Ahorro conseguido: {fmt(savings)}
             </p>
           )}
         </div>
 
-        {/* ── CTA — full width (only for active groups) ── */}
+        {/* ── Row 4: CTA full-width ── */}
         {!isHistory && (
-          <div className="px-5 pb-4 pt-1">
-            <span className={`flex items-center justify-center w-full py-3 rounded-xl text-sm font-bold transition-all ${
-              category === 'hot'
-                ? 'bg-orange-500 text-white group-hover:bg-orange-600'
-                : category === 'secured'
-                  ? 'bg-green-600 text-white group-hover:bg-green-700'
-                  : 'bg-brand text-white group-hover:bg-brand-dark'
-            }`}>
+          <div className="px-4 pb-4">
+            <span className={`flex items-center justify-center w-full py-3 rounded-xl text-sm font-bold transition-all ${meta.ctaClass}`}>
               {isOpen ? 'Bloquear precio' : 'Ver resultado'}
             </span>
           </div>
         )}
 
-        {/* ── Product footer (secondary) ── */}
-        <div className={`border-t border-neutral-100 px-5 py-3 flex items-center gap-3 ${
-          isHistory ? 'opacity-70' : ''
-        }`}>
-          <div className="w-9 h-9 rounded-lg bg-neutral-50 flex-shrink-0 flex items-center justify-center overflow-hidden">
+        {/* ── Row 5: Product footer (secondary, bottom) ── */}
+        <div className="border-t border-neutral-100 px-4 py-3 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg bg-neutral-50 flex-shrink-0 flex items-center justify-center overflow-hidden">
             {g.imageUrl ? (
               <img src={g.imageUrl} alt="" className="w-full h-full object-cover" />
             ) : (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-neutral-200" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-neutral-200" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
             )}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-medium text-neutral-600 truncate">{g.name}</p>
+            <p className="text-xs font-medium text-neutral-700 truncate">{g.name}</p>
             {g.spec && <p className="text-[10px] text-neutral-400 truncate">{g.spec}</p>}
           </div>
         </div>
