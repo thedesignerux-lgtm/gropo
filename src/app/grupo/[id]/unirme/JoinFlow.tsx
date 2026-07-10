@@ -136,6 +136,9 @@ export default function JoinFlow({
       amount: amountCents,
       currency: 'eur',
       capture_method: 'manual' as const,
+      // Debe COINCIDIR con la PaymentIntent del servidor (create-intent), o Stripe
+      // rechaza la confirmación en modo diferido con "setup_future_usage mismatch".
+      setup_future_usage: 'on_session' as const,
       paymentMethodTypes: ['card'],
       appearance: { theme: 'stripe' as const, variables: { colorPrimary: '#6C3CE1' } },
     }),

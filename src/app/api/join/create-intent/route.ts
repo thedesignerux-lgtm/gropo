@@ -1,7 +1,9 @@
 // app/api/join/create-intent/route.ts
 import { NextResponse } from 'next/server';
+import type Stripe from 'stripe';
 import { stripe } from '@/lib/stripe';
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { createClient } from '@/lib/supabase-server';
 
 export async function POST(req: Request) {
   try {
@@ -76,20 +78,60 @@ export async function POST(req: Request) {
     }
     const amountCents = Math.round(holdPrice * quantity * 100);
 
-    // 2) Cliente de Stripe (historial limpio en el dashboard)
-    const customer = await stripe.customers.create({
-      name,
-      email,
-      phone: normalizedPhone,
-    });
+    // 2) Customer reutilizable para 1-Click (Gate A2) — degradación elegante en
+    //    3 capas: ningún fallo de sesión/BD bloquea la compra. Como mucho, esta
+    //    transacción cae a un Customer desechable (comportamiento pre-A2).
+    let customerId: string | null = null;
+    let authUserId: string | null = null;
+
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        authUserId = user.id;
+        const { data: profile } = await supabaseAdmin
+          .from('users')
+          .select('stripe_customer_id')
+          .eq('auth_id', user.id)
+          .maybeSingle();
+        if (profile?.stripe_customer_id) customerId = profile.stripe_customer_id; // reutilizar
+      }
+    } catch (err: any) {
+      // Capa 1: sesión/BD no disponible → seguimos como invitado, sin bloquear.
+      console.error('[create-intent] auth/customer lookup falló, degrado a invitado:', err?.message);
+    }
+
+    if (!customerId) {
+      const customer = await stripe.customers.create({ name, email, phone: normalizedPhone });
+      customerId = customer.id;
+      // Capa 2: persistir best-effort SOLO si autenticado; un fallo aquí no rompe
+      // la compra (la tarjeta se guarda igual en el Customer de Stripe).
+      if (authUserId) {
+        try {
+          await supabaseAdmin
+            .from('users')
+            .update({ stripe_customer_id: customerId })
+            .eq('auth_id', authUserId);
+        } catch (err: any) {
+          console.error('[create-intent] no se pudo guardar stripe_customer_id (no crítico):', err?.message);
+        }
+      }
+    }
 
     // 3) El HOLD: autorizar (no cobrar) el precio garantizado × cantidad.
     //    capture_method 'manual' = retención; se captura al cierre del domingo.
-    const paymentIntent = await stripe.paymentIntents.create({
+    //    setup_future_usage 'on_session': guardamos la tarjeta para el próximo
+    //    checkout con el usuario presente (1-Click), optimizando SCA. DEBE
+    //    coincidir con el valor que inicializa <Elements> en el cliente
+    //    (JoinFlow), o Stripe rechaza la confirmación en modo diferido.
+    //    La REUTILIZACIÓN 1-Click sigue siendo solo para autenticados: depende
+    //    de persistir el Customer (authUserId), no de este flag.
+    const piParams: Stripe.PaymentIntentCreateParams = {
       amount: amountCents,
       currency: 'eur',
       capture_method: 'manual',
-      customer: customer.id,
+      customer: customerId,
+      setup_future_usage: 'on_session',
       payment_method_types: ['card'],
       description: `Vonda · ${prep.product_name} (${prep.product_spec}) x${quantity}`,
       shipping: {
@@ -116,7 +158,24 @@ export async function POST(req: Request) {
         join_mode: join_mode || 'comprar',
         ...(target_price != null ? { target_price: String(target_price) } : {}),
       },
-    });
+    };
+
+    // Capa 3: si el Customer reutilizado ya no existe en Stripe (cuenta borrada /
+    // token caducado), lo atrapamos y salvamos la compra con uno fresco.
+    let paymentIntent;
+    try {
+      paymentIntent = await stripe.paymentIntents.create(piParams);
+    } catch (err: any) {
+      if (err?.code === 'resource_missing' && authUserId) {
+        const fresh = await stripe.customers.create({ name, email, phone: normalizedPhone });
+        try {
+          await supabaseAdmin.from('users').update({ stripe_customer_id: fresh.id }).eq('auth_id', authUserId);
+        } catch { /* best-effort */ }
+        paymentIntent = await stripe.paymentIntents.create({ ...piParams, customer: fresh.id });
+      } else {
+        throw err;
+      }
+    }
 
     // Solo el clientSecret: la mecánica bancaria (importe retenido / límite de
     // autorización) NUNCA viaja al front. El precio de producto lo calcula el
