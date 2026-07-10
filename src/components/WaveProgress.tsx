@@ -2,60 +2,134 @@
 
 import { useId } from 'react'
 
-type WaveColorScheme = 'brand' | 'orange' | 'green'
+export type WaveColorScheme = 'brand' | 'orange' | 'green' | 'gray'
 
-const COLOR_MAP: Record<WaveColorScheme, {
-  gradientStart: string
-  gradientEnd: string
-  bg: string
+interface WaveColors {
+  fill: string
+  fillEnd: string
+  stroke: string
+  bgFill: string
+  dot: string
   halo: string
-  dotBorder: string
-}> = {
-  brand: {
-    gradientStart: '#6C3CE1',
-    gradientEnd: '#8B63E8',
-    bg: '#F0EEFF',
-    halo: 'rgba(108, 60, 225, 0.10)',
-    dotBorder: '#6C3CE1',
-  },
+}
+
+const COLORS: Record<WaveColorScheme, WaveColors> = {
   orange: {
-    gradientStart: '#E8590C',
-    gradientEnd: '#FF8C42',
-    bg: '#FFF4ED',
-    halo: 'rgba(232, 89, 12, 0.10)',
-    dotBorder: '#E8590C',
+    fill: '#F97316',
+    fillEnd: '#FED7AA',
+    stroke: '#EA580C',
+    bgFill: '#FFF7ED',
+    dot: '#EA580C',
+    halo: 'rgba(249, 115, 22, 0.12)',
+  },
+  brand: {
+    fill: '#7C3AED',
+    fillEnd: '#DDD6FE',
+    stroke: '#6C3CE1',
+    bgFill: '#F5F3FF',
+    dot: '#6C3CE1',
+    halo: 'rgba(108, 60, 225, 0.12)',
   },
   green: {
-    gradientStart: '#0D9F6E',
-    gradientEnd: '#31C48D',
-    bg: '#ECFDF5',
-    halo: 'rgba(13, 159, 110, 0.10)',
-    dotBorder: '#0D9F6E',
+    fill: '#059669',
+    fillEnd: '#A7F3D0',
+    stroke: '#047857',
+    bgFill: '#ECFDF5',
+    dot: '#059669',
+    halo: 'rgba(5, 150, 105, 0.12)',
+  },
+  gray: {
+    fill: '#9CA3AF',
+    fillEnd: '#E5E7EB',
+    stroke: '#6B7280',
+    bgFill: '#F3F4F6',
+    dot: '#6B7280',
+    halo: 'rgba(107, 114, 128, 0.08)',
   },
 }
 
-// Pre-defined organic wave control points (normalized 0–1 on both axes)
-// Each point is [x, y] where y=0 is top of wave, y=1 is baseline
-// This gives a natural, non-repetitive wave shape like rolling hills
-const WAVE_POINTS: [number, number][] = [
-  [0,    0.70],
-  [0.06, 0.35],
-  [0.12, 0.55],
-  [0.18, 0.25],
-  [0.25, 0.50],
-  [0.32, 0.15],
-  [0.38, 0.45],
-  [0.44, 0.30],
-  [0.50, 0.55],
-  [0.56, 0.20],
-  [0.62, 0.50],
-  [0.68, 0.35],
-  [0.75, 0.60],
-  [0.82, 0.25],
-  [0.88, 0.50],
-  [0.94, 0.40],
-  [1.00, 0.65],
-]
+// ─── Wave shape generation ──────────────────────────────────
+
+/** DJB2 hash → stable positive integer from any string */
+function hash(s: string): number {
+  let h = 5381
+  for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) | 0
+  return h >>> 0
+}
+
+/** Seeded LCG pseudo-random — deterministic across SSR + hydration */
+function lcg(seed: number) {
+  let s = seed || 1
+  return () => {
+    s = (s * 1664525 + 1013904223) >>> 0
+    return s / 4294967296
+  }
+}
+
+/**
+ * Generate organic wave Y values (0 = peak top, 1 = baseline).
+ * Uses a seeded momentum random-walk (velocity with damping + gentle
+ * mean-reversion) instead of periodic sines, so each card reads like a
+ * live stock/price ticker — irregular rolling hills, never a repeating
+ * sawtooth. Deterministic across SSR + hydration for a given seed.
+ */
+function makeProfile(seed: string): number[] {
+  const rand = lcg(hash(seed || 'wave'))
+  const N = 8
+
+  const out: number[] = []
+  let v = 0.28 + rand() * 0.44      // random starting height
+  let vel = (rand() - 0.5) * 0.38   // random initial momentum
+  for (let i = 0; i < N; i++) {
+    out.push(v)
+    vel += (rand() - 0.5) * 0.34    // random impulse each step (dynamic)
+    vel += (0.5 - v) * 0.07         // light mean-reversion toward center
+    vel *= 0.74                     // damping → smooth, momentum-y roll
+    v += vel
+    // Soft bounce off the rails so the crest never flatlines at an edge
+    if (v < 0.14) { v = 0.14; vel = Math.abs(vel) * 0.6 }
+    if (v > 0.86) { v = 0.86; vel = -Math.abs(vel) * 0.6 }
+  }
+  return out
+}
+
+/**
+ * Catmull-Rom → cubic Bézier smooth SVG path through all points.
+ * C1-continuous curve that passes exactly through every control point.
+ */
+function curvePath(pts: [number, number][]): string {
+  if (pts.length < 2) return ''
+  const n = pts.length
+  const r = (v: number) => v.toFixed(1)
+  let d = `M${r(pts[0][0])},${r(pts[0][1])}`
+  for (let i = 0; i < n - 1; i++) {
+    const p0 = pts[Math.max(0, i - 1)]
+    const p1 = pts[i]
+    const p2 = pts[i + 1]
+    const p3 = pts[Math.min(n - 1, i + 2)]
+    const c1x = p1[0] + (p2[0] - p0[0]) / 6
+    const c1y = p1[1] + (p2[1] - p0[1]) / 6
+    const c2x = p2[0] - (p3[0] - p1[0]) / 6
+    const c2y = p2[1] - (p3[1] - p1[1]) / 6
+    d += `C${r(c1x)},${r(c1y)},${r(c2x)},${r(c2y)},${r(p2[0])},${r(p2[1])}`
+  }
+  return d
+}
+
+/** Linear interpolation of Y at any X between control points */
+function lerpY(pts: [number, number][], x: number): number {
+  if (x <= pts[0][0]) return pts[0][1]
+  if (x >= pts[pts.length - 1][0]) return pts[pts.length - 1][1]
+  for (let i = 0; i < pts.length - 1; i++) {
+    if (x <= pts[i + 1][0]) {
+      const t = (x - pts[i][0]) / (pts[i + 1][0] - pts[i][0])
+      return pts[i][1] + t * (pts[i + 1][1] - pts[i][1])
+    }
+  }
+  return pts[pts.length - 1][1]
+}
+
+// ─── Component ──────────────────────────────────────────────
 
 interface Props {
   /** Current units */
@@ -64,20 +138,21 @@ interface Props {
   max: number
   /** Height in pixels */
   height?: number
-  /** Show the position dot */
+  /** Show the progress dot */
   showDot?: boolean
   /** Color scheme */
   colorScheme?: WaveColorScheme
-  /** Show ambient halo behind the wave */
+  /** Show ambient halo glow */
   showHalo?: boolean
   /** Additional className */
   className?: string
+  /** Seed for unique wave shape (e.g. group ID) */
+  seed?: string
 }
 
 /**
- * WaveProgress — Vonda brand identity progress bar.
- * Smooth, organic wave shape (area chart aesthetic) with gradient fill.
- * No axes, no labels — purely an emotional ticker.
+ * WaveProgress — smooth area-chart wave with gradient fill.
+ * Emotional ticker: no axes, no labels. Purely visual.
  */
 export default function WaveProgress({
   current,
@@ -87,144 +162,106 @@ export default function WaveProgress({
   colorScheme = 'brand',
   showHalo = false,
   className = '',
+  seed = '',
 }: Props) {
-  const gradientId = useId()
-  const haloId = useId()
-  const colors = COLOR_MAP[colorScheme]
+  const uid = useId()
+  const gFill = `wf${uid}`
+  const gBg = `wb${uid}`
+  const c = COLORS[colorScheme]
   const ratio = max > 0 ? Math.min(1, Math.max(0, current / max)) : 0
 
-  const vw = 100  // SVG viewBox width
-  const topPad = height * 0.10 // breathing room at top
-  const waveH = height * 0.55  // vertical range of wave crests
+  const W = 200
+  const H = height
+  const PAD = H * 0.10
+  const AMP = H * 0.68
 
-  // Convert normalized points to SVG coordinates
-  function toSVG(pt: [number, number], clipX?: number): [number, number] {
-    const x = pt[0] * vw
-    const y = topPad + pt[1] * waveH
-    return [clipX !== undefined ? Math.min(x, clipX) : x, y]
-  }
+  const profile = makeProfile(seed || `${current}-${max}`)
+  const pts: [number, number][] = profile.map((y, i) => [
+    (i / (profile.length - 1)) * W,
+    PAD + y * AMP,
+  ])
 
-  // Build a smooth cubic-bezier path through the wave points
-  function smoothPath(points: [number, number][]): string {
-    if (points.length < 2) return ''
-    const [sx, sy] = points[0]
-    let d = `M ${sx} ${sy}`
+  // Full background area
+  const bgLine = curvePath(pts)
+  const bgArea = `${bgLine}L${W},${H}L0,${H}Z`
 
-    for (let i = 0; i < points.length - 1; i++) {
-      const [x0, y0] = points[i]
-      const [x1, y1] = points[i + 1]
-      // Horizontal tension: 40% of segment width
-      const cpx = (x1 - x0) * 0.4
-      d += ` C ${x0 + cpx} ${y0}, ${x1 - cpx} ${y1}, ${x1} ${y1}`
-    }
+  // Filled area clipped at progress ratio
+  const clipX = ratio * W
+  const clipped = pts.filter(([x]) => x <= clipX + 0.5)
+  if (ratio > 0 && ratio < 1) clipped.push([clipX, lerpY(pts, clipX)])
+  const fillLine = clipped.length >= 2 ? curvePath(clipped) : ''
+  const fillArea = fillLine
+    ? `${fillLine}L${clipped[clipped.length - 1][0].toFixed(1)},${H}L0,${H}Z`
+    : ''
 
-    return d
-  }
-
-  // Full wave points in SVG coords
-  const allPts = WAVE_POINTS.map(p => toSVG(p))
-
-  // Clip points at ratio boundary for filled portion
-  const clipX = ratio * vw
-  const filledPts = allPts.filter(([x]) => x <= clipX + 0.5)
-  // Add interpolated end point at exact clip position
-  if (ratio > 0 && ratio < 1 && filledPts.length > 0) {
-    const lastIdx = allPts.findIndex(([x]) => x > clipX)
-    if (lastIdx > 0) {
-      const [x0, y0] = allPts[lastIdx - 1]
-      const [x1, y1] = allPts[lastIdx]
-      const t = (clipX - x0) / (x1 - x0)
-      const interpY = y0 + (y1 - y0) * t
-      filledPts.push([clipX, interpY])
-    }
-  }
-
-  // Build paths
-  const bgLine = smoothPath(allPts)
-  const bgPath = `${bgLine} L ${vw} ${height} L 0 ${height} Z`
-
-  let fillPath = ''
-  let dotPos: [number, number] | null = null
-  if (filledPts.length >= 2) {
-    const fillLine = smoothPath(filledPts)
-    const endX = filledPts[filledPts.length - 1][0]
-    fillPath = `${fillLine} L ${endX} ${height} L 0 ${height} Z`
-    dotPos = filledPts[filledPts.length - 1]
-  }
+  const dotLeft = ratio * 100
+  const dotTop = ratio > 0 ? (lerpY(pts, clipX) / H) * 100 : 0
 
   return (
-    <div className={`relative w-full ${className}`} style={{ height: showHalo ? height + 16 : height }}>
+    <div className={`relative w-full ${className}`} style={{ height: H }}>
       {/* Ambient halo */}
       {showHalo && ratio > 0 && (
         <div
-          className="absolute rounded-2xl transition-all duration-700 pointer-events-none"
+          className="absolute rounded-2xl pointer-events-none"
           style={{
-            background: `radial-gradient(ellipse at ${Math.max(15, ratio * 85)}% 60%, ${colors.halo} 0%, transparent 65%)`,
+            background: `radial-gradient(ellipse at ${ratio * 75 + 12}% 50%, ${c.halo} 0%, transparent 70%)`,
             filter: 'blur(10px)',
-            top: -8,
-            bottom: -8,
-            left: -8,
-            right: -8,
+            inset: -8,
           }}
         />
       )}
 
-      <div className="relative" style={{ height }}>
-        <svg
-          viewBox={`0 0 ${vw} ${height}`}
-          preserveAspectRatio="none"
-          className="w-full h-full"
-          style={{ overflow: 'visible' }}
-          aria-hidden="true"
-          role="presentation"
-        >
-          <defs>
-            <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stopColor={colors.gradientStart} />
-              <stop offset="100%" stopColor={colors.gradientEnd} />
-            </linearGradient>
-            {/* Vertical fade for filled area */}
-            <linearGradient id={haloId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={colors.gradientStart} stopOpacity="0.9" />
-              <stop offset="100%" stopColor={colors.gradientEnd} stopOpacity="0.4" />
-            </linearGradient>
-          </defs>
+      {/* Wave SVG */}
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        preserveAspectRatio="none"
+        className="absolute inset-0 w-full h-full"
+        aria-hidden="true"
+        role="presentation"
+      >
+        <defs>
+          <linearGradient id={gFill} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={c.fill} stopOpacity="0.80" />
+            <stop offset="100%" stopColor={c.fillEnd} stopOpacity="0.08" />
+          </linearGradient>
+          <linearGradient id={gBg} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={c.bgFill} stopOpacity="0.7" />
+            <stop offset="100%" stopColor={c.bgFill} stopOpacity="0.15" />
+          </linearGradient>
+        </defs>
 
-          {/* Background wave (unfilled) */}
-          <path d={bgPath} fill={colors.bg} />
+        {/* Background wave (full width, muted) */}
+        <path d={bgArea} fill={`url(#${gBg})`} />
 
-          {/* Filled wave */}
-          {fillPath && (
-            <path d={fillPath} fill={`url(#${haloId})`} className="transition-all duration-500" />
-          )}
-        </svg>
+        {/* Filled wave (up to progress) */}
+        {fillArea && <path d={fillArea} fill={`url(#${gFill})`} />}
 
-        {/* Position dot */}
-        {showDot && dotPos && ratio > 0 && ratio < 1 && (
-          <div
-            className="absolute w-3.5 h-3.5 rounded-full bg-white shadow-md transition-all duration-500"
-            style={{
-              left: `${(dotPos[0] / vw) * 100}%`,
-              top: `${dotPos[1] - 7}px`,
-              transform: 'translateX(-50%)',
-              border: `2.5px solid ${colors.dotBorder}`,
-            }}
+        {/* Thin stroke along the filled curve crest */}
+        {fillLine && (
+          <path
+            d={fillLine}
+            fill="none"
+            stroke={c.stroke}
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            opacity="0.5"
           />
         )}
+      </svg>
 
-        {/* Completion dot */}
-        {showDot && ratio >= 1 && (
-          <div
-            className="absolute w-3.5 h-3.5 rounded-full shadow-md"
-            style={{
-              right: -2,
-              top: `${allPts[allPts.length - 1][1] - 7}px`,
-              border: `2.5px solid white`,
-              backgroundColor: colors.gradientStart,
-            }}
-          />
-        )}
-      </div>
+      {/* Progress dot */}
+      {showDot && ratio > 0 && ratio < 1 && (
+        <div
+          className="absolute w-3 h-3 rounded-full bg-white"
+          style={{
+            left: `${dotLeft}%`,
+            top: `${dotTop}%`,
+            transform: 'translate(-50%, -50%)',
+            border: `2.5px solid ${c.dot}`,
+            boxShadow: `0 0 0 3px ${c.halo}, 0 1px 3px rgba(0,0,0,0.12)`,
+          }}
+        />
+      )}
     </div>
   )
 }

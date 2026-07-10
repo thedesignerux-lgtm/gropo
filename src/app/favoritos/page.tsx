@@ -139,7 +139,7 @@ const SECTION_META: Record<RadarCategory, {
   icon: string
   title: string
   subtitle: string
-  waveColor: 'orange' | 'brand' | 'green'
+  waveColor: 'orange' | 'brand' | 'green' | 'gray'
   cardBorder: string
   badgeLabel: string
   badgeClass: string
@@ -179,7 +179,7 @@ const SECTION_META: Record<RadarCategory, {
     icon: '📦',
     title: 'Historial',
     subtitle: 'Grupos finalizados en los que participaste.',
-    waveColor: 'brand',
+    waveColor: 'gray',
     cardBorder: 'border-neutral-200',
     badgeLabel: 'FINALIZADO',
     badgeClass: 'bg-neutral-400 text-white',
@@ -443,10 +443,11 @@ function OpportunityCard({ group: g, category }: { group: RadarGroup; category: 
           <WaveProgress
             current={g.totalUnits}
             max={g.maxStock > 0 ? g.maxStock : Math.max(g.totalUnits * 2, 10)}
-            height={64}
+            height={80}
             showHalo
             colorScheme={meta.waveColor}
             showDot={isOpen}
+            seed={g.id}
           />
         </div>
 
