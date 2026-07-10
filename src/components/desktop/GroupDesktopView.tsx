@@ -100,7 +100,7 @@ export default function GroupDesktopView({
           </div>
 
           <main className="flex-1 min-w-0">
-            <GroupCenterContent groupId={groupId} pvp={pvp} tiers={tiers} maxStock={maxStock} initialBestPrice={initialBestPrice} />
+            <GroupCenterContent groupId={groupId} name={name} spec={spec} imageUrl={imageUrl} pvp={pvp} tiers={tiers} maxStock={maxStock} initialBestPrice={initialBestPrice} />
           </main>
 
           <GroupRightSidebar groupId={groupId} maxStock={maxStock} />

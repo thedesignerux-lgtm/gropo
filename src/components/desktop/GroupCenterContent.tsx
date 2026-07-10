@@ -1,8 +1,11 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useTierDemand } from '@/hooks/useTierDemand'
+import { useCheckout } from '@/components/checkout/CheckoutProvider'
+import { createClient } from '@/lib/supabase-browser'
 import TierDemandLadder from '@/components/TierDemandLadder'
 import JoinModeSelector, { type ProjectionResult } from '@/components/JoinModeSelector'
 import BestPriceReached from '@/components/BestPriceReached'
@@ -16,6 +19,9 @@ interface Tier { minUnits: number; price: number }
 
 interface Props {
   groupId: string
+  name: string
+  spec: string
+  imageUrl?: string | null
   pvp: number
   tiers: Tier[]
   maxStock: number
@@ -23,12 +29,21 @@ interface Props {
 }
 
 export default function GroupCenterContent({
-  groupId, pvp, tiers, maxStock, initialBestPrice,
+  groupId, name, spec, imageUrl, pvp, tiers, maxStock, initialBestPrice,
 }: Props) {
   const [joinMode, setJoinMode] = useState<'comprar' | 'esperar'>('comprar')
   const [joinTarget, setJoinTarget] = useState<number | undefined>(undefined)
   const [quantity, setQuantity] = useState(1)
   const [projection, setProjection] = useState<ProjectionResult | null>(null)
+
+  // Checkout 1-Click (Gate A3): logueado → FastCheckoutModal; invitado → /unirme.
+  const { open } = useCheckout()
+  const router = useRouter()
+  const [authed, setAuthed] = useState<boolean | null>(null)
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => setAuthed(!!user))
+  }, [])
 
   const { tiers: demandTiers, currentPrice, nextTier, missing } = useTierDemand(groupId)
   const displayPrice = currentPrice > 0 ? currentPrice : initialBestPrice
@@ -56,6 +71,21 @@ export default function GroupCenterContent({
   }
   if (quantity > 1) ctaParams.set('qty', String(quantity))
   const ctaHref = `/grupo/${groupId}/unirme${ctaParams.toString() ? `?${ctaParams.toString()}` : ''}`
+
+  const handleBuy = () => {
+    if (authed) {
+      open({
+        groupId,
+        productName: name,
+        productSpec: spec,
+        imageUrl: imageUrl ?? null,
+        quantity,
+        maxPricePerUnit: displayPrice,
+      })
+    } else {
+      router.push(ctaHref)
+    }
+  }
 
   // ¿La cantidad seleccionada desbloquearía el siguiente tramo? (para el texto de la tarjeta)
   const wouldUnlock = nextTier ? quantity >= missing && missing > 0 : false
@@ -130,14 +160,14 @@ export default function GroupCenterContent({
               <span className="text-xs text-neutral-400">unidad{quantity > 1 ? 'es' : ''}</span>
             </div>
 
-            <Link href={ctaHref}
+            <button type="button" onClick={handleBuy}
               className="bg-green-600 text-white font-semibold text-base px-8 py-3.5 rounded-xl hover:bg-green-700 active:scale-[0.98] transition-all flex items-center gap-2">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                 <path d="M7 11V7a5 5 0 0110 0v4"/>
               </svg>
-              Comprar · {fmt(selectedMaxPrice)}
-            </Link>
+              Bloquear precio · {fmt(selectedMaxPrice)}
+            </button>
           </div>
           <p className="text-xs text-neutral-400 text-center mt-3">Pago 100% seguro con Stripe</p>
         </div>
@@ -191,14 +221,25 @@ export default function GroupCenterContent({
               <span className="text-xs text-neutral-400">unidad{quantity > 1 ? 'es' : ''}</span>
             </div>
 
-            <Link href={ctaHref}
-              className="bg-brand text-white font-semibold text-base px-8 py-3.5 rounded-xl hover:bg-brand-dark active:scale-[0.98] transition-all flex items-center gap-2">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                <path d="M7 11V7a5 5 0 0110 0v4"/>
-              </svg>
-              {nextTier ? `Comprar (Máx. ${fmt(selectedMaxPrice)})` : `Comprar · ${fmt(selectedMaxPrice)}`}
-            </Link>
+            {joinMode === 'esperar' && joinTarget ? (
+              <Link href={ctaHref}
+                className="bg-brand text-white font-semibold text-base px-8 py-3.5 rounded-xl hover:bg-brand-dark active:scale-[0.98] transition-all flex items-center gap-2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0110 0v4"/>
+                </svg>
+                Reservar plaza · {fmt(joinTarget)} máx.
+              </Link>
+            ) : (
+              <button type="button" onClick={handleBuy}
+                className="bg-brand text-white font-semibold text-base px-8 py-3.5 rounded-xl hover:bg-brand-dark active:scale-[0.98] transition-all flex items-center gap-2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0110 0v4"/>
+                </svg>
+                {nextTier ? `Bloquear precio (Máx. ${fmt(selectedMaxPrice)})` : `Bloquear precio · ${fmt(selectedMaxPrice)}`}
+              </button>
+            )}
           </div>
           <p className="text-xs text-neutral-400 text-center mt-3">Pago 100% seguro con Stripe</p>
         </div>

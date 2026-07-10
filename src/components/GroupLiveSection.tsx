@@ -1,8 +1,11 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useTierDemand } from '@/hooks/useTierDemand'
+import { useCheckout } from '@/components/checkout/CheckoutProvider'
+import { createClient } from '@/lib/supabase-browser'
 import GroupCountdown from './GroupCountdown'
 import JoinModeSelector, { type ProjectionResult } from '@/components/JoinModeSelector'
 import TierDemandLadder from '@/components/TierDemandLadder'
@@ -41,6 +44,16 @@ export default function GroupLiveSection({
   const [quantity, setQuantity] = useState(1)
   const [projection, setProjection] = useState<ProjectionResult | null>(null)
 
+  // Checkout 1-Click (Gate A3): usuarios autenticados abren el FastCheckoutModal;
+  // invitados caen al flujo /unirme actual. Auth se comprueba al montar.
+  const { open } = useCheckout()
+  const router = useRouter()
+  const [authed, setAuthed] = useState<boolean | null>(null)
+  useEffect(() => {
+    const supabase = createClient()
+    supabase.auth.getUser().then(({ data: { user } }) => setAuthed(!!user))
+  }, [])
+
   // tier_demand hook = source of truth for current price AND participation count
   const { tiers: demandTiers, currentPrice, nextTier, missing } = useTierDemand(groupId)
 
@@ -68,6 +81,22 @@ export default function GroupLiveSection({
   }
   if (quantity > 1) ctaParams.set('qty', String(quantity))
   const ctaHref = `/grupo/${groupId}/unirme${ctaParams.toString() ? `?${ctaParams.toString()}` : ''}`
+
+  // Comprar/bloquear: logueado → modal 1-Click; invitado → /unirme.
+  const handleBuy = () => {
+    if (authed) {
+      open({
+        groupId,
+        productName: name,
+        productSpec: spec,
+        imageUrl: null,
+        quantity,
+        maxPricePerUnit: ctaPrice,
+      })
+    } else {
+      router.push(ctaHref)
+    }
+  }
 
   return (
     <>
@@ -254,16 +283,22 @@ export default function GroupLiveSection({
 
         {/* CTA row */}
         <div className="flex items-center gap-3">
-          <Link
-            href={ctaHref}
-            className="flex-1 bg-brand text-white font-semibold text-base py-4 rounded-xl text-center hover:bg-brand-dark active:scale-[0.98] transition-all"
-          >
-            {joinMode === 'esperar' && joinTarget ? (
-              `Reservar plaza · ${fmt(joinTarget)} máx.`
-            ) : (
-              `Comprar ahora · ${fmt(ctaPrice)}`
-            )}
-          </Link>
+          {joinMode === 'esperar' && joinTarget ? (
+            <Link
+              href={ctaHref}
+              className="flex-1 bg-brand text-white font-semibold text-base py-4 rounded-xl text-center hover:bg-brand-dark active:scale-[0.98] transition-all"
+            >
+              Reservar plaza · {fmt(joinTarget)} máx.
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={handleBuy}
+              className="flex-1 bg-brand text-white font-semibold text-base py-4 rounded-xl text-center hover:bg-brand-dark active:scale-[0.98] transition-all"
+            >
+              Bloquear precio · {fmt(ctaPrice)}
+            </button>
+          )}
         </div>
       </div>
     </>
