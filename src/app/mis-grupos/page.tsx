@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import { normalizePhone } from '@/lib/phone'
 import BottomNav from '@/components/BottomNav'
+import MisGruposDesktop from '@/components/desktop/MisGruposDesktop'
 
 const inputCls = 'w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-base text-gray-900 bg-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand disabled:opacity-50'
 const labelCls = 'block text-xs font-semibold text-gray-600 mb-1.5'
@@ -226,7 +227,12 @@ export default function MisGruposPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <>
+    {/* ═══════ Desktop ═══════ */}
+    <MisGruposDesktop memberships={memberships} userName={user?.name} />
+
+    {/* ═══════ Mobile ═══════ */}
+    <div className="lg:hidden min-h-screen bg-gray-50">
       <div className="max-w-md mx-auto min-h-screen pb-28">
 
         {/* Header */}
@@ -384,5 +390,6 @@ export default function MisGruposPage() {
       </div>
       <BottomNav />
     </div>
+    </>
   )
 }

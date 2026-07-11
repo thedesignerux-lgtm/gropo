@@ -1,0 +1,332 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import { supabase } from '@/lib/supabase'
+import HomeSidebar from './HomeSidebar'
+import CountdownChip from '@/components/CountdownChip'
+
+// ── Tipos ──────────────────────────────────────────────
+export interface Membership {
+  member_id: string
+  quantity: number
+  guaranteed_price: number
+  final_price: number | null
+  // Valores reales del enum en BD: authorized | instructed | paid | released | cancelled | auth_failed
+  payment_status: string
+  group_id: string
+  product_name: string
+  product_spec: string | null
+  image_url: string | null
+  status: string
+  closes_at: string
+  current_price: number
+  payment_info: string | null
+}
+interface LadderRow { min_units: number; price: number; effective_demand: number; unlocked: boolean }
+type StateKey = 'encurso' | 'apunto' | 'meta' | 'noalc'
+
+const fmt = (n: number) => (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
+
+const THEME: Record<StateKey, { c: string; bg: string; tx: string; bd: string; finbg: string; secbg: string }> = {
+  encurso: { c: '#6C3CE1', bg: '#EDE9FE', tx: '#6D28D9', bd: '#DDD3FB', finbg: '#F6F3FE', secbg: '#F1EDFC' },
+  apunto:  { c: '#F0531F', bg: '#FDEBE3', tx: '#C2410C', bd: '#FCD9C6', finbg: '#FEF4EE', secbg: '#FEF1EA' },
+  meta:    { c: '#0F9D58', bg: '#E7F7EF', tx: '#0B7B44', bd: '#BBF0D8', finbg: '#EEFAF3', secbg: '#E7F7EF' },
+  noalc:   { c: '#94A3B8', bg: '#F1F5F9', tx: '#475569', bd: '#E2E8F0', finbg: '#F6F8FA', secbg: '#F1F5F9' },
+}
+
+// ── Iconos ─────────────────────────────────────────────
+const I = {
+  clock: <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8v4l3 2" /></svg>,
+  fire: <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c1 3-1 4-1 6a3 3 0 006 0c2 3 1 6-1 8a5 5 0 01-9-3c0-2 2-3 2-5 0 0 3 1 4-6z" /></svg>,
+  plus: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>,
+  check: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true"><path d="M5 12l5 5 9-11" /></svg>,
+  x: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>,
+  xc: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M9 9l6 6M15 9l-6 6" /></svg>,
+  shield: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" /></svg>,
+  share: <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" /></svg>,
+}
+
+function timeLeft(closesAt: string): string {
+  const diff = new Date(closesAt).getTime() - Date.now()
+  if (diff <= 0) return 'Cerrado'
+  const d = Math.floor(diff / 86400000), h = Math.floor((diff % 86400000) / 3600000), m = Math.floor((diff % 3600000) / 60000)
+  return d > 0 ? `${d}d ${String(h).padStart(2, '0')}h restantes` : `${h}h ${String(m).padStart(2, '0')}m restantes`
+}
+
+// ── Derivación de estado + métricas desde datos reales ──
+function derive(m: Membership, ladder: LadderRow[]) {
+  const commit = Number(m.guaranteed_price)
+  const cur = Number(m.current_price)
+  const currentUnits = ladder.length ? Math.max(...ladder.map(t => Number(t.effective_demand ?? 0))) : 0
+  const nextTier = ladder.filter(t => !t.unlocked && Number(t.price) < cur).sort((a, b) => Number(b.price) - Number(a.price))[0] ?? null
+  const target = nextTier ? Number(nextTier.min_units) : currentUnits || m.quantity || 1
+  const missing = nextTier ? Math.max(0, Number(nextTier.min_units) - currentUnits) : 0
+  const nextObj = nextTier ? Number(nextTier.price) : null
+  const pct = target > 0 ? Math.min(100, Math.round((currentUnits / target) * 100)) : 100
+
+  // payment_status real: authorized (hold vivo) | paid | instructed | released | cancelled | auth_failed
+  const ps = m.payment_status
+  let state: StateKey
+  if (ps === 'released' || ps === 'cancelled' || ps === 'auth_failed' || m.status === 'cancelled') {
+    state = 'noalc'
+  } else if (ps === 'paid' || ps === 'instructed') {
+    state = 'meta'
+  } else if (m.status === 'open') {
+    // hold activo (authorized) en grupo abierto → seguimiento
+    const hoursLeft = Math.max(0, (new Date(m.closes_at).getTime() - Date.now()) / 3600000)
+    state = nextTier && (missing <= 5 || hoursLeft < 48) ? 'apunto' : 'encurso'
+  } else {
+    state = 'encurso'
+  }
+  return { commit, cur, currentUnits, target, missing, nextObj, pct, state }
+}
+
+export default function MisGruposDesktop({ memberships, userName }: { memberships: Membership[]; userName?: string }) {
+  const [ladders, setLadders] = useState<Record<string, LadderRow[]>>({})
+  const [open, setOpen] = useState<string | null>(null)
+
+  // Enriquecer con tier_demand (RPC anon, solo lectura) para la barra de progreso.
+  useEffect(() => {
+    let cancelled = false
+    async function run() {
+      const openGroups = memberships.filter(m => m.status === 'open').map(m => m.group_id)
+      const uniq = Array.from(new Set(openGroups))
+      const entries = await Promise.all(uniq.map(async gid => {
+        try {
+          const { data } = await supabase.rpc('tier_demand', { p_group_id: gid })
+          return [gid, (Array.isArray(data) ? data : []) as LadderRow[]] as const
+        } catch { return [gid, [] as LadderRow[]] as const }
+      }))
+      if (!cancelled) setLadders(Object.fromEntries(entries))
+    }
+    if (memberships.length) run()
+    return () => { cancelled = true }
+  }, [memberships])
+
+  // Cerrar drawer con ESC + bloquear scroll de fondo.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setOpen(null) }
+    document.addEventListener('keydown', onKey)
+    document.body.style.overflow = open ? 'hidden' : ''
+    return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = '' }
+  }, [open])
+
+  const active = memberships.length
+  const openMem = memberships.find(m => m.member_id === open) || null
+
+  return (
+    <div className="hidden lg:flex min-h-screen" style={{ backgroundColor: '#F7F9FC' }}>
+      <HomeSidebar />
+
+      <div className="flex-1 min-w-0 flex flex-col">
+        <header className="sticky top-0 z-20 px-8 h-16 flex items-center gap-4" style={{ backgroundColor: 'rgba(247,249,252,0.85)', backdropFilter: 'blur(8px)' }}>
+          <div className="flex-1 max-w-md relative">
+            <input type="text" placeholder="Busca productos, marcas o categorías..." className="w-full h-10 pl-10 pr-4 rounded-full border border-neutral-200 bg-white text-sm text-neutral-700 placeholder:text-neutral-400 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand" />
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+          </div>
+          <CountdownChip />
+          <div className="w-9 h-9 rounded-full bg-brand flex items-center justify-center text-sm font-semibold text-white">{(userName || 'V').charAt(0).toUpperCase()}</div>
+        </header>
+
+        <main className="w-full max-w-[1180px] px-8 pb-16 pt-2">
+          <div className="mb-6">
+            <div className="flex items-center gap-3">
+              <h1 className="text-[30px] font-extrabold text-neutral-900 tracking-tight">Mis grupos</h1>
+              {active > 0 && <span className="bg-brand/10 text-brand text-xs font-semibold px-2.5 py-1 rounded-full">{active} {active === 1 ? 'activo' : 'activos'}</span>}
+            </div>
+            <p className="text-sm text-neutral-500 mt-1">Grupos en los que ya participas y estás asegurando tu precio.</p>
+          </div>
+
+          {active === 0 ? (
+            <div className="text-sm text-neutral-500 bg-white border border-neutral-200 rounded-2xl px-5 py-8 text-center">
+              Aún no participas en ningún grupo. <Link href="/" className="text-brand font-semibold">Explora grupos abiertos →</Link>
+            </div>
+          ) : (
+            <div className="grid gap-[18px]" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(280px,300px))' }}>
+              {memberships.map(m => (
+                <MgCard key={m.member_id} m={m} ladder={ladders[m.group_id] || []} onOpen={() => setOpen(m.member_id)} />
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
+
+      {/* Drawer */}
+      <div onClick={() => setOpen(null)} className="fixed inset-0 z-40 transition-opacity duration-300" style={{ background: 'rgba(15,23,42,.45)', backdropFilter: 'blur(2px)', opacity: open ? 1 : 0, pointerEvents: open ? 'auto' : 'none' }} />
+      <aside role="dialog" aria-modal="true" aria-label="Detalle del grupo" className="fixed top-0 right-0 h-screen w-[440px] max-w-[92vw] bg-white z-50 flex flex-col transition-transform duration-300" style={{ boxShadow: '-12px 0 40px rgba(15,23,42,.18)', transform: open ? 'translateX(0)' : 'translateX(100%)' }}>
+        {openMem && <Drawer m={openMem} ladder={ladders[openMem.group_id] || []} onClose={() => setOpen(null)} />}
+      </aside>
+    </div>
+  )
+}
+
+// ── Tarjeta ────────────────────────────────────────────
+function MgCard({ m, ladder, onOpen }: { m: Membership; ladder: LadderRow[]; onOpen: () => void }) {
+  const d = derive(m, ladder)
+  const t = THEME[d.state]
+  const paid = m.payment_status === 'paid'
+  const badge = d.state === 'encurso' ? 'En curso' : d.state === 'apunto' ? 'A punto' : d.state === 'meta' ? 'Meta alcanzada' : 'No alcanzado'
+  const badgeIcon = d.state === 'encurso' ? I.plus : d.state === 'apunto' ? I.fire : d.state === 'meta' ? I.check : I.xc
+  const time = d.state === 'meta' ? (paid ? 'Compra realizada' : 'Objetivo alcanzado') : d.state === 'noalc' ? 'Finalizado' : timeLeft(m.closes_at)
+  const isOpen = m.status === 'open'
+  const saving = Math.max(0, d.commit - d.cur)
+
+  return (
+    <div onClick={onOpen} className="bg-white rounded-2xl border-2 p-4 pb-[18px] cursor-pointer transition-all hover:shadow-lg hover:-translate-y-0.5 motion-reduce:transition-none" style={{ borderColor: t.bd }}>
+      {/* header */}
+      <div className="flex items-start justify-between gap-2">
+        <span className="inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-2.5 py-1" style={{ background: t.bg, color: t.tx }}>{badgeIcon}{badge}</span>
+        <span className="inline-flex items-center gap-1.5 text-[11px] text-neutral-400 font-medium">{d.state !== 'noalc' && I.clock}{time}</span>
+      </div>
+      {/* producto */}
+      <div className="flex gap-3 items-start mt-3">
+        <div className="w-14 h-14 rounded-xl bg-neutral-100 shrink-0 overflow-hidden flex items-center justify-center">
+          {m.image_url ? <img src={m.image_url} alt="" className="w-full h-full object-cover" /> : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-neutral-300"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>}
+        </div>
+        <div className="min-w-0 pt-0.5">
+          <p className="text-[14.5px] font-bold text-neutral-900 leading-tight truncate">{m.product_name}</p>
+          {m.product_spec && <p className="text-xs text-neutral-500 mt-1 truncate">{m.product_spec}</p>}
+        </div>
+      </div>
+      {/* financiero */}
+      <div className="flex justify-between items-start rounded-xl px-3 py-2.5 mt-3" style={{ background: t.finbg }}>
+        <div><p className="text-[10px] font-bold uppercase tracking-wide text-neutral-500">Mi compromiso</p><p className="text-[18px] font-extrabold mt-0.5 tabular-nums whitespace-nowrap">{fmt(d.commit)}</p></div>
+        <div className="text-right">
+          {d.state === 'meta' ? (
+            <><p className="text-[10px] font-bold uppercase tracking-wide text-neutral-500">Precio final</p><p className="text-[18px] font-extrabold mt-0.5 tabular-nums whitespace-nowrap flex items-center gap-1 justify-end" style={{ color: t.c }}>{fmt(Number(m.final_price ?? m.guaranteed_price))} {I.check}</p></>
+          ) : d.state === 'noalc' ? (
+            <><p className="text-[10px] font-bold uppercase tracking-wide text-neutral-500">Estado final</p><p className="text-[16px] font-extrabold mt-1 text-neutral-600">No alcanzado</p></>
+          ) : (
+            <><p className="text-[10px] font-bold uppercase tracking-wide text-neutral-500">Estado actual</p><p className="text-[18px] font-extrabold mt-0.5 tabular-nums whitespace-nowrap" style={{ color: t.c }}>{fmt(d.cur)}</p>{saving > 0.005 && <p className="text-[11px] font-semibold mt-0.5" style={{ color: '#0F9D58' }}>Ahorras {fmt(saving)}</p>}</>
+          )}
+        </div>
+      </div>
+      {/* barra */}
+      <div className="relative h-[16px] flex items-center mt-3">
+        <div className="flex-1 h-1.5 rounded-full bg-neutral-200 overflow-hidden mr-1"><div className="h-full rounded-full" style={{ width: `${d.state === 'meta' ? 100 : d.pct}%`, background: t.c }} /></div>
+        <span className="w-[18px] h-[18px] rounded-full flex items-center justify-center shrink-0" style={{ background: (d.state === 'meta') ? t.c : '#fff', border: `2.5px solid ${t.c}`, color: '#fff' }}>{d.state === 'meta' && I.check}</span>
+      </div>
+      <div className="flex justify-between text-[12.5px] mt-2 mb-3">
+        <span className="text-neutral-500">{isOpen ? `${d.currentUnits} / ${d.target} uds en el grupo` : `${m.quantity} ud${m.quantity > 1 ? 's' : ''}`}</span>
+        <span className="font-bold" style={{ color: d.state === 'noalc' ? '#94A3B8' : t.c }}>{d.state === 'meta' ? 'Objetivo alcanzado' : d.state === 'noalc' ? 'Objetivo no alcanzado' : `Faltan ${d.missing} uds`}</span>
+      </div>
+      {/* estado / social */}
+      <div className="flex items-center gap-2 mb-3.5 text-[12px] text-neutral-600">
+        {d.state === 'meta'
+          ? <>{I.check}<span>{paid ? 'Compra confirmada · Pago realizado' : 'Objetivo alcanzado · Pago pendiente'}</span></>
+          : d.state === 'noalc'
+            ? <span>Retención liberada · Sin cargos realizados</span>
+            : <><span style={{ color: t.c }}>{I.shield}</span><span>Tu plaza está asegurada · Pago retenido</span></>}
+      </div>
+      {/* CTA */}
+      <div className="flex items-center justify-center gap-2 w-full rounded-xl py-2.5 text-[13.5px] font-bold bg-white" style={{ border: `1.5px solid ${t.bd}`, color: t.c }}>
+        {d.state === 'meta' ? (paid ? 'Ver compra / Ticket' : 'Ver instrucciones de pago') : d.state === 'noalc' ? 'Ver devolución' : 'Ver estado de tu plaza'} →
+      </div>
+    </div>
+  )
+}
+
+// ── Drawer ─────────────────────────────────────────────
+function Drawer({ m, ladder, onClose }: { m: Membership; ladder: LadderRow[]; onClose: () => void }) {
+  const d = derive(m, ladder)
+  const t = THEME[d.state]
+  const paid = m.payment_status === 'paid'
+  const saving = Math.max(0, d.commit - d.cur)
+  const spec = m.product_spec || ''
+
+  const head = (title: string) => (
+    <div className="flex items-center justify-between px-[22px] pt-[22px] pb-1">
+      <span className="text-[20px] font-extrabold tracking-tight">{title}</span>
+      <button onClick={onClose} aria-label="Cerrar" className="w-8 h-8 flex items-center justify-center text-neutral-500 hover:text-neutral-800">{I.x}</button>
+    </div>
+  )
+
+  // EN CURSO / A PUNTO → panel "Ver estado de tu plaza"
+  if (d.state === 'encurso' || d.state === 'apunto') {
+    const badge = d.state === 'encurso' ? 'En curso' : 'A punto'
+    const badgeIcon = d.state === 'encurso' ? I.plus : I.fire
+    return (
+      <>
+        {head('Ver estado de tu plaza')}
+        <div className="px-[22px] py-5 overflow-y-auto flex-1">
+          <div className="flex items-center justify-between mb-3.5">
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-2.5 py-1" style={{ background: t.bg, color: t.tx }}>{badgeIcon}{badge}</span>
+            <span className="inline-flex items-center gap-1.5 text-neutral-400 text-[12.5px]">{I.clock}{timeLeft(m.closes_at)}</span>
+          </div>
+          <div className="flex gap-3 items-center">
+            <div className="w-[52px] h-[52px] rounded-xl bg-neutral-100 shrink-0 overflow-hidden">{m.image_url && <img src={m.image_url} alt="" className="w-full h-full object-cover" />}</div>
+            <div><div className="text-base font-bold">{m.product_name}</div>{spec && <div className="text-[12.5px] text-neutral-500 mt-0.5">{spec}</div>}</div>
+          </div>
+          <div className="flex gap-3 items-start rounded-2xl p-3.5 mt-4" style={{ background: t.secbg }}>
+            <span className="w-[38px] h-[38px] rounded-xl flex items-center justify-center text-white shrink-0" style={{ background: t.c }}>{I.shield}</span>
+            <div><h5 className="text-sm font-bold">Tu plaza está asegurada</h5><p className="text-[11.5px] text-neutral-600 mt-1 leading-snug">Tu pago está retenido de forma segura. Solo se cargará si el grupo alcanza el objetivo.</p></div>
+            <div className="ml-auto text-right shrink-0"><span className="text-xs font-bold rounded-lg px-2.5 py-1 bg-white inline-block" style={{ color: t.c, border: `1px solid ${t.bd}` }}>stripe</span><small className="block text-[10.5px] text-neutral-400 mt-1.5">Retención activa</small></div>
+          </div>
+          <div className="flex justify-between gap-2 mt-[18px]">
+            <div><div className="text-[11px] text-neutral-500">Mi compromiso</div><div className="text-[19px] font-extrabold mt-1 whitespace-nowrap">{fmt(d.commit)}</div></div>
+            <div className="text-center"><div className="text-[11px] text-neutral-500">Estado actual</div><div className="text-[19px] font-extrabold mt-1 whitespace-nowrap" style={{ color: '#0F9D58' }}>{fmt(d.cur)}</div>{saving > 0.005 && <div className="text-[11.5px] mt-0.5" style={{ color: '#0F9D58' }}>Estás ahorrando {fmt(saving)}</div>}</div>
+            <div className="text-right"><div className="text-[11px] text-neutral-500">Próximo objetivo</div><div className="text-[19px] font-extrabold mt-1 whitespace-nowrap">{d.nextObj != null ? fmt(d.nextObj) : '—'}</div><div className="text-[11.5px] text-neutral-500 mt-0.5">{d.nextObj != null ? `Faltan ${d.missing} uds` : 'Precio mínimo'}</div></div>
+          </div>
+          <div className="flex items-center mt-4"><div className="flex-1 h-1.5 rounded-full bg-neutral-200 overflow-hidden mr-1"><div className="h-full rounded-full" style={{ width: `${d.pct}%`, background: t.c }} /></div><span className="w-4 h-4 rounded-full bg-white shrink-0" style={{ border: `2.5px solid ${t.c}` }} /></div>
+          <div className="flex justify-between text-xs text-neutral-500 mt-2"><span>{d.currentUnits} / {d.target} uds</span><span>{d.pct}% completado</span></div>
+          <p className="text-[12.5px] text-neutral-500 mt-5 leading-relaxed">Cuantas más personas entren, antes se cierra el grupo y antes aseguras tu precio. Comparte tu enlace y baja el precio para todos.</p>
+        </div>
+        <div className="px-[22px] py-4 border-t border-neutral-100">
+          <button className="w-full rounded-xl py-3.5 text-[14.5px] font-bold text-white flex items-center justify-center gap-2" style={{ background: t.c }}>{I.share} Comparte con un amigo</button>
+        </div>
+      </>
+    )
+  }
+
+  // META ALCANZADA
+  if (d.state === 'meta') {
+    return (
+      <>
+        {head('Tu compra')}
+        <div className="px-[22px] py-5 overflow-y-auto flex-1">
+          <div className="flex gap-3 items-center mb-2">
+            <div className="w-[52px] h-[52px] rounded-xl bg-neutral-100 shrink-0 overflow-hidden">{m.image_url && <img src={m.image_url} alt="" className="w-full h-full object-cover" />}</div>
+            <div><div className="text-base font-bold">{m.product_name}</div>{spec && <div className="text-[12.5px] text-neutral-500 mt-0.5">{spec}</div>}</div>
+          </div>
+          <div className="border border-neutral-200 rounded-2xl p-4 mt-4">
+            <h4 className="text-[11px] font-bold uppercase tracking-wide text-neutral-500 mb-3">Confirmación de compra</h4>
+            <div className="flex justify-between text-[13.5px] py-1"><span className="text-neutral-600">Precio final</span><span className="font-semibold">{fmt(Number(m.final_price ?? m.guaranteed_price))}</span></div>
+            <div className="flex justify-between text-[13.5px] py-1"><span className="text-neutral-600">Unidades</span><span className="font-semibold">{m.quantity}</span></div>
+            <div className="flex justify-between text-[13.5px] py-1 border-t border-neutral-100 mt-2 pt-2.5"><span className="font-bold">Total</span><span className="font-bold">{fmt(Number(m.final_price ?? m.guaranteed_price) * m.quantity)}</span></div>
+          </div>
+          {!paid && m.payment_info && (
+            <div className="bg-orange-50 border border-orange-100 rounded-2xl px-4 py-3 mt-4"><p className="text-[11px] font-bold text-orange-700 mb-1 uppercase tracking-wide">Instrucciones de pago</p><p className="text-[12.5px] text-orange-900 whitespace-pre-line">{m.payment_info}</p></div>
+          )}
+        </div>
+        <div className="px-[22px] py-4 border-t border-neutral-100">
+          <Link href={`/grupo/${m.group_id}`} className="w-full rounded-xl py-3.5 text-[14.5px] font-bold text-white flex items-center justify-center" style={{ background: t.c }}>{paid ? 'Ver compra / Ticket' : 'Completar pago'}</Link>
+        </div>
+      </>
+    )
+  }
+
+  // NO ALCANZADO
+  return (
+    <>
+      {head('Devolución')}
+      <div className="px-[22px] py-5 overflow-y-auto flex-1">
+        <div className="flex gap-3 items-center mb-2">
+          <div className="w-[52px] h-[52px] rounded-xl bg-neutral-100 shrink-0 overflow-hidden">{m.image_url && <img src={m.image_url} alt="" className="w-full h-full object-cover" />}</div>
+          <div><div className="text-base font-bold">{m.product_name}</div>{spec && <div className="text-[12.5px] text-neutral-500 mt-0.5">{spec}</div>}</div>
+        </div>
+        <div className="flex gap-2.5 rounded-2xl p-3.5 mt-4 text-[12.5px] leading-relaxed" style={{ background: '#EFF6FF', color: '#1E3A8A' }}>
+          <span className="shrink-0">{I.shield}</span>
+          <span>La retención de <b>{fmt(d.commit)}</b> ha sido <b>anulada</b>. El fondo ya no está bloqueado y no se ha realizado ningún cargo.</span>
+        </div>
+        <div className="border border-neutral-200 rounded-2xl p-4 mt-4">
+          <h4 className="text-[11px] font-bold uppercase tracking-wide text-neutral-500 mb-2">Por qué no se alcanzó</h4>
+          <p className="text-[13px] text-neutral-600 leading-relaxed">El grupo no llegó al volumen mínimo a tiempo. Cuando esto pasa, nadie paga: es la garantía de Vonda.</p>
+        </div>
+      </div>
+      <div className="px-[22px] py-4 border-t border-neutral-100">
+        <Link href="/" className="w-full rounded-xl py-3.5 text-[14.5px] font-bold flex items-center justify-center bg-white" style={{ color: t.c, border: `1.5px solid ${t.bd}` }}>Explorar grupos similares</Link>
+      </div>
+    </>
+  )
+}
