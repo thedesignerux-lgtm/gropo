@@ -213,7 +213,7 @@ export function MgCard({ m, ladder, onOpen }: { m: Membership; ladder: LadderRow
       </div>
       <div className="flex justify-between text-[12.5px] mt-2 mb-3">
         <span className="text-neutral-500">{isOpen ? `${d.currentUnits} / ${d.target} uds en el grupo` : `${m.quantity} ud${m.quantity > 1 ? 's' : ''}`}</span>
-        <span className="font-bold" style={{ color: d.state === 'noalc' ? '#94A3B8' : t.c }}>{d.state === 'meta' ? 'Objetivo alcanzado' : d.state === 'noalc' ? 'Objetivo no alcanzado' : `Faltan ${d.missing} uds`}</span>
+        <span className="font-bold" style={{ color: d.state === 'noalc' ? '#94A3B8' : t.c }}>{d.state === 'meta' ? 'Objetivo alcanzado' : d.state === 'noalc' ? 'Objetivo no alcanzado' : d.nextObj == null ? 'Precio mínimo' : `Faltan ${d.missing} uds`}</span>
       </div>
       {/* estado / social */}
       <div className="flex items-center gap-2 mb-3.5 text-[12px] text-neutral-600">
