@@ -24,51 +24,35 @@ export default function HomeDesktopView({ products, favoriteIds = [] }: Props) {
   })
 
   return (
-    <div className="min-h-screen bg-[#FAFAFA]">
-      <header className="bg-white border-b border-neutral-100 sticky top-0 z-30">
-        <div className="max-w-[1400px] mx-auto px-6 h-16 flex items-center justify-between">
-          <a href="/" aria-label="Vonda - inicio">
-            <img src="/logo.png" alt="Vonda" className="h-8 w-auto" />
+    <div className="min-h-screen flex bg-[#FAFAFA]">
+      <HomeSidebar />
+
+      <div className="flex-1 min-w-0 flex flex-col">
+        <header className="sticky top-0 z-20 px-8 h-16 flex items-center gap-4" style={{ backgroundColor: 'rgba(250,250,250,0.85)', backdropFilter: 'blur(8px)' }}>
+          <div className="flex-1 max-w-md relative">
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Busca tu producto..."
+              className="w-full h-10 pl-10 pr-4 rounded-full border border-neutral-200 bg-white text-sm text-neutral-700 placeholder:text-neutral-400 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand"
+            />
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </div>
+
+          <CountdownChip />
+          <a href="/favoritos" className="relative text-neutral-500 hover:text-brand transition-colors" aria-label="Mi Radar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
+            </svg>
           </a>
+          <div className="w-9 h-9 rounded-full bg-brand flex items-center justify-center text-sm font-semibold text-white">V</div>
+        </header>
 
-          <div className="flex-1 max-w-md mx-8">
-            <div className="relative">
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Busca tu producto..."
-                className="w-full h-10 pl-10 pr-4 rounded-full border border-neutral-200 bg-white text-sm text-neutral-700 placeholder:text-neutral-400 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand"
-              />
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <CountdownChip />
-            <a href="/favoritos" className="relative text-neutral-500 hover:text-brand transition-colors" aria-label="Mi Radar">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
-              </svg>
-            </a>
-            <div className="flex items-center gap-2 cursor-pointer">
-              <div className="w-8 h-8 rounded-full bg-neutral-200 flex items-center justify-center text-xs font-semibold text-neutral-600">V</div>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-400">
-                <polyline points="6 9 12 15 18 9" />
-              </svg>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="max-w-[1400px] mx-auto px-6 py-6">
-        <div className="flex gap-8">
-          <HomeSidebar />
-
-          <main className="flex-1 min-w-0">
+        <main className="w-full max-w-[1320px] px-8 pb-6 pt-2">
             <div className="flex items-center justify-between mb-5">
               <div className="flex items-center gap-3">
                 <h1 className="text-2xl font-bold text-neutral-900">Grupos abiertos</h1>
@@ -143,7 +127,7 @@ export default function HomeDesktopView({ products, favoriteIds = [] }: Props) {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 xl:grid-cols-4 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
               {filtered.length === 0 ? (
                 <div className="col-span-full py-16 text-center">
                   <p className="text-neutral-400">
@@ -199,8 +183,7 @@ export default function HomeDesktopView({ products, favoriteIds = [] }: Props) {
                 </div>
               </div>
             </div>
-          </main>
-        </div>
+        </main>
       </div>
     </div>
   )

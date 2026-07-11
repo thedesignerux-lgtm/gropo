@@ -15,7 +15,13 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { Resend } from 'resend';
 import { joinConfirmationEmail } from '@/lib/emails/joinConfirmation';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Instanciación perezosa: NO crear el cliente al importar el módulo (rompe `next build`
+// en "collecting page data" si falta la key). Se crea en runtime, al enviar el email.
+let _resend: Resend | null = null;
+function getResend(): Resend {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY);
+  return _resend;
+}
 const FROM = process.env.RESEND_FROM ?? 'Vonda <no-reply@vonda.es>';
 
 // El SDK de Stripe necesita Node, no Edge.
@@ -129,7 +135,7 @@ export async function POST(req: Request) {
             closesAt: group.closes_at,
           });
 
-          await resend.emails.send({
+          await getResend().emails.send({
             from: FROM,
             to: m.buyer_email,
             subject: emailData.subject,

@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>El Ticket — Prototipo mobile</title>
+<style>
+  :root{
+    --brand:#6C3CE1; --brand-fill:#7C3AED; --brand-dark:#5B2FC7;
+    --ink:#0f172a; --muted:#64748b; --line:#eef0f4; --bg:#EEF0F6;
+    --green:#059669; --green-bg:#ECFDF5; --orange:#EA580C; --orange-bg:#FFF7ED;
+    --red:#DC2626; --red-bg:#FEF2F2;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);-webkit-font-smoothing:antialiased}
+  .page{max-width:1180px;margin:0 auto;padding:28px 20px 60px}
+  h1.title{font-size:20px;font-weight:800;margin:0 0 4px}
+  p.sub{margin:0 0 24px;color:var(--muted);font-size:14px}
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:26px}
+  @media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:620px){.grid{grid-template-columns:1fr}}
+  .frame-label{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:0 0 10px}
+  /* phone */
+  .phone{background:#fff;border-radius:26px;box-shadow:0 10px 34px rgba(15,23,42,.10);overflow:hidden;border:1px solid #e7e9f0}
+  .scr{padding:16px 16px 18px}
+  .row{display:flex}.between{justify-content:space-between}.center{align-items:center}
+  .grab{width:38px;height:5px;border-radius:9999px;background:#e2e5ec;margin:8px auto 4px}
+  /* ticket shell */
+  .ticket{position:relative;background:#fff;border:1px solid var(--line);border-radius:20px;padding:0;overflow:hidden}
+  .ticket .notch-l,.ticket .notch-r{position:absolute;width:20px;height:20px;background:var(--bg);border-radius:50%;top:var(--ny,214px)}
+  .ticket .notch-l{left:-11px}.ticket .notch-r{right:-11px}
+  .perf{border-top:2px dashed #e5e8ef;margin:0 14px}
+  .pad{padding:14px 16px}
+  .brandbar{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 4px}
+  .logo{display:flex;align-items:center;gap:7px;font-weight:800;font-size:16px;color:var(--ink)}
+  .logo svg{color:var(--brand)}
+  .x{color:#b9bfca}
+  .prod{display:flex;gap:12px;padding:6px 16px 14px}
+  .prod img,.thumb{width:64px;height:64px;border-radius:12px;object-fit:cover;flex:none;background:#f1f2f6}
+  .pname{font-weight:700;font-size:15px;line-height:1.2}
+  .pspec{color:var(--muted);font-size:12px;margin-top:3px;line-height:1.3}
+  .lbl{font-size:11px;font-weight:700;letter-spacing:.05em;color:var(--muted);text-transform:uppercase}
+  .lbl .soft{color:#9aa2af;font-weight:500;text-transform:none;letter-spacing:0}
+  .price-max{font-size:30px;font-weight:800;color:var(--brand);line-height:1;margin-top:4px}
+  .infobox{display:flex;gap:9px;background:var(--green-bg);border-radius:12px;padding:11px 12px;margin-top:12px}
+  .infobox svg{color:var(--green);flex:none;margin-top:1px}
+  .infobox p{margin:0;font-size:12.5px;color:#334155;line-height:1.35}
+  .infobox b{color:var(--green)}
+  .wavewrap{position:relative;height:56px;margin:8px 0 4px}
+  .price-line{display:flex;justify-content:space-between;font-size:12.5px;margin-top:2px}
+  .price-line .cur{color:#334155;font-weight:600}
+  .price-line .nxt b{color:var(--green)}
+  .faltan{display:flex;gap:8px;background:var(--orange-bg);border-radius:11px;padding:9px 11px;margin-top:10px}
+  .faltan svg{color:var(--orange);flex:none;margin-top:1px}
+  .faltan p{margin:0;font-size:12px;color:#9a3412;font-weight:600;line-height:1.3}
+  .field{display:flex;align-items:center;justify-content:space-between;margin-top:6px}
+  .field .k{font-size:11px;font-weight:700;letter-spacing:.05em;color:var(--muted);text-transform:uppercase}
+  .field .edit{color:var(--brand);font-size:13px;font-weight:600}
+  .addr{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:#334155;margin-top:3px}
+  .addr svg{color:#94a3b8;flex:none;margin-top:1px}
+  .pay{display:flex;align-items:center;gap:8px;font-size:13px;color:#334155;margin-top:3px}
+  .applepay{display:inline-flex;align-items:center;gap:3px;background:#000;color:#fff;border-radius:6px;padding:3px 8px;font-size:12px;font-weight:600}
+  .stepper{display:inline-flex;align-items:center;border:1px solid #e3e6ec;border-radius:11px;overflow:hidden}
+  .stepper button{width:40px;height:38px;border:0;background:#fff;font-size:18px;color:#334155}
+  .stepper span{width:64px;text-align:center;font-weight:600;font-size:14px}
+  .cta{display:block;width:100%;border:0;border-radius:13px;padding:14px;font-size:14.5px;font-weight:700;color:#fff;background:var(--brand);text-align:center;margin-top:14px}
+  .cta.ghost{background:#fff;color:var(--brand);border:1.5px solid #ddd6fe}
+  .foot-note{display:flex;align-items:center;gap:6px;justify-content:center;font-size:11.5px;color:var(--muted);margin-top:10px}
+  .foot-note svg{color:#94a3b8}
+  /* status cards */
+  .verify{display:flex;gap:11px;align-items:center;background:#f5f3ff;border:1px solid #e9e4ff;border-radius:14px;padding:13px 14px;margin-top:14px}
+  .verify .ic{width:34px;height:34px;border-radius:9px;background:#ede9fe;display:flex;align-items:center;justify-content:center;color:var(--brand);flex:none}
+  .verify p{margin:0;font-size:12.5px;line-height:1.35}.verify .t{font-weight:700}.verify .s{color:var(--muted)}
+  .scan{height:2px;background:linear-gradient(90deg,transparent,var(--brand),transparent);border-radius:2px;margin-top:8px;animation:scan 1.4s ease-in-out infinite}
+  @keyframes scan{0%{opacity:.3;transform:translateX(-30%)}50%{opacity:1}100%{opacity:.3;transform:translateX(30%)}}
+  .secured{display:flex;gap:11px;align-items:flex-start;background:var(--green-bg);border:1px solid #bbf7d0;border-radius:14px;padding:13px 14px;margin-top:14px}
+  .secured .ck{width:34px;height:34px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;color:#fff;flex:none}
+  .secured p{margin:0;font-size:12.5px;line-height:1.4}.secured .t{font-weight:800;font-size:14px}.secured .s{color:#047857}.secured .c{color:var(--green);font-weight:600;margin-top:3px}
+  /* full screens */
+  .full{text-align:center;padding:24px 18px}
+  .badge-lg{width:66px;height:66px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#fff;margin:6px 0 14px}
+  .badge-lg.g{background:var(--green)}.badge-lg.r{background:var(--red)}
+  .full h2{margin:0;font-size:21px;font-weight:800}
+  .full .lead{color:var(--muted);font-size:13.5px;margin:6px 0 0;line-height:1.4}
+  .center-price{margin:18px 0 0}
+  .alert{display:flex;gap:9px;text-align:left;background:var(--red-bg);border:1px solid #fecaca;border-radius:12px;padding:11px 12px;margin-top:16px}
+  .alert svg{color:var(--red);flex:none;margin-top:1px}
+  .alert p{margin:0;font-size:12.5px;color:#7f1d1d;line-height:1.35}.alert b{color:var(--red)}
+  .help-box{display:flex;gap:9px;text-align:left;background:#f5f3ff;border-radius:12px;padding:12px;margin-top:16px}
+  .help-box svg{color:var(--brand);flex:none;margin-top:1px}.help-box p{margin:0;font-size:12.5px;color:#4c1d95;line-height:1.4}
+  .mini-next{display:flex;align-items:center;justify-content:space-between;margin-top:18px;gap:10px}
+  .mini-next .l{font-size:12.5px;color:#334155}.mini-next .l b{color:var(--ink)}
+  .mini-next .r{text-align:right}.mini-next .r .k{font-size:11px;color:var(--muted)}.mini-next .r .v{color:var(--green);font-weight:800;font-size:15px}
+  /* radar card */
+  .radar-head{display:flex;align-items:center;gap:8px;margin:2px 2px 12px}
+  .radar-head h2{margin:0;font-size:19px;font-weight:800}
+  .pill{background:#ede9fe;color:var(--brand);font-size:11px;font-weight:700;border-radius:9999px;padding:3px 9px}
+  .rcard{border:1.5px solid #e6e2f7;border-radius:18px;padding:14px}
+  .locked-badge{display:inline-flex;align-items:center;gap:5px;background:var(--green-bg);color:var(--green);font-size:12px;font-weight:700;border-radius:9999px;padding:4px 10px}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+  .two .cell{border:1px solid var(--line);border-radius:12px;padding:9px 11px}
+  .two .cell .k{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)}
+  .two .cell .v{font-weight:800;font-size:16px;margin-top:2px}
+  .two .cell.max .v{color:var(--brand)}.two .cell.nxt .v{color:var(--green)}
+  .meta{display:flex;align-items:center;gap:8px;font-size:12.5px;color:#475569;margin-top:11px}
+  .meta svg{color:#94a3b8}
+</style>
+</head>
+<body>
+<div class="page">
+  <h1 class="title">El Ticket · Prototipo mobile</h1>
+  <p class="sub">6 estados del mockup, con La Ola real embebida (perfil random-walk orgánico). Fidelidad de revisión — colores, jerarquía y copy del briefing.</p>
+
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+/* ===== La Ola (port exacto del componente) ===== */
+const OLA={
+ brand:{fill:'#7C3AED',fillEnd:'#DDD6FE',stroke:'#6C3CE1',bgFill:'#F5F3FF',dot:'#6C3CE1',halo:'rgba(108,60,225,0.12)'},
+ green:{fill:'#059669',fillEnd:'#A7F3D0',stroke:'#047857',bgFill:'#ECFDF5',dot:'#059669',halo:'rgba(5,150,105,0.12)'},
+};
+function hash(s){let h=5381;for(let i=0;i<s.length;i++)h=((h<<5)+h+s.charCodeAt(i))|0;return h>>>0}
+function lcg(seed){let s=seed||1;return()=>{s=(s*1664525+1013904223)>>>0;return s/4294967296}}
+function makeProfile(seed){const rand=lcg(hash(seed||'wave'));const N=8;const out=[];let v=0.28+rand()*0.44;let vel=(rand()-0.5)*0.38;
+ for(let i=0;i<N;i++){out.push(v);vel+=(rand()-0.5)*0.34;vel+=(0.5-v)*0.07;vel*=0.74;v+=vel;if(v<0.14){v=0.14;vel=Math.abs(vel)*0.6}if(v>0.86){v=0.86;vel=-Math.abs(vel)*0.6}}return out}
+function curvePath(pts){if(pts.length<2)return'';const n=pts.length,r=v=>v.toFixed(1);let d=`M${r(pts[0][0])},${r(pts[0][1])}`;
+ for(let i=0;i<n-1;i++){const p0=pts[Math.max(0,i-1)],p1=pts[i],p2=pts[i+1],p3=pts[Math.min(n-1,i+2)];
+ const c1x=p1[0]+(p2[0]-p0[0])/6,c1y=p1[1]+(p2[1]-p0[1])/6,c2x=p2[0]-(p3[0]-p1[0])/6,c2y=p2[1]-(p3[1]-p1[1])/6;
+ d+=`C${r(c1x)},${r(c1y)},${r(c2x)},${r(c2y)},${r(p2[0])},${r(p2[1])}`}return d}
+function lerpY(pts,x){if(x<=pts[0][0])return pts[0][1];if(x>=pts[pts.length-1][0])return pts[pts.length-1][1];
+ for(let i=0;i<pts.length-1;i++){if(x<=pts[i+1][0]){const t=(x-pts[i][0])/(pts[i+1][0]-pts[i][0]);return pts[i][1]+t*(pts[i+1][1]-pts[i][1])}}return pts[pts.length-1][1]}
+let U=0;
+function ola(seed,scheme,ratio,h){h=h||56;const c=OLA[scheme],W=200,H=h,PAD=H*0.10,AMP=H*0.68;
+ const pts=makeProfile(seed).map((y,i)=>[(i/7)*W,PAD+y*AMP]);
+ const bg=curvePath(pts)+`L${W},${H}L0,${H}Z`;
+ const cx=ratio*W;const cl=pts.filter(([x])=>x<=cx+0.5);if(ratio>0&&ratio<1)cl.push([cx,lerpY(pts,cx)]);
+ const fl=cl.length>=2?curvePath(cl):'';const fa=fl?fl+`L${cl[cl.length-1][0].toFixed(1)},${H}L0,${H}Z`:'';
+ const dl=ratio*100,dt=ratio>0?(lerpY(pts,cx)/H)*100:0;const id=U++;
+ return `<div style="position:relative;width:100%;height:${H}px">
+  <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" style="position:absolute;inset:0;width:100%;height:100%">
+   <defs><linearGradient id="wf${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${c.fill}" stop-opacity=".8"/><stop offset="100%" stop-color="${c.fillEnd}" stop-opacity=".08"/></linearGradient>
+   <linearGradient id="wb${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${c.bgFill}" stop-opacity=".7"/><stop offset="100%" stop-color="${c.bgFill}" stop-opacity=".15"/></linearGradient></defs>
+   <path d="${bg}" fill="url(#wb${id})"/>${fa?`<path d="${fa}" fill="url(#wf${id})"/>`:''}${fl?`<path d="${fl}" fill="none" stroke="${c.stroke}" stroke-width="1.5" stroke-linecap="round" opacity=".5"/>`:''}
+  </svg>
+  ${ratio>0&&ratio<1?`<div style="position:absolute;left:${dl}%;top:${dt}%;width:11px;height:11px;border-radius:50%;background:#fff;transform:translate(-50%,-50%);border:2.5px solid ${c.dot};box-shadow:0 0 0 3px ${c.halo}"></div>`:''}
+ </div>`}
+
+/* ===== SVG icon helpers ===== */
+const LOGO='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M3 13c3 0 3-5 6-5s3 5 6 5 3-5 6-5"/><path d="M3 18c3 0 3-4 6-4s3 4 6 4 3-4 6-4"/></svg>';
+const X='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>';
+const DOWN='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>';
+const PIN='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="2.5"/></svg>';
+const FLAME='<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2c1 3 3.5 5 6 6-1 4-3 7-6 10-3-3-5-6-6-10 2.5-1 5-3 6-6z"/></svg>';
+const LOCK='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+const CK='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+const XR='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="6" y1="6" x2="18" y2="18"/><line x1="18" y1="6" x2="6" y2="18"/></svg>';
+const BELL='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>';
+const CLOCK='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>';
+const USERS='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>';
+const SCAN='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M17 3h2a2 2 0 0 1 2 2v2M21 17v2a2 2 0 0 1-2 2h-2M7 21H5a2 2 0 0 1-2-2v-2"/></svg>';
+const APAY='<span class="applepay"><svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><path d="M16 3c-1 .1-2.2.7-2.9 1.5-.6.7-1.2 1.8-1 2.9 1.1.1 2.2-.6 2.9-1.4.6-.8 1.1-1.9 1-3z"/><path d="M19.5 16.5c-.4 1-.6 1.4-1.1 2.3-.7 1.2-1.7 2.7-2.9 2.7-1.1 0-1.4-.7-2.9-.7s-1.9.7-2.9.7c-1.2 0-2.1-1.3-2.8-2.5-2-3-2.2-6.6-1-8.5.9-1.4 2.2-2.2 3.5-2.2 1.3 0 2.1.7 3.2.7 1 0 1.7-.7 3.2-.7 1.1 0 2.3.6 3.2 1.7-2.8 1.5-2.3 5.4.2 6.5z"/></svg>Pay</span>';
+
+/* ===== reusable blocks ===== */
+function head(){return `<div class="brandbar"><div class="logo">${LOGO}<span>Vonda</span></div><div class="x">${X}</div></div>`}
+function prod(){return `<div class="prod"><div class="thumb"></div><div><div class="pname">Continental GP5000 S TR</div><div class="pspec">700x25 · Tubeless Ready<br>Carretera</div></div></div>`}
+function priceMax(){return `<div class="pad" style="padding-top:12px;padding-bottom:0"><div class="lbl">Precio máximo <span class="soft">(nunca pagarás más)</span></div><div class="price-max">41,90 €</div>`}
+function greenInfo(){return `<div class="infobox">${DOWN.replace('15','16').replace('15','16')}<p>Si el grupo baja antes del cierre, pagarás automáticamente <b>el precio más bajo</b>.</p></div>`}
+function estado(scheme,ratio,extra){return `<div style="margin-top:14px"><div class="row between center"><div class="lbl">Estado del grupo</div><div class="lbl soft">10 / 15 uds</div></div>
+  <div class="wavewrap">${ola('cont-'+scheme,scheme,ratio,56)}</div>
+  <div class="price-line"><span class="cur">Actual: 41,90 €</span><span class="nxt">Próximo: <b>38,90 €</b></span></div>${extra||''}</div>`}
+function faltan(){return `<div class="faltan">${FLAME}<p>Solo faltan 5 unidades<br>para bajar a 38,90 €</p></div>`}
+function envio(){return `<div style="margin-top:14px"><div class="field"><span class="k">Envío</span><span class="edit">Editar</span></div><div class="addr">${PIN}<span>C/ Falsa 123, 2ºD<br>28080 Madrid, España</span></div></div>`}
+function pago(){return `<div style="margin-top:12px"><div class="field"><span class="k">Pago</span><span class="edit">Editar</span></div><div class="pay">${APAY}<span style="color:#94a3b8">····</span> 1234</div></div>`}
+
+/* ===== frames ===== */
+const frames=[
+{label:'1 · Pre-bloqueo (ticket)', html:`
+  <div class="phone"><div class="grab"></div>
+   <div class="ticket" style="margin:6px 10px 12px">
+     <div class="notch-l"></div><div class="notch-r"></div>
+     ${head()}${prod()}
+     <div class="perf"></div>
+     ${priceMax()}${greenInfo()}${estado('brand',0.55)}${faltan()}
+     <div style="margin-top:14px"><div class="lbl" style="margin-bottom:6px">Tu pedido</div>
+       <div class="row between center"><span style="font-size:13px;color:#475569">Cantidad</span>
+       <span class="stepper"><button>−</button><span>1 unidad</span><button>+</button></span></div></div>
+     ${envio()}${pago()}
+     <button class="cta">BLOQUEAR PRECIO MÁXIMO: 41,90 €</button>
+     <div class="foot-note">${LOCK} Cero cargos hoy. Solo al cerrar el grupo.</div>
+     </div>
+   </div></div>`},
+{label:'2 · Verificando plaza', html:`
+  <div class="phone"><div class="grab"></div>
+   <div class="ticket" style="margin:6px 10px 12px">
+     <div class="notch-l"></div><div class="notch-r"></div>
+     ${head()}${prod()}<div class="perf"></div>
+     ${priceMax()}${greenInfo()}${estado('brand',0.55)}${faltan()}
+     ${envio()}${pago()}
+     <div class="verify"><div class="ic">${SCAN}</div><div><p class="t">Verificando plaza…</p><p class="s">Bloqueando tu precio máximo</p><p class="s">Espera unos segundos</p><div class="scan"></div></div></div>
+     </div>
+   </div></div>`},
+{label:'3 · Plaza asegurada (inline)', html:`
+  <div class="phone"><div class="grab"></div>
+   <div class="ticket" style="margin:6px 10px 12px">
+     <div class="notch-l"></div><div class="notch-r"></div>
+     ${head()}${prod()}<div class="perf"></div>
+     ${priceMax()}${greenInfo()}${estado('brand',0.68)}
+     ${envio()}${pago()}
+     <div class="secured"><div class="ck">${CK}</div><div><p class="t">¡Plaza asegurada!</p><p class="s">Tu precio máximo ha sido bloqueado con éxito.</p><p class="c">Cerrando en 2 segundos…</p></div></div>
+     </div>
+   </div></div>`},
+{label:'4 · Confirmación (full)', html:`
+  <div class="phone"><div class="grab"></div>
+   <div class="scr full">
+     <div class="badge-lg g">${CK.replace(/18/g,'26')}</div>
+     <h2>¡Plaza asegurada!</h2><p class="lead">Ya formas parte del grupo.</p>
+     <div class="center-price"><div class="lbl">Precio máximo bloqueado</div><div class="price-max" style="margin:6px auto 0">41,90 €</div></div>
+     <div style="margin-top:14px">${greenInfo()}</div>
+     <div class="mini-next"><div class="l"><b>Quedan 5 uds</b><br>para bajar a 38,90 €</div>
+       <div class="r"><div class="k">Próximo precio</div><div class="v">38,90 €</div></div></div>
+     <div class="wavewrap" style="height:44px;margin-top:8px">${ola('confirm','brand',0.68,44)}</div>
+     <div class="help-box">${USERS}<p>Ya estás ayudando a desbloquear el siguiente precio para todos.</p></div>
+     <div class="foot-note" style="margin-top:18px">${BELL} Te avisaremos de cualquier cambio.</div>
+   </div></div>`},
+{label:'5 · Acción requerida (error)', html:`
+  <div class="phone"><div class="grab"></div>
+   <div class="scr full">
+     <div class="badge-lg r">${XR}</div>
+     <h2>No se pudo bloquear<br>tu precio</h2><p class="lead">Hubo un problema con tu método de pago.</p>
+     <div class="alert"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="8" x2="12" y2="13"/><line x1="12" y1="16.5" x2="12" y2="16.5"/><circle cx="12" cy="12" r="9"/></svg><p><b>Tarjeta rechazada</b><br>Comprueba que los datos sean correctos o usa otro método de pago.</p></div>
+     <div style="text-align:left">${envio()}${pago()}</div>
+     <button class="cta" style="margin-top:18px">Intentar de nuevo</button>
+     <button class="cta ghost">Cambiar método de pago</button>
+   </div></div>`},
+{label:'6 · Radar · precio bloqueado', html:`
+  <div class="phone"><div class="scr">
+     <div class="radar-head"><h2>Mi Radar</h2><span class="pill">12 oportunidades</span></div>
+     <div class="rcard">
+       <div class="row between center"><span class="locked-badge">${LOCK} Precio bloqueado</span><span style="color:#b9bfca">${BELL}</span></div>
+       <div class="prod" style="padding:12px 0 4px"><div class="thumb"></div><div><div class="pname">Continental GP5000 S TR</div><div class="pspec">700x25 · Carretera</div></div></div>
+       <div class="wavewrap" style="margin-top:6px">${ola('radar','brand',0.66,52)}</div>
+       <div class="price-line" style="font-size:13px"><span class="cur">Actual: 41,90 €</span><span class="nxt">Próximo: <b>38,90 €</b></span></div>
+       <div class="two">
+         <div class="cell max"><div class="k">${LOCK} Máximo bloqueado</div><div class="v">41,90 €</div></div>
+         <div class="cell nxt"><div class="k">${CLOCK} Puede bajar a</div><div class="v">38,90 €</div></div>
+       </div>
+       <div class="meta">${USERS} Entraron 3 compradores hoy</div>
+       <div class="meta">${CLOCK} Cierra en 2d 14h</div>
+       <button class="cta ghost" style="margin-top:14px">Gestionar reserva</button>
+     </div>
+   </div></div>`},
+];
+
+const grid=document.getElementById('grid');
+grid.innerHTML=frames.map(f=>`<div><p class="frame-label">${f.label}</p>${f.html}</div>`).join('');
+</script>
+</body>
+</html>

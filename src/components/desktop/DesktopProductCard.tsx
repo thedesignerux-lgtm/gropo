@@ -1,15 +1,29 @@
 import Link from 'next/link'
 import type { GroupProduct } from '@/lib/mock-data'
-import { getStepPricing, getActivationState, getMilestones } from '@/lib/mock-data'
+import { getStepPricing, getActivationState } from '@/lib/mock-data'
 import FavoriteButton from '@/components/FavoriteButton'
-import WaveProgress from '@/components/WaveProgress'
 
 function fmt(price: number): string {
-  return price.toFixed(2).replace('.', ',') + ' €'
+  return (price % 1 === 0 ? String(price) : price.toFixed(2).replace('.', ',')) + ' €'
 }
 
-function fmtSmart(price: number): string {
-  return (price % 1 === 0 ? String(price) : price.toFixed(2).replace('.', ',')) + ' €'
+type Category = 'hot' | 'dropping' | 'complete'
+
+const THEME: Record<Category, { color: string; border: string; badgeBg: string; badgeTx: string }> = {
+  hot: { color: '#F0531F', border: '#FCD9C6', badgeBg: '#FDEBE3', badgeTx: '#C2410C' },
+  dropping: { color: '#6C3CE1', border: '#DDD3FB', badgeBg: '#EDE9FE', badgeTx: '#6D28D9' },
+  complete: { color: '#0F9D58', border: '#BBF0D8', badgeBg: '#E7F7EF', badgeTx: '#0B7B44' },
+}
+
+function countdown(closesAt?: string): string | null {
+  if (!closesAt) return null
+  const diff = new Date(closesAt).getTime() - Date.now()
+  if (diff <= 0) return 'Cierra pronto'
+  const d = Math.floor(diff / 86400000)
+  const h = Math.floor((diff % 86400000) / 3600000)
+  const m = Math.floor((diff % 3600000) / 60000)
+  if (d > 0) return `${d}d ${String(h).padStart(2, '0')}h restantes`
+  return `${h}h ${String(m).padStart(2, '0')}m restantes`
 }
 
 interface Props {
@@ -18,153 +32,137 @@ interface Props {
 }
 
 export default function DesktopProductCard({ product, isFavorited = false }: Props) {
-  const { currentPrice } = getStepPricing(product.tiers, product.currentUnits)
-  const { activated, unitsToActivate, nextTier, unitsToNext } =
-    getActivationState(product.tiers, product.currentUnits, product.minExecution)
-  const milestones = getMilestones(product.tiers, product.minExecution)
-
-  const discount = product.pvp > 0 ? Math.round(((product.pvp - currentPrice) / product.pvp) * 100) : 0
+  const { currentPrice, nextTier, unitsToNext } = getStepPricing(product.tiers, product.currentUnits)
+  const { activated } = getActivationState(product.tiers, product.currentUnits, product.minExecution)
   const isComplete = activated && !nextTier
-  const savingsPerPerson = nextTier ? currentPrice - nextTier.price : 0
+  const hoursLeft = product.closesAt ? Math.max(0, (new Date(product.closesAt).getTime() - Date.now()) / 3600000) : null
 
-  const progressTarget = !activated
-    ? product.minExecution
-    : nextTier ? nextTier.minUnits : product.currentUnits
+  const category: Category = isComplete
+    ? 'complete'
+    : nextTier && (unitsToNext <= 5 || (hoursLeft != null && hoursLeft < 48))
+      ? 'hot'
+      : 'dropping'
+  const t = THEME[category]
+
+  const target = nextTier ? nextTier.minUnits : activated ? product.currentUnits : product.minExecution
+  const toPrice = nextTier ? nextTier.price : product.tiers[0].price
+  const missing = nextTier ? unitsToNext : Math.max(0, product.minExecution - product.currentUnits)
+  const pct = target > 0 ? Math.min(100, Math.round((product.currentUnits / target) * 100)) : 100
+  const timeLabel = countdown(product.closesAt)
 
   return (
     <Link
       href={`/grupo/${product.id}`}
-      className={`group flex flex-col rounded-2xl overflow-hidden bg-white border-2 transition-all hover:shadow-md ${
-        isComplete ? 'border-brand-green' : 'border-neutral-100 hover:border-neutral-200'
-      }`}
+      className="group flex flex-col rounded-2xl bg-white border-2 p-4 transition-all hover:shadow-lg hover:-translate-y-0.5 motion-reduce:transition-none"
+      style={{ borderColor: t.border }}
     >
-      {isComplete && (
-        <div className="bg-brand-green/10 px-3 py-2 flex items-center gap-2">
-          <span className="text-brand-green text-xs font-bold uppercase tracking-wide">
-            ¡PRECIO MÍNIMO ALCANZADO!
+      {/* Header: badge + countdown + kebab */}
+      <div className="flex items-start justify-between gap-2">
+        <span className="inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-2.5 py-1" style={{ backgroundColor: t.badgeBg, color: t.badgeTx }}>
+          {category === 'hot' && <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c1 3-1 4-1 6a3 3 0 006 0c2 3 1 6-1 8a5 5 0 01-9-3c0-2 2-3 2-5 0 0 3 1 4-6z" /></svg>}
+          {category === 'dropping' && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6" /></svg>}
+          {category === 'complete' && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true"><path d="M5 12l5 5 9-11" /></svg>}
+          {category === 'hot' ? `Faltan ${missing} unidades` : category === 'dropping' ? 'Bajando de precio' : 'Meta alcanzada'}
+        </span>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {timeLabel && (
+            <span className="inline-flex items-center gap-1 text-[11px] text-neutral-400 font-medium">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="12" cy="12" r="9" /><path d="M12 8v4l3 2" /></svg>
+              {timeLabel}
+            </span>
+          )}
+          <span className="text-neutral-300" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="12" cy="19" r="2" /></svg>
           </span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-brand-green ml-auto">
-            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-            <polyline points="22 4 12 14.01 9 11.01" />
-          </svg>
         </div>
-      )}
-
-      <div className="relative aspect-square w-full overflow-hidden bg-[#F5F5F5]">
-        {product.imageUrl ? (
-          <img src={product.imageUrl} alt={product.name} className="absolute inset-0 w-full h-full object-cover" />
-        ) : (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300">
-              <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-              <circle cx="8.5" cy="8.5" r="1.5" />
-              <polyline points="21 15 16 10 5 21" />
-            </svg>
-          </div>
-        )}
-
-        <div className="absolute top-2.5 left-2.5 flex items-center gap-1 bg-white/90 backdrop-blur-sm rounded-full px-2 py-1 text-[11px] font-semibold text-neutral-600 shadow-sm">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-          </svg>
-          {product.currentUnits} / {progressTarget} uds
-        </div>
-
-        <div className="absolute top-2.5 right-2.5">
-          <FavoriteButton
-            groupId={product.id}
-            initialFavorited={isFavorited}
-            size={16}
-            className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm shadow-sm"
-          />
-        </div>
-
-        {product.pvp > 0 && discount > 0 && (
-          <div className="absolute bottom-2.5 right-2.5 bg-brand text-white rounded-full px-2.5 py-1 text-xs font-bold shadow-sm">
-            −{discount}%
-          </div>
-        )}
       </div>
 
-      <div className="flex flex-col gap-2 p-3.5 flex-1">
-        <h3 className="font-bold text-neutral-900 text-sm leading-tight line-clamp-2">
-          {product.name}
-        </h3>
-        {product.variant && (
-          <p className="text-xs text-neutral-400 leading-tight">{product.variant}</p>
-        )}
+      {/* Product */}
+      <div className="flex gap-3 items-start mt-3">
+        <div className="w-[68px] h-[68px] rounded-xl bg-neutral-100 shrink-0 overflow-hidden flex items-center justify-center">
+          {product.imageUrl
+            ? <img src={product.imageUrl} alt="" className="w-full h-full object-cover" />
+            : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-neutral-300" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>}
+        </div>
+        <div className="min-w-0 pt-0.5">
+          <h3 className="text-[15px] font-bold text-neutral-900 leading-tight line-clamp-2">{product.name}</h3>
+          {product.variant && <p className="text-xs text-neutral-500 mt-1 leading-snug">{product.variant}</p>}
+        </div>
+      </div>
 
-        <div className="flex items-baseline gap-2 flex-wrap">
-          <span className={`text-lg font-bold ${activated ? 'text-brand' : 'text-neutral-900'}`}>
-            {fmt(currentPrice)}
-          </span>
-          {product.pvp > 0 && (
-            <span className="text-xs text-neutral-400 line-through">{fmt(product.pvp)}</span>
+      {/* Prices */}
+      <div className="flex justify-between items-end mt-4 mb-2.5">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-neutral-400">Precio actual</p>
+          <p className="text-[19px] font-extrabold text-neutral-900 tabular-nums mt-0.5">{fmt(currentPrice)}</p>
+        </div>
+        <div className="text-right">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-neutral-400">{isComplete ? 'Precio final' : 'Siguiente precio'}</p>
+          <p className="text-[19px] font-extrabold tabular-nums mt-0.5" style={{ color: t.color }}>{fmt(isComplete ? currentPrice : toPrice)}</p>
+        </div>
+      </div>
+
+      {/* Progress bar (relleno + círculo objetivo) */}
+      <div className="relative h-[18px] flex items-center">
+        <div className="flex-1 h-1.5 rounded-full bg-neutral-200 overflow-hidden mr-1">
+          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: t.color }} />
+        </div>
+        <span
+          className="w-[18px] h-[18px] rounded-full flex items-center justify-center shrink-0"
+          style={{ background: isComplete ? t.color : '#fff', border: `2.5px solid ${t.color}` }}
+        >
+          {isComplete && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" aria-hidden="true"><path d="M5 12l5 5 9-11" /></svg>}
+        </span>
+      </div>
+
+      {/* Progreso: texto único (sin "X/Y uds", regla de oro) */}
+      <p className="text-[13px] text-neutral-700 mt-2.5">
+        {isComplete ? (
+          <span className="font-semibold" style={{ color: t.color }}>¡Rebaja máxima alcanzada!</span>
+        ) : (
+          <>Faltan <b style={{ color: t.color }}>{missing} unidades</b> para bajar a <b style={{ color: t.color }}>{fmt(toPrice)}</b>.</>
+        )}
+      </p>
+
+      {/* Social: avatares + actividad */}
+      <div className="flex items-center justify-between mt-3">
+        <div className="flex -space-x-1.5" role="group" aria-label={`${product.currentUnits} personas en el grupo`}>
+          {Array.from({ length: Math.min(3, Math.max(1, product.currentUnits)) }).map((_, i) => (
+            <div key={i} aria-hidden="true" className="w-6 h-6 rounded-full bg-neutral-200 border-2 border-white flex items-center justify-center text-[9px] font-bold text-neutral-500">
+              {String.fromCharCode(65 + i)}
+            </div>
+          ))}
+          {product.currentUnits > 3 && (
+            <div aria-hidden="true" className="w-6 h-6 rounded-full bg-neutral-100 border-2 border-white flex items-center justify-center text-[9px] font-bold text-neutral-500">+{product.currentUnits - 3}</div>
           )}
         </div>
-
-        <div>
-          <WaveProgress current={product.currentUnits} max={progressTarget} height={20} />
-          <div className="flex justify-end text-[10px] text-neutral-400 mt-1">
-            {product.currentUnits} / {progressTarget} uds
-          </div>
-        </div>
-
-        <div className="flex items-start gap-2 rounded-xl bg-brand/5 px-3 py-2.5 mt-auto">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-brand flex-shrink-0 mt-0.5">
-            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-            <polyline points="17 6 23 6 23 12" />
-          </svg>
-          <div>
-            <span className="text-xs text-brand font-semibold leading-tight block">
-              {!activated
-                ? `${unitsToActivate} más personas → ${fmtSmart(product.tiers[0].price)}`
-                : nextTier
-                ? `${unitsToNext} más personas → ${fmtSmart(nextTier.price)}`
-                : '¡Precio mínimo alcanzado!'}
-            </span>
-            {nextTier && savingsPerPerson > 0.01 && (
-              <span className="text-[11px] text-neutral-500 block mt-0.5">
-                Ahorro {fmtSmart(savingsPerPerson)} por persona
-              </span>
-            )}
-          </div>
-        </div>
-
-        {product.currentUnits > 0 && (
-          <div className="flex items-center gap-2 mt-1">
-            <div className="flex -space-x-1.5">
-              {Array.from({ length: Math.min(3, product.currentUnits) }).map((_, i) => (
-                <div key={i} className="w-6 h-6 rounded-full bg-neutral-200 border-2 border-white flex items-center justify-center text-[9px] font-bold text-neutral-500">
-                  {String.fromCharCode(65 + i)}
-                </div>
-              ))}
-              {product.currentUnits > 3 && (
-                <div className="w-6 h-6 rounded-full bg-neutral-100 border-2 border-white flex items-center justify-center text-[9px] font-bold text-neutral-500">
-                  +{product.currentUnits - 3}
-                </div>
-              )}
-            </div>
-            <span className="text-xs text-neutral-500">
-              {product.currentUnits} comprando ahora
-            </span>
-          </div>
-        )}
+        <span className="inline-flex items-center gap-1.5 text-xs text-neutral-500">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="text-neutral-400" aria-hidden="true"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" /></svg>
+          {product.currentUnits} {product.currentUnits === 1 ? 'persona' : 'personas'} en el grupo
+        </span>
       </div>
 
-      {isComplete && (
-        <div className="px-3.5 pb-3.5">
-          <div className="bg-brand-green/10 rounded-lg px-3 py-2 flex items-center gap-2">
-            <span className="text-brand-green text-xs">🎉</span>
-            <span className="text-xs font-medium text-brand-green">
-              ¡Precio mínimo alcanzado! Se mantiene en {fmtSmart(currentPrice)}
-            </span>
-          </div>
+      {/* Beneficio: ahorro (persuasión, contraste alto en descubrimiento) */}
+      {product.pvp > currentPrice && (
+        <div className="flex items-center gap-1.5 mt-2.5 text-[13px] font-semibold text-brand-green">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
+          Ahorras {fmt(product.pvp - currentPrice)} respecto al PVP
         </div>
       )}
+
+      {/* Footer: CTA + corazón */}
+      <div className="flex items-center gap-2 mt-4">
+        <div className="flex-1 flex items-center justify-center py-3 rounded-xl text-sm font-bold text-white transition-[filter] hover:brightness-95" style={{ backgroundColor: t.color }}>
+          {isComplete ? 'Entrar al precio mínimo' : `Asegurar precio · ${fmt(currentPrice)}`}
+        </div>
+        <FavoriteButton
+          groupId={product.id}
+          initialFavorited={isFavorited}
+          size={18}
+          icon="heart"
+          className="w-11 h-11 rounded-xl border border-neutral-200 hover:border-neutral-300 flex items-center justify-center shrink-0 bg-white"
+        />
+      </div>
     </Link>
   )
 }

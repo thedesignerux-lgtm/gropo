@@ -10,9 +10,10 @@ interface Props {
   size?: number
   className?: string
   showToast?: boolean
+  icon?: 'bookmark' | 'heart'
 }
 
-export default function FavoriteButton({ groupId, initialFavorited = false, size = 24, className = '', showToast = true }: Props) {
+export default function FavoriteButton({ groupId, initialFavorited = false, size = 24, className = '', showToast = true, icon = 'bookmark' }: Props) {
   const [favorited, setFavorited] = useState(initialFavorited)
   const [isPending, startTransition] = useTransition()
   const [toast, setToast] = useState<string | null>(null)
@@ -81,7 +82,9 @@ export default function FavoriteButton({ groupId, initialFavorited = false, size
             strokeLinejoin="round"
             className={`transition-colors ${favorited ? 'text-brand' : 'text-neutral-400 hover:text-neutral-600'}`}
           >
-            <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />
+            {icon === 'heart'
+              ? <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+              : <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />}
           </svg>
         </button>
 

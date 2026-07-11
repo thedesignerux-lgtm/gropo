@@ -13,6 +13,7 @@ export interface GroupProduct {
   tiers: Tier[]
   minExecution: number
   imageUrl?: string
+  closesAt?: string
 }
 
 export interface StepPricingResult {

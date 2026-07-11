@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic'
 async function fetchGroups(): Promise<GroupProduct[]> {
   const { data, error } = await supabaseAdmin
     .from('groups')
-    .select('id, product_name, product_spec, total_units, pvp, image_url')
+    .select('id, product_name, product_spec, total_units, pvp, image_url, closes_at')
     .eq('status', 'open')
     .order('created_at', { ascending: false })
 
@@ -56,6 +56,7 @@ async function fetchGroups(): Promise<GroupProduct[]> {
       tiers,
       minExecution: minExecByGroup.get(row.id) ?? 0,
       imageUrl: (row.image_url as string | null) ?? undefined,
+      closesAt: (row.closes_at as string | null) ?? undefined,
     }]
   })
 }
