@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { normalizePhone } from '@/lib/phone'
 import BottomNav from '@/components/BottomNav'
 import MisGruposDesktop from '@/components/desktop/MisGruposDesktop'
+import MisGruposMobile from '@/components/MisGruposMobile'
 
 const inputCls = 'w-full px-3.5 py-2.5 rounded-xl border border-gray-200 text-base text-gray-900 bg-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-brand/20 focus:border-brand disabled:opacity-50'
 const labelCls = 'block text-xs font-semibold text-gray-600 mb-1.5'
@@ -31,30 +32,6 @@ interface Membership {
   closes_at: string
   current_price: number
   payment_info: string | null
-}
-
-function fmt(n: number) {
-  return (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
-}
-
-function Countdown({ closesAt }: { closesAt: string }) {
-  const [label, setLabel] = useState('')
-
-  useEffect(() => {
-    function compute() {
-      const diff = new Date(closesAt).getTime() - Date.now()
-      if (diff <= 0) { setLabel('Cerrado'); return }
-      const days = Math.floor(diff / 86_400_000)
-      const hours = Math.floor((diff % 86_400_000) / 3_600_000)
-      const mins = Math.floor((diff % 3_600_000) / 60_000)
-      setLabel(days > 0 ? `${days}d ${hours}h` : `${hours}h ${mins}m`)
-    }
-    compute()
-    const id = setInterval(compute, 60_000)
-    return () => clearInterval(id)
-  }, [closesAt])
-
-  return <span>{label || '···'}</span>
 }
 
 export default function MisGruposPage() {
@@ -149,8 +126,6 @@ export default function MisGruposPage() {
     setShowForm(false)
   }
 
-  const enMarcha = memberships.filter(m => m.payment_status === 'pending')
-  const cerrados = memberships.filter(m => m.payment_status === 'instructed' || m.payment_status === 'paid')
 
   // Hidratación: esperando localStorage (o esperando a que el efecto decida)
   if (user === undefined || (user === null && !showForm)) {
@@ -248,145 +223,7 @@ export default function MisGruposPage() {
           <p className="mx-4 bg-red-50 text-red-600 text-sm rounded-xl px-4 py-3">{error}</p>
         )}
 
-        {!loading && !error && (
-          <div className="px-4 space-y-8">
-
-            {/* ── EN MARCHA ── */}
-            <section>
-              <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
-                En marcha · {enMarcha.length}
-              </h2>
-              {enMarcha.length === 0 ? (
-                <p className="text-sm text-gray-400">No tienes grupos activos.</p>
-              ) : (
-                <div className="space-y-3">
-                  {enMarcha.map(m => {
-                    const savings = Number(m.guaranteed_price) - Number(m.current_price)
-                    return (
-                      <div key={m.member_id} className="bg-white rounded-2xl border border-gray-200 p-4">
-                        <div className="flex items-start justify-between gap-2 mb-3">
-                          <div className="min-w-0">
-                            <p className="font-semibold text-gray-900 text-sm leading-tight truncate">{m.product_name}</p>
-                            {m.product_spec && (
-                              <p className="text-xs text-gray-400 mt-0.5">{m.product_spec}</p>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1 bg-orange-100 text-orange-600 rounded-full px-2.5 py-1 text-xs font-semibold shrink-0">
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                              <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-                            </svg>
-                            <Countdown closesAt={m.closes_at} />
-                          </div>
-                        </div>
-
-                        <div className="grid grid-cols-3 gap-2 mb-3">
-                          <div className="bg-gray-50 rounded-xl px-3 py-2">
-                            <p className="text-[10px] text-gray-400 mb-0.5">Tu precio</p>
-                            <p className="text-sm font-bold text-gray-900">{fmt(Number(m.guaranteed_price))}</p>
-                          </div>
-                          <div className="bg-gray-50 rounded-xl px-3 py-2">
-                            <p className="text-[10px] text-gray-400 mb-0.5">Precio actual</p>
-                            <p className="text-sm font-bold text-brand">{fmt(Number(m.current_price))}</p>
-                          </div>
-                          <div className="bg-gray-50 rounded-xl px-3 py-2">
-                            <p className="text-[10px] text-gray-400 mb-0.5">Uds</p>
-                            <p className="text-sm font-bold text-gray-900">{m.quantity}</p>
-                          </div>
-                        </div>
-
-                        {savings > 0.005 && (
-                          <div className="flex items-center gap-1.5 bg-brand/5 rounded-xl px-3 py-2 mb-3">
-                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-brand shrink-0">
-                              <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
-                              <polyline points="17 6 23 6 23 12" />
-                            </svg>
-                            <p className="text-xs font-semibold text-brand">
-                              Ya ahorras {fmt(savings * m.quantity)}&nbsp;·&nbsp;{fmt(savings)}/ud
-                            </p>
-                          </div>
-                        )}
-
-                        <Link
-                          href={`/grupo/${m.group_id}`}
-                          className="block w-full text-center text-sm font-semibold text-brand border border-brand/30 rounded-xl py-2 hover:bg-brand/5 transition-colors"
-                        >
-                          Ver grupo →
-                        </Link>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </section>
-
-            {/* ── CERRADOS ── */}
-            <section>
-              <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
-                Cerrados · {cerrados.length}
-              </h2>
-              {cerrados.length === 0 ? (
-                <p className="text-sm text-gray-400">Todavía no has participado en ningún grupo cerrado.</p>
-              ) : (
-                <div className="space-y-3">
-                  {cerrados.map(m => {
-                    const isPaid = m.payment_status === 'paid'
-                    return (
-                      <div key={m.member_id} className="bg-white rounded-2xl border border-gray-200 p-4">
-                        <div className="flex items-start justify-between gap-2 mb-3">
-                          <div className="min-w-0">
-                            <p className="font-semibold text-gray-900 text-sm leading-tight truncate">{m.product_name}</p>
-                            {m.product_spec && (
-                              <p className="text-xs text-gray-400 mt-0.5">{m.product_spec}</p>
-                            )}
-                          </div>
-                          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full shrink-0 ${isPaid ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
-                            {isPaid ? 'Pagado ✓' : 'Pendiente de pago'}
-                          </span>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-2 mb-3">
-                          <div className="bg-gray-50 rounded-xl px-3 py-2">
-                            <p className="text-[10px] text-gray-400 mb-0.5">Precio final</p>
-                            <p className="text-sm font-bold text-gray-900">{fmt(Number(m.final_price ?? m.guaranteed_price))}</p>
-                          </div>
-                          <div className="bg-gray-50 rounded-xl px-3 py-2">
-                            <p className="text-[10px] text-gray-400 mb-0.5">Unidades</p>
-                            <p className="text-sm font-bold text-gray-900">{m.quantity}</p>
-                          </div>
-                        </div>
-
-                        {!isPaid && m.payment_info && (
-                          <div className="bg-orange-50 border border-orange-100 rounded-xl px-3 py-2.5 mb-3">
-                            <p className="text-[10px] font-semibold text-orange-700 mb-1">Instrucciones de pago</p>
-                            <p className="text-xs text-orange-900 whitespace-pre-line">{m.payment_info}</p>
-                          </div>
-                        )}
-
-                        <Link
-                          href={`/grupo/${m.group_id}`}
-                          className="block w-full text-center text-sm font-semibold text-gray-600 border border-gray-200 rounded-xl py-2 hover:bg-gray-50 transition-colors"
-                        >
-                          Ver detalles →
-                        </Link>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </section>
-
-            {/* ── PETICIONES ── */}
-            <section>
-              <h2 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">
-                Peticiones
-              </h2>
-              <div className="bg-white rounded-2xl border border-gray-200 px-4 py-6 text-center">
-                <p className="text-sm text-gray-400">Próximamente</p>
-              </div>
-            </section>
-
-          </div>
-        )}
+        {!loading && !error && <MisGruposMobile memberships={memberships} />}
       </div>
       <BottomNav />
     </div>

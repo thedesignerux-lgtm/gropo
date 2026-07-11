@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import type { GroupProduct } from '@/lib/mock-data'
 import CountdownChip from '@/components/CountdownChip'
-import ProductCard from '@/components/ProductCard'
+import DesktopProductCard from '@/components/desktop/DesktopProductCard'
 
 interface Props {
   products: GroupProduct[]
@@ -65,19 +65,19 @@ export default function GroupsGrid({ products, favoriteIds = [] }: Props) {
         </div>
       </div>
 
-      {/* Product grid */}
-      <div className="px-4 grid grid-cols-2 gap-3">
+      {/* Product grid — 1 columna ancho completo en móvil */}
+      <div className="px-4 grid grid-cols-1 gap-4">
         {products.length === 0 ? (
-          <div className="col-span-2 py-12 text-center text-sm text-gray-400">
+          <div className="py-12 text-center text-sm text-gray-400">
             No hay grupos abiertos
           </div>
         ) : filtered.length === 0 ? (
-          <div className="col-span-2 py-12 text-center text-sm text-gray-400">
+          <div className="py-12 text-center text-sm text-gray-400">
             No se encontraron productos para &ldquo;{query}&rdquo;
           </div>
         ) : (
           filtered.map(product => (
-            <ProductCard
+            <DesktopProductCard
               key={product.id}
               product={product}
               isFavorited={favSet.has(product.id)}

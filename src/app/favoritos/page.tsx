@@ -316,8 +316,8 @@ function SmartFeed({
   activeCount: number
   suggestions: Suggestion[]
 }) {
-  // Columnas de ancho fijo (~300px) para que las tarjetas no se estiren con pocos elementos.
-  const gridCls = 'grid gap-5 grid-cols-[repeat(auto-fill,minmax(280px,300px))]'
+  // Móvil: 1 columna ancho completo. Desktop: columnas fijas ~300px (no se estiran con pocos elementos).
+  const gridCls = 'grid gap-5 grid-cols-1 sm:grid-cols-[repeat(auto-fill,minmax(280px,300px))]'
   const opps = [...cats.hot, ...cats.dropping]
 
   // DENSIDAD ALTA (≥5): divisores por categoría.

@@ -55,7 +55,7 @@ function timeLeft(closesAt: string): string {
 }
 
 // ── Derivación de estado + métricas desde datos reales ──
-function derive(m: Membership, ladder: LadderRow[]) {
+export function derive(m: Membership, ladder: LadderRow[]) {
   const commit = Number(m.guaranteed_price)
   const cur = Number(m.current_price)
   const currentUnits = ladder.length ? Math.max(...ladder.map(t => Number(t.effective_demand ?? 0))) : 0
@@ -82,11 +82,9 @@ function derive(m: Membership, ladder: LadderRow[]) {
   return { commit, cur, currentUnits, target, missing, nextObj, pct, state }
 }
 
-export default function MisGruposDesktop({ memberships, userName }: { memberships: Membership[]; userName?: string }) {
+// Enriquecer con tier_demand (RPC anon, solo lectura) para la barra de progreso. Compartido desktop + móvil.
+export function useLadders(memberships: Membership[]) {
   const [ladders, setLadders] = useState<Record<string, LadderRow[]>>({})
-  const [open, setOpen] = useState<string | null>(null)
-
-  // Enriquecer con tier_demand (RPC anon, solo lectura) para la barra de progreso.
   useEffect(() => {
     let cancelled = false
     async function run() {
@@ -103,6 +101,12 @@ export default function MisGruposDesktop({ memberships, userName }: { membership
     if (memberships.length) run()
     return () => { cancelled = true }
   }, [memberships])
+  return ladders
+}
+
+export default function MisGruposDesktop({ memberships, userName }: { memberships: Membership[]; userName?: string }) {
+  const ladders = useLadders(memberships)
+  const [open, setOpen] = useState<string | null>(null)
 
   // Cerrar drawer con ESC + bloquear scroll de fondo.
   useEffect(() => {
@@ -162,7 +166,7 @@ export default function MisGruposDesktop({ memberships, userName }: { membership
 }
 
 // ── Tarjeta ────────────────────────────────────────────
-function MgCard({ m, ladder, onOpen }: { m: Membership; ladder: LadderRow[]; onOpen: () => void }) {
+export function MgCard({ m, ladder, onOpen }: { m: Membership; ladder: LadderRow[]; onOpen: () => void }) {
   const d = derive(m, ladder)
   const t = THEME[d.state]
   const paid = m.payment_status === 'paid'
@@ -228,7 +232,7 @@ function MgCard({ m, ladder, onOpen }: { m: Membership; ladder: LadderRow[]; onO
 }
 
 // ── Drawer ─────────────────────────────────────────────
-function Drawer({ m, ladder, onClose }: { m: Membership; ladder: LadderRow[]; onClose: () => void }) {
+export function Drawer({ m, ladder, onClose }: { m: Membership; ladder: LadderRow[]; onClose: () => void }) {
   const d = derive(m, ladder)
   const t = THEME[d.state]
   const paid = m.payment_status === 'paid'
