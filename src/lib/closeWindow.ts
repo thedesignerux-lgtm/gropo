@@ -10,6 +10,25 @@
 export const MAX_CLOSE_WINDOW_HOURS = 156 // 6,5 días
 
 /**
+ * Instante UTC (ISO) que corresponde a las 22:00 de Europe/Madrid en la fecha
+ * dada, ajustando automáticamente al cambio de hora (DST):
+ *   verano (CEST, UTC+2) → 20:00 UTC · invierno (CET, UTC+1) → 21:00 UTC.
+ * Sustituye al antiguo `${fecha}T20:00:00+00:00` fijo, que en invierno cerraba
+ * a las 21:00 Madrid en vez de las 22:00.
+ * @param dateStr fecha 'YYYY-MM-DD'
+ */
+export function madridCloseAtISO(dateStr: string): string {
+  // Offset de Madrid ese día, medido a mediodía (lejos del borde del cambio de hora).
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Madrid', timeZoneName: 'shortOffset',
+  }).formatToParts(new Date(`${dateStr}T12:00:00Z`))
+  const tz = parts.find(p => p.type === 'timeZoneName')?.value ?? 'GMT+1' // "GMT+2" | "GMT+1"
+  const offset = parseInt(tz.replace('GMT', ''), 10) || 1 // 2 (verano) | 1 (invierno)
+  const utcHour = 22 - offset // 20 (verano) | 21 (invierno)
+  return `${dateStr}T${String(utcHour).padStart(2, '0')}:00:00.000Z`
+}
+
+/**
  * Valida que una fecha de cierre esté dentro de la ventana segura.
  * @param closesAtIso fecha de cierre (ISO o parseable por Date)
  * @param anchorIso opcional: fecha del hold vivo más antiguo del grupo.

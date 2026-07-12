@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createGroup } from '../actions'
 import type { Tier } from '../actions'
+import { madridCloseAtISO } from '@/lib/closeWindow'
 
 function nextSundayDate(): string {
   const now = new Date()
@@ -63,10 +64,10 @@ export default function NewGroupPage() {
     e.preventDefault()
     setError(null)
     setLoading(true)
-    // Construye closes_at como UTC explícito para que new Date() en el servidor
-    // sea determinista. 20:00 UTC = 22:00 Madrid en verano (CEST, UTC+2).
+    // 22:00 Madrid como instante UTC, ajustado al cambio de hora (DST):
+    // verano → 20:00 UTC, invierno → 21:00 UTC.
     const { closes_date, ...rest } = fields
-    const closes_at = `${closes_date}T20:00:00+00:00`
+    const closes_at = madridCloseAtISO(closes_date)
     const result = await createGroup({ ...rest, closes_at, tiers })
     setLoading(false)
     if (result?.error) setError(result.error)
@@ -161,7 +162,7 @@ export default function NewGroupPage() {
                 className={inputCls}
               />
               <p className="text-xs text-gray-400 mt-1">
-                Cierra a las <strong>22:00 h Madrid</strong> (20:00 UTC · fijo)
+                Cierra a las <strong>22:00 h Madrid</strong> (ajustado automáticamente al cambio de hora)
               </p>
             </div>
             <div>

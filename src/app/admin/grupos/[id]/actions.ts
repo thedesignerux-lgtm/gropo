@@ -7,7 +7,7 @@ import { captureGroupPayments } from '@/lib/stripe-capture'
 import { sendAdminAlert } from '@/lib/resend'
 import { generateShippingLabels, type ShippingResult } from '@/lib/shipping-sendcloud'
 import { requireAdmin } from '@/lib/admin-auth'
-import { validateCloseWindow } from '@/lib/closeWindow'
+import { validateCloseWindow, madridCloseAtISO } from '@/lib/closeWindow'
 
 export interface CloseResult {
   result: string
@@ -88,7 +88,7 @@ export async function updateGroup(
   if (!product_name.trim()) return { error: 'El nombre del producto es obligatorio' }
   if (!closes_date) return { error: 'La fecha de cierre es obligatoria' }
 
-  const closes_at = `${closes_date}T20:00:00+00:00`
+  const closes_at = madridCloseAtISO(closes_date)
 
   const { data: oldestMember } = await supabaseAdmin
     .from('group_members')
