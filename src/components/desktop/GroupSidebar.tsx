@@ -1,7 +1,5 @@
 'use client'
 
-import { useState } from 'react'
-
 export type TabId = 'resumen' | 'conversacion' | 'participantes' | 'historial' | 'preguntas' | 'alertas'
 
 interface NavItem {

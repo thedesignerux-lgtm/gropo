@@ -37,7 +37,7 @@ interface Props {
 export default function GroupLiveSection({
   groupId, name, spec, pvp,
   initialBestPrice, initialTotalUnits,
-  bidCount, tiers, maxStock, minExecution, closesAt,
+  tiers, maxStock, closesAt,
 }: Props) {
   const [joinMode, setJoinMode] = useState<'comprar' | 'esperar'>('comprar')
   const [joinTarget, setJoinTarget] = useState<number | undefined>(undefined)

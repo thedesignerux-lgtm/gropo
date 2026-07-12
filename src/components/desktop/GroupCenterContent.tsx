@@ -34,7 +34,7 @@ export default function GroupCenterContent({
   const [joinMode, setJoinMode] = useState<'comprar' | 'esperar'>('comprar')
   const [joinTarget, setJoinTarget] = useState<number | undefined>(undefined)
   const [quantity, setQuantity] = useState(1)
-  const [projection, setProjection] = useState<ProjectionResult | null>(null)
+  const [, setProjection] = useState<ProjectionResult | null>(null)
 
   // Checkout 1-Click (Gate A3): logueado → FastCheckoutModal; invitado → /unirme.
   const { open } = useCheckout()
@@ -55,7 +55,6 @@ export default function GroupCenterContent({
   const savings = pvp > 0 && pvp > displayPrice ? pvp - displayPrice : 0
   const savingsPct = pvp > 0 ? Math.round((savings / pvp) * 100) : 0
   const isBestPrice = !nextTier
-  const remaining = Math.max(0, maxStock - totalParticipants)
 
   const handleProjection = useCallback((result: ProjectionResult | null) => {
     setProjection(result)

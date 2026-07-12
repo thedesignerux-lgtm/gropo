@@ -25,7 +25,7 @@ interface Props {
 export default function GroupDesktopView({
   groupId, name, spec, pvp, imageUrl,
   initialBestPrice, initialTotalUnits,
-  bidCount, tiers, maxStock, minExecution, closesAt,
+  tiers, maxStock, closesAt,
 }: Props) {
   const closesLabel = new Date(closesAt).toLocaleDateString('es-ES', {
     day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
