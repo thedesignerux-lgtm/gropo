@@ -1,17 +1,24 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { supabase } from '@/lib/supabase'
 import HomeSidebar from '@/components/desktop/HomeSidebar'
 import BottomNav from '@/components/BottomNav'
 
 // ── Datos ──────────────────────────────────────────────
-interface Addr { id: number; def: boolean; a1: string; a2: string }
+interface Addr {
+  id: string; label?: string | null; line1: string; line2?: string | null
+  city?: string | null; province?: string | null; postal_code?: string | null; country?: string | null; is_default: boolean
+}
 interface VUser { name: string; email: string; phone: string }
+interface AddrForm { line1: string; line2: string; postal_code: string; city: string; province: string; label: string }
 
-const DEFAULT_ADDRS: Addr[] = [
-  { id: 1, def: true, a1: 'Calle Aragón 123, 5ºB', a2: '08015 Barcelona · España' },
-]
+const EMPTY_FORM: AddrForm = { line1: '', line2: '', postal_code: '', city: '', province: '', label: '' }
 const CATS = ['Carretera', 'MTB', 'Gravel', 'Componentes', 'Ropa', 'Electrónica', 'Zapatillas']
+
+function addrLine2(a: Addr): string {
+  return [a.line2, [a.postal_code, a.city].filter(Boolean).join(' '), a.country].filter(v => v && String(v).trim()).join(' · ')
+}
 
 // ── Iconos ─────────────────────────────────────────────
 const pencil = <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden="true"><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z" /></svg>
@@ -21,25 +28,33 @@ const pin = <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="
 
 export default function PerfilPage() {
   const [user, setUser] = useState<VUser | null>(null)
-  const [addrs, setAddrs] = useState<Addr[]>(DEFAULT_ADDRS)
-  const [openMenu, setOpenMenu] = useState<number | null>(null)
-  const [active, setActive] = useState<string[]>(['Carretera', 'Componentes', 'Electrónica'])
+  const [addrs, setAddrs] = useState<Addr[]>([])
+  const [openMenu, setOpenMenu] = useState<string | null>(null)
+  const [active, setActive] = useState<string[]>([])
   const [budget, setBudget] = useState(500)
   const [editingBudget, setEditingBudget] = useState(false)
   const [editField, setEditField] = useState<keyof VUser | null>(null)
   const [saving, setSaving] = useState<'saved' | 'saving'>('saved')
   const [toast, setToast] = useState<{ kind: 'ok' | 'warn'; msg: string } | null>(null)
+  const [adding, setAdding] = useState(false)
+  const [form, setForm] = useState<AddrForm>(EMPTY_FORM)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Cargar identidad + preferencias locales
+  // Cargar identidad y traer el perfil (direcciones + preferencias) del servidor
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem('vonda_user')
-      setUser(raw ? JSON.parse(raw) : { name: '', email: '', phone: '' })
-      const a = localStorage.getItem('vonda_addresses'); if (a) setAddrs(JSON.parse(a))
-      const r = localStorage.getItem('vonda_radar'); if (r) { const p = JSON.parse(r); if (Array.isArray(p.active)) setActive(p.active); if (typeof p.budget === 'number') setBudget(p.budget) }
-    } catch { setUser({ name: '', email: '', phone: '' }) }
+    let u: VUser
+    try { const raw = localStorage.getItem('vonda_user'); u = raw ? JSON.parse(raw) : { name: '', email: '', phone: '' } }
+    catch { u = { name: '', email: '', phone: '' } }
+    setUser(u)
+    if (u.phone && u.email) {
+      supabase.rpc('get_profile', { p_phone: u.phone, p_email: u.email }).then(({ data }) => {
+        if (data) {
+          if (Array.isArray(data.addresses)) setAddrs(data.addresses)
+          if (data.radar) { if (Array.isArray(data.radar.categories)) setActive(data.radar.categories); if (data.radar.max_price != null) setBudget(Number(data.radar.max_price)) }
+        }
+      })
+    }
   }, [])
 
   // Cerrar menú con ESC / clic fuera
@@ -56,14 +71,16 @@ export default function PerfilPage() {
     if (toastTimer.current) clearTimeout(toastTimer.current)
     toastTimer.current = setTimeout(() => setToast(null), 2800)
   }
-  function persistAddrs(next: Addr[]) { setAddrs(next); try { localStorage.setItem('vonda_addresses', JSON.stringify(next)) } catch {} }
+
   function saveRadar(nextActive: string[], nextBudget: number) {
     setSaving('saving')
-    try { localStorage.setItem('vonda_radar', JSON.stringify({ active: nextActive, budget: nextBudget })) } catch {}
-    if (saveTimer.current) clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(() => setSaving('saved'), 800)
+    const done = () => { if (saveTimer.current) clearTimeout(saveTimer.current); saveTimer.current = setTimeout(() => setSaving('saved'), 400) }
+    if (user?.phone && user?.email) {
+      supabase.rpc('radar_prefs_save', { p_phone: user.phone, p_email: user.email, p_categories: nextActive, p_max_price: nextBudget }).then(done)
+    } else done()
   }
   function toggleCat(c: string) { const next = active.includes(c) ? active.filter(x => x !== c) : [...active, c]; setActive(next); saveRadar(next, budget) }
+
   function saveContact(field: keyof VUser, value: string) {
     if (!user) return
     const next = { ...user, [field]: value }
@@ -71,23 +88,41 @@ export default function PerfilPage() {
     try { localStorage.setItem('vonda_user', JSON.stringify(next)) } catch {}
     showToast('ok', 'Datos actualizados')
   }
-  function makeDefault(id: number) {
-    const next = addrs.map(a => ({ ...a, def: a.id === id })).sort((a, b) => Number(b.def) - Number(a.def))
-    persistAddrs(next); setOpenMenu(null)
-    showToast('ok', 'Dirección predeterminada actualizada')
+
+  async function makeDefault(id: string) {
+    if (!user?.phone) return
+    const { data } = await supabase.rpc('address_set_default', { p_phone: user.phone, p_email: user.email, p_id: id })
+    setOpenMenu(null)
+    if (data?.ok) { setAddrs(data.addresses); showToast('ok', 'Dirección predeterminada actualizada') }
   }
-  function removeAddr(id: number) {
-    const a = addrs.find(x => x.id === id)
-    if (a?.def) { showToast('warn', 'Debes asignar otra dirección como predeterminada antes de eliminar esta'); setOpenMenu(null); return }
-    persistAddrs(addrs.filter(x => x.id !== id)); setOpenMenu(null); showToast('ok', 'Dirección eliminada')
+  async function removeAddr(id: string) {
+    if (!user?.phone) return
+    const { data } = await supabase.rpc('address_delete', { p_phone: user.phone, p_email: user.email, p_id: id })
+    setOpenMenu(null)
+    if (data?.ok) { setAddrs(data.addresses); showToast('ok', 'Dirección eliminada') }
+    else if (data?.reason === 'default') showToast('warn', 'Debes asignar otra dirección como predeterminada antes de eliminar esta')
   }
-  function addAddr() {
-    const id = Math.max(0, ...addrs.map(a => a.id)) + 1
-    persistAddrs([...addrs, { id, def: addrs.length === 0, a1: 'Nueva dirección', a2: 'Edítala para completar' }])
-    showToast('ok', 'Dirección añadida — edítala para completar')
+  async function submitAddr() {
+    if (!user?.phone) { showToast('warn', 'Necesitas identificarte primero'); return }
+    if (!form.line1.trim()) { showToast('warn', 'La calle es obligatoria'); return }
+    const { data } = await supabase.rpc('address_add', {
+      p_phone: user.phone, p_email: user.email,
+      p_line1: form.line1, p_line2: form.line2, p_city: form.city, p_province: form.province, p_postal: form.postal_code, p_label: form.label,
+    })
+    if (data?.ok) { setAddrs(data.addresses); setAdding(false); setForm(EMPTY_FORM); showToast('ok', 'Dirección añadida') }
+    else showToast('warn', 'No se pudo añadir la dirección')
   }
 
+  const menuItems = (a: Addr) => (
+    <>
+      {!a.is_default && <MenuItem onClick={() => makeDefault(a.id)} icon={check}>Hacer predeterminada</MenuItem>}
+      <MenuItem onClick={() => { setOpenMenu(null); showToast('ok', 'Editar dirección — próximamente') }} icon={pencil}>Editar dirección</MenuItem>
+      <MenuItem danger onClick={() => removeAddr(a.id)} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" /></svg>}>Eliminar dirección</MenuItem>
+    </>
+  )
+  const menuAddr = addrs.find(a => a.id === openMenu) || null
   const initials = (user?.name || 'V').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase() || 'V'
+  const inputCls = 'w-full text-sm border border-neutral-200 rounded-lg px-3 py-2 outline-none focus:border-brand focus:ring-2 focus:ring-brand/15'
 
   return (
     <div className="min-h-screen flex" style={{ backgroundColor: '#F7F9FC' }}>
@@ -99,7 +134,6 @@ export default function PerfilPage() {
         </header>
 
         <main className="w-full max-w-[1180px] px-4 lg:px-8 pt-5 lg:pt-2 pb-10">
-          {/* Cabecera */}
           <div className="flex items-center gap-4 lg:gap-5 mb-6">
             <div className="w-16 h-16 lg:w-[72px] lg:h-[72px] rounded-full bg-brand/10 text-brand flex items-center justify-center text-2xl font-extrabold shrink-0">{initials}</div>
             <div className="min-w-0">
@@ -109,7 +143,6 @@ export default function PerfilPage() {
           </div>
 
           <div className="grid gap-5 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] items-start">
-            {/* Izquierda: bloques */}
             <div className="flex flex-col gap-[18px]">
               <Card num="1" title="Datos de contacto">
                 <ContactRow label="Nombre" value={user?.name || ''} editing={editField === 'name'} onEdit={() => setEditField('name')} onSave={v => saveContact('name', v)} />
@@ -132,13 +165,16 @@ export default function PerfilPage() {
               </Card>
 
               <Card num="3" title="Dirección de envío">
+                {addrs.length === 0 && !adding && (
+                  <p className="text-[13px] text-neutral-400 mb-3">Aún no tienes direcciones guardadas.</p>
+                )}
                 {addrs.map(a => (
                   <div key={a.id} className="relative flex items-start gap-3 p-3.5 border border-neutral-200 rounded-xl mb-3">
                     <span className="w-[34px] h-[34px] rounded-lg bg-neutral-100 text-neutral-500 flex items-center justify-center shrink-0">{pin}</span>
                     <div className="min-w-0">
-                      <span className={`inline-flex items-center text-[10.5px] font-bold rounded-full px-2 py-0.5 mb-1.5 uppercase tracking-wide ${a.def ? 'bg-brand/10 text-brand' : 'bg-neutral-100 text-neutral-500'}`}>{a.def ? 'Predeterminada' : 'Secundaria'}</span>
-                      <div className="text-sm font-semibold truncate">{a.a1}</div>
-                      <div className="text-[12.5px] text-neutral-500 truncate">{a.a2}</div>
+                      <span className={`inline-flex items-center text-[10.5px] font-bold rounded-full px-2 py-0.5 mb-1.5 uppercase tracking-wide ${a.is_default ? 'bg-brand/10 text-brand' : 'bg-neutral-100 text-neutral-500'}`}>{a.is_default ? 'Predeterminada' : 'Secundaria'}</span>
+                      <div className="text-sm font-semibold truncate">{a.line1}</div>
+                      <div className="text-[12.5px] text-neutral-500 truncate">{addrLine2(a)}</div>
                     </div>
                     <button
                       onClick={e => { e.stopPropagation(); setOpenMenu(openMenu === a.id ? null : a.id) }}
@@ -146,18 +182,33 @@ export default function PerfilPage() {
                       className="ml-auto w-8 h-8 rounded-lg text-neutral-400 hover:bg-neutral-100 flex items-center justify-center shrink-0"
                     >{kebab}</button>
                     {openMenu === a.id && (
-                      <div role="menu" onClick={e => e.stopPropagation()} className="absolute top-12 right-3 z-20 min-w-[210px] bg-white border border-neutral-200 rounded-lg p-1.5" style={{ boxShadow: '0 10px 30px rgba(15,23,42,.14)' }}>
-                        {!a.def && <MenuItem onClick={() => makeDefault(a.id)} icon={check}>Hacer predeterminada</MenuItem>}
-                        <MenuItem onClick={() => { setOpenMenu(null); showToast('ok', 'Editar dirección (abriría el formulario)') }} icon={pencil}>Editar dirección</MenuItem>
-                        <MenuItem danger onClick={() => removeAddr(a.id)} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" /></svg>}>Eliminar dirección</MenuItem>
+                      <div role="menu" onClick={e => e.stopPropagation()} className="hidden lg:block absolute top-12 right-3 z-20 min-w-[210px] bg-white border border-neutral-200 rounded-lg p-1.5" style={{ boxShadow: '0 10px 30px rgba(15,23,42,.14)' }}>
+                        {menuItems(a)}
                       </div>
                     )}
                   </div>
                 ))}
-                <button onClick={addAddr} className="flex items-center justify-center gap-2 w-full border-[1.5px] border-dashed border-brand/30 text-brand rounded-xl py-3 text-[13.5px] font-bold">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4}><path d="M12 5v14M5 12h14" /></svg>
-                  Añadir dirección
-                </button>
+
+                {adding ? (
+                  <div className="border border-neutral-200 rounded-xl p-3.5 space-y-2.5">
+                    <input className={inputCls} placeholder="Calle y número" value={form.line1} onChange={e => setForm({ ...form, line1: e.target.value })} />
+                    <input className={inputCls} placeholder="Piso, puerta (opcional)" value={form.line2} onChange={e => setForm({ ...form, line2: e.target.value })} />
+                    <div className="flex gap-2.5">
+                      <input className={inputCls} placeholder="C.P." value={form.postal_code} onChange={e => setForm({ ...form, postal_code: e.target.value })} />
+                      <input className={inputCls} placeholder="Ciudad" value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} />
+                    </div>
+                    <input className={inputCls} placeholder="Etiqueta (Casa, Trabajo…)" value={form.label} onChange={e => setForm({ ...form, label: e.target.value })} />
+                    <div className="flex gap-2.5 pt-1">
+                      <button onClick={submitAddr} className="flex-1 bg-brand text-white rounded-lg py-2.5 text-[13.5px] font-bold">Guardar dirección</button>
+                      <button onClick={() => { setAdding(false); setForm(EMPTY_FORM) }} className="px-4 rounded-lg border border-neutral-200 text-[13.5px] font-semibold text-neutral-600">Cancelar</button>
+                    </div>
+                  </div>
+                ) : (
+                  <button onClick={() => setAdding(true)} className="flex items-center justify-center gap-2 w-full border-[1.5px] border-dashed border-brand/30 text-brand rounded-xl py-3 text-[13.5px] font-bold">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4}><path d="M12 5v14M5 12h14" /></svg>
+                    Añadir dirección
+                  </button>
+                )}
               </Card>
 
               <Card num="4" title="Preferencias del Radar" right={
@@ -190,7 +241,6 @@ export default function PerfilPage() {
               </Card>
             </div>
 
-            {/* Derecha: widgets */}
             <div className="flex flex-col gap-[18px]">
               <div className="bg-white border border-neutral-200 rounded-2xl p-5">
                 <h3 className="text-sm font-bold mb-3.5">Tu actividad</h3>
@@ -213,6 +263,16 @@ export default function PerfilPage() {
       </div>
 
       <div className="lg:hidden"><BottomNav /></div>
+
+      {/* Bottom sheet móvil para el menú de dirección */}
+      <div className="lg:hidden">
+        <div onClick={() => setOpenMenu(null)} className={`fixed inset-0 z-40 bg-black/40 transition-opacity ${openMenu !== null ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} />
+        <div role="menu" onClick={e => e.stopPropagation()} className={`fixed left-0 right-0 bottom-0 z-50 bg-white rounded-t-2xl p-3 pb-7 transition-transform duration-300 ${openMenu !== null ? 'translate-y-0' : 'translate-y-full'}`} style={{ boxShadow: '0 -8px 30px rgba(15,23,42,.15)' }}>
+          <div className="w-10 h-1 rounded-full bg-neutral-200 mx-auto mb-3" />
+          {menuAddr && <div className="px-2.5 pb-2 text-xs text-neutral-400 truncate">{menuAddr.line1}</div>}
+          {menuAddr && menuItems(menuAddr)}
+        </div>
+      </div>
 
       {/* Toast */}
       <div className={`fixed bottom-24 lg:bottom-6 left-1/2 z-[60] flex items-center gap-2.5 rounded-xl px-4 py-3 text-[13.5px] text-white transition-all ${toast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3 pointer-events-none'}`} style={{ transform: 'translateX(-50%)', backgroundColor: '#0E1220', boxShadow: '0 12px 30px rgba(15,23,42,.25)', maxWidth: '90vw' }}>
