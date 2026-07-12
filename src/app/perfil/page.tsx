@@ -108,7 +108,7 @@ export default function PerfilPage() {
             </div>
           </div>
 
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px] items-start">
+          <div className="grid gap-5 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] items-start">
             {/* Izquierda: bloques */}
             <div className="flex flex-col gap-[18px]">
               <Card num="1" title="Datos de contacto">
