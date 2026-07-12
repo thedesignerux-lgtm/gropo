@@ -48,8 +48,8 @@
 |---|---|
 | Mi Radar, Home, Mis Grupos (tarjetas) | **Real** (Supabase: groups, bids, tier_demand, favorites, get_my_groups) |
 | Perfil — nombre / email / teléfono | **Real** (localStorage `vonda_user`, la misma identidad que usa `get_my_groups`) |
-| Perfil — direcciones | **Local** (`localStorage vonda_addresses`). No hay tabla libreta de direcciones. Los envíos usan `group_members.shipping_*` por membresía. |
-| Perfil — preferencias Radar (categorías/presupuesto) | **Local** (`localStorage vonda_radar`). No hay tabla ni motor que las consuma aún. |
+| Perfil — direcciones | **Real** (tabla `user_addresses` + RPCs `get_profile` / `address_add` / `address_update` / `address_set_default` / `address_delete`, todas SECURITY DEFINER por teléfono+email). |
+| Perfil — preferencias Radar (categorías/presupuesto) | **Real** (tabla `user_radar_prefs` + RPC `radar_prefs_save`). Persisten en servidor; falta que el motor del Radar las consuma para filtrar. |
 | Perfil — edición de contacto | **Local** (actualiza localStorage; sin sync a `users`). Ojo: cambiar email/teléfono cambia qué grupos ve en Mis Grupos. |
 | Perfil — "Tu actividad" (métricas) | **Placeholder** (valores de ejemplo). |
 | Perfil — método de pago | Enlace a Stripe (sin last4 real). |
@@ -66,11 +66,11 @@
 - Perfil: **modal crítico** "esta dirección tiene un envío en camino" (grupo en Meta alcanzada).
 - Detalles de copy varios que dejamos anotados a lo largo de la sesión.
 
-**Backend (para que Perfil persista de verdad):**
-- Tabla libreta de direcciones + RPC de gestión.
-- Tabla/campos de preferencias del Radar + que el motor las consuma.
-- RPC de actualización de datos de contacto en `users`.
-- Log de eventos por grupo (para el timeline del drawer) + exponer dirección/tarjeta en `get_my_groups` o RPC aparte.
+**Backend:**
+- ✅ HECHO: libreta de direcciones (`user_addresses`) + preferencias del Radar (`user_radar_prefs`) con sus RPCs. `/perfil` ya lee/escribe contra ellas.
+- Pendiente: que el **motor del Radar** consuma `user_radar_prefs` para filtrar oportunidades.
+- Pendiente: RPC de actualización de datos de **contacto** en `users` (hoy la edición de contacto es local).
+- Pendiente: log de eventos por grupo (timeline del drawer de Mis Grupos) + exponer dirección/tarjeta en `get_my_groups` o RPC aparte.
 
 **Money-critical (bloqueantes de lanzamiento real — ver `CHECKLIST_PRODUCCION.md`):**
 - Ensayo 3 (cierre con esperadores reales en Stripe).

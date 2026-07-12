@@ -37,6 +37,7 @@ export default function PerfilPage() {
   const [saving, setSaving] = useState<'saved' | 'saving'>('saved')
   const [toast, setToast] = useState<{ kind: 'ok' | 'warn'; msg: string } | null>(null)
   const [adding, setAdding] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<AddrForm>(EMPTY_FORM)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -105,18 +106,26 @@ export default function PerfilPage() {
   async function submitAddr() {
     if (!user?.phone) { showToast('warn', 'Necesitas identificarte primero'); return }
     if (!form.line1.trim()) { showToast('warn', 'La calle es obligatoria'); return }
-    const { data } = await supabase.rpc('address_add', {
+    const args = {
       p_phone: user.phone, p_email: user.email,
       p_line1: form.line1, p_line2: form.line2, p_city: form.city, p_province: form.province, p_postal: form.postal_code, p_label: form.label,
-    })
-    if (data?.ok) { setAddrs(data.addresses); setAdding(false); setForm(EMPTY_FORM); showToast('ok', 'Dirección añadida') }
-    else showToast('warn', 'No se pudo añadir la dirección')
+    }
+    const { data } = editingId
+      ? await supabase.rpc('address_update', { ...args, p_id: editingId })
+      : await supabase.rpc('address_add', args)
+    if (data?.ok) { setAddrs(data.addresses); setAdding(false); setEditingId(null); setForm(EMPTY_FORM); showToast('ok', editingId ? 'Dirección actualizada' : 'Dirección añadida') }
+    else showToast('warn', 'No se pudo guardar la dirección')
+  }
+  function openEdit(a: Addr) {
+    setOpenMenu(null)
+    setForm({ line1: a.line1, line2: a.line2 || '', postal_code: a.postal_code || '', city: a.city || '', province: a.province || '', label: a.label || '' })
+    setEditingId(a.id); setAdding(true)
   }
 
   const menuItems = (a: Addr) => (
     <>
       {!a.is_default && <MenuItem onClick={() => makeDefault(a.id)} icon={check}>Hacer predeterminada</MenuItem>}
-      <MenuItem onClick={() => { setOpenMenu(null); showToast('ok', 'Editar dirección — próximamente') }} icon={pencil}>Editar dirección</MenuItem>
+      <MenuItem onClick={() => openEdit(a)} icon={pencil}>Editar dirección</MenuItem>
       <MenuItem danger onClick={() => removeAddr(a.id)} icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" /></svg>}>Eliminar dirección</MenuItem>
     </>
   )
@@ -199,12 +208,12 @@ export default function PerfilPage() {
                     </div>
                     <input className={inputCls} placeholder="Etiqueta (Casa, Trabajo…)" value={form.label} onChange={e => setForm({ ...form, label: e.target.value })} />
                     <div className="flex gap-2.5 pt-1">
-                      <button onClick={submitAddr} className="flex-1 bg-brand text-white rounded-lg py-2.5 text-[13.5px] font-bold">Guardar dirección</button>
-                      <button onClick={() => { setAdding(false); setForm(EMPTY_FORM) }} className="px-4 rounded-lg border border-neutral-200 text-[13.5px] font-semibold text-neutral-600">Cancelar</button>
+                      <button onClick={submitAddr} className="flex-1 bg-brand text-white rounded-lg py-2.5 text-[13.5px] font-bold">{editingId ? 'Guardar cambios' : 'Guardar dirección'}</button>
+                      <button onClick={() => { setAdding(false); setEditingId(null); setForm(EMPTY_FORM) }} className="px-4 rounded-lg border border-neutral-200 text-[13.5px] font-semibold text-neutral-600">Cancelar</button>
                     </div>
                   </div>
                 ) : (
-                  <button onClick={() => setAdding(true)} className="flex items-center justify-center gap-2 w-full border-[1.5px] border-dashed border-brand/30 text-brand rounded-xl py-3 text-[13.5px] font-bold">
+                  <button onClick={() => { setEditingId(null); setForm(EMPTY_FORM); setAdding(true) }} className="flex items-center justify-center gap-2 w-full border-[1.5px] border-dashed border-brand/30 text-brand rounded-xl py-3 text-[13.5px] font-bold">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4}><path d="M12 5v14M5 12h14" /></svg>
                     Añadir dirección
                   </button>
