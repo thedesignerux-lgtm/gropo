@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import HomeSidebar from './HomeSidebar'
 import CountdownChip from '@/components/CountdownChip'
+import PulseBar from '@/components/PulseBar'
 
 // ── Tipos ──────────────────────────────────────────────
 export interface Membership {
@@ -206,11 +207,23 @@ export function MgCard({ m, ladder, onOpen }: { m: Membership; ladder: LadderRow
           )}
         </div>
       </div>
-      {/* barra */}
-      <div className="relative h-[16px] flex items-center mt-3">
-        <div className="flex-1 h-1.5 rounded-full bg-neutral-200 overflow-hidden mr-1"><div className="h-full rounded-full" style={{ width: `${d.state === 'meta' ? 100 : d.pct}%`, background: t.c }} /></div>
-        <span className="w-[18px] h-[18px] rounded-full flex items-center justify-center shrink-0" style={{ background: (d.state === 'meta') ? t.c : '#fff', border: `2.5px solid ${t.c}`, color: '#fff' }}>{d.state === 'meta' && I.check}</span>
-      </div>
+      {/* barra — VONDA PULSE completa en grupos vivos; barra simple en estados finales */}
+      {isOpen && (d.state === 'encurso' || d.state === 'apunto') && ladder.length > 0 ? (
+        <PulseBar
+          groupId={m.group_id}
+          current={d.currentUnits}
+          tiers={ladder.map(r => ({ units: Number(r.min_units), price: Number(r.price), unlocked: r.unlocked }))}
+          variant={d.state === 'apunto' ? 'hot' : 'dropping'}
+          className="mt-3"
+        />
+      ) : (
+        <div className="relative h-[16px] flex items-center mt-3">
+          <div className="flex-1 h-1.5 rounded-full bg-neutral-200 overflow-hidden mr-1"><div className="h-full rounded-full" style={{ width: `${d.state === 'meta' ? 100 : d.pct}%`, background: t.c }} /></div>
+          <span className="relative w-[18px] h-[18px] rounded-full flex items-center justify-center shrink-0" style={{ background: (d.state === 'meta') ? t.c : '#fff', border: `2.5px solid ${t.c}`, color: '#fff' }}>
+            {d.state === 'meta' && I.check}
+          </span>
+        </div>
+      )}
       <div className="flex justify-between text-[12.5px] mt-2 mb-3">
         <span className="text-neutral-500">{isOpen ? `${d.currentUnits} / ${d.target} uds en el grupo` : `${m.quantity} ud${m.quantity > 1 ? 's' : ''}`}</span>
         <span className="font-bold" style={{ color: d.state === 'noalc' ? '#94A3B8' : t.c }}>{d.state === 'meta' ? 'Objetivo alcanzado' : d.state === 'noalc' ? 'Objetivo no alcanzado' : d.nextObj == null ? 'Precio mínimo' : `Faltan ${d.missing} uds`}</span>

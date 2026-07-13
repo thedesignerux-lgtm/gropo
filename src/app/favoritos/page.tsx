@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase-server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
-import TierProgress from '@/components/TierProgress'
+import PulseZone from '@/components/PulseZone'
 import RadarCardMenu from '@/components/RadarCardMenu'
 import BottomNav from '@/components/BottomNav'
 import HomeSidebar from '@/components/desktop/HomeSidebar'
@@ -368,30 +368,33 @@ function Divider({ color, title, n }: { color: string; title: string; n: number 
 
 // ─── Opportunity card (hot / dropping) ──────────────────────
 
-// Hex EXACTOS del prototipo aprobado (no tokens) para fidelidad pixel a pixel.
+// Estilo SOFT (mockup 12 jul): tarjetas lavanda; pill NARANJA solo si faltan <4
+// unidades para el siguiente tramo, DORADA en el resto, VERDE al precio mínimo.
 const THEME = {
-  hot: { border: '#FCD9C6', badgeBg: '#FDEBE3', badgeTx: '#C2410C', next: '#EA580C', cta: '#F0531F' },
-  dropping: { border: '#DDD3FB', badgeBg: '#EDE9FE', badgeTx: '#6D28D9', next: '#7C3AED', cta: '#6B4EE6' },
+  hot: { border: '#E9E4FB', badgeBg: '#FDEBE3', badgeTx: '#C2410C', next: '#6D28D9', cta: '#6D28D9' },
+  // Pill MORADA (≥4 uds): continuidad, no urgencia
+  dropping: { border: '#E9E4FB', badgeBg: '#EDE9FE', badgeTx: '#6D28D9', next: '#6D28D9', cta: '#6D28D9' },
   complete: { border: '#BBF0D8', badgeBg: '#E7F7EF', badgeTx: '#0B7B44', next: '#0F9D58', cta: '#0F9D58' },
 } as const
 
-function OpportunityCard({ group: g, category }: { group: RadarGroup; category: 'hot' | 'dropping' }) {
+function OpportunityCard({ group: g }: { group: RadarGroup; category?: 'hot' | 'dropping' }) {
   const hoursLeft = g.closesAt ? Math.max(0, (new Date(g.closesAt).getTime() - Date.now()) / 3600000) : 0
 
   // Estado "Meta alcanzada": grupo abierto que ya llegó a su precio mínimo (sin siguiente tramo).
-  // MISMA lógica que la card de Grupos Abiertos → estados consistentes entre pantallas.
   const complete = g.status === 'open' && g.nextPrice == null
-  const variant: 'hot' | 'dropping' | 'complete' = complete ? 'complete' : category
+  // Pill naranja SOLO con urgencia real: faltan menos de 4 unidades
+  const urgent = !complete && g.missing > 0 && g.missing < 4
+  const variant: 'hot' | 'dropping' | 'complete' = complete ? 'complete' : urgent ? 'hot' : 'dropping'
   const t = THEME[variant]
 
   let badge = 'Ha bajado'
   let badgeIcon: 'fire' | 'clock' | 'down' | 'check' = 'down'
   if (complete) {
     badge = 'Meta alcanzada'; badgeIcon = 'check'
-  } else if (category === 'hot') {
-    if (g.missing > 0) { badge = `Faltan ${g.missing} unidades`; badgeIcon = 'fire' }
-    else if (hoursLeft < 24) { badge = 'Cierra hoy'; badgeIcon = 'clock' }
-    else { badge = 'Cierra pronto'; badgeIcon = 'clock' }
+  } else if (g.missing > 0) {
+    badge = `Faltan ${g.missing} unidades`; badgeIcon = urgent ? 'fire' : 'down'
+  } else if (hoursLeft < 24) {
+    badge = 'Cierra hoy'; badgeIcon = 'clock'
   }
 
   const showNext = g.status === 'open' && g.nextPrice != null
@@ -460,27 +463,26 @@ function OpportunityCard({ group: g, category }: { group: RadarGroup; category: 
           ) : null}
         </div>
 
-        {/* barra de tiers */}
-        {g.tiers.length > 0 && (
-          <TierProgress current={g.currentUnits} tiers={g.tiers} variant={variant} />
-        )}
-
-        {/* frase accionable única */}
-        {complete ? (
-          <p className="text-[13px] font-semibold mt-[13px]" style={{ color: t.next }}>¡Rebaja máxima alcanzada!</p>
-        ) : showNext && g.missing > 0 ? (
-          <p className="text-[13px] font-medium mt-[13px]" style={{ color: '#334155' }}>
-            Faltan <b style={{ color: t.next }}>{g.missing} unidades</b> para bajar a <b style={{ color: t.next }}>{fmt(g.nextPrice!)}</b>.
-          </p>
-        ) : null}
-
-        {/* CTA (navega al grupo) */}
-        <div
-          className="flex items-center justify-center w-full rounded-[11px] py-[13px] text-sm font-bold text-white tracking-wide mt-4 min-h-[46px] transition-[filter] hover:brightness-95"
-          style={{ backgroundColor: t.cta }}
+        {/* VONDA PULSE: barra (anatomía v3) + UNA línea de estado + UNA CTA primaria */}
+        <PulseZone
+          groupId={g.id}
+          productName={g.name}
+          current={g.currentUnits}
+          tiers={g.tiers}
+          variant={variant}
+          currentPrice={g.currentPrice}
+          complete={complete}
+          ctaColor={t.cta}
         >
-          {complete ? 'Entrar al precio mínimo' : `Asegurar precio · ${fmt(g.currentPrice)}`}
-        </div>
+          {/* frase informativa única */}
+          {complete ? (
+            <p className="text-[13px] font-semibold mt-[13px]" style={{ color: t.next }}>¡Rebaja máxima alcanzada!</p>
+          ) : showNext && g.missing > 0 ? (
+            <p className="text-[13px] font-medium mt-[13px]" style={{ color: '#334155' }}>
+              Faltan <b style={{ color: t.next }}>{g.missing} unidades</b> para bajar a <b style={{ color: t.next }}>{fmt(g.nextPrice!)}</b>.
+            </p>
+          ) : null}
+        </PulseZone>
       </div>
     </Link>
   )

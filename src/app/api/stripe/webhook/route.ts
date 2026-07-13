@@ -14,6 +14,7 @@ import { stripe } from '@/lib/stripe';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { Resend } from 'resend';
 import { joinConfirmationEmail } from '@/lib/emails/joinConfirmation';
+import { runPulseTrigger } from '@/lib/pulse';
 
 // Instanciación perezosa: NO crear el cliente al importar el módulo (rompe `next build`
 // en "collecting page data" si falta la key). Se crea en runtime, al enviar el email.
@@ -116,6 +117,19 @@ export async function POST(req: Request) {
           );
         }
       }
+      // VONDA PULSE (no-fatal): si el hold liberado nació de un pledge,
+      // reflejar la realidad — el compromiso NO se convirtió.
+      if (m.pulse_pledge_id) {
+        try {
+          await supabaseAdmin
+            .from('pulse_pledges')
+            .update({ status: 'failed' })
+            .eq('id', m.pulse_pledge_id);
+          console.log(`[webhook] pledge ${m.pulse_pledge_id} → failed (${data.reason})`);
+        } catch (pErr: any) {
+          console.error('[webhook] no se pudo marcar pledge failed (no-fatal):', pErr?.message);
+        }
+      }
     } else if (data?.status === 'confirmed') {
       console.log(`[webhook] confirmed PI ${pi.id}`);
 
@@ -146,6 +160,17 @@ export async function POST(req: Request) {
         }
       } catch (emailErr: any) {
         console.error('[webhook] email de confirmación falló (no-fatal):', emailErr?.message);
+      }
+
+      // VONDA PULSE (no-fatal): una compra confirmada acerca la masa crítica.
+      // Solo re-evalúa si NO es una conversión del propio Pulse (esas ya pasaron
+      // por el disparador) — evita recursión webhook→trigger→PI→webhook.
+      if (!m.pulse_pledge_id) {
+        try {
+          await runPulseTrigger(m.group_id);
+        } catch (pulseErr: any) {
+          console.error('[webhook] pulse trigger falló (no-fatal):', pulseErr?.message);
+        }
       }
     } else {
       console.log(`[webhook] ${data?.status} PI ${pi.id}`);

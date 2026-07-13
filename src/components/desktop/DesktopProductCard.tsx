@@ -2,6 +2,7 @@ import Link from 'next/link'
 import type { GroupProduct } from '@/lib/mock-data'
 import { getStepPricing, getActivationState } from '@/lib/mock-data'
 import FavoriteButton from '@/components/FavoriteButton'
+import PulseBar from '@/components/PulseBar'
 
 function fmt(price: number): string {
   return (price % 1 === 0 ? String(price) : price.toFixed(2).replace('.', ',')) + ' €'
@@ -9,9 +10,10 @@ function fmt(price: number): string {
 
 type Category = 'hot' | 'dropping' | 'complete'
 
+// Estilo SOFT (mockup 12 jul): lavanda; pill NARANJA si faltan <4 uds, DORADA si no
 const THEME: Record<Category, { color: string; border: string; badgeBg: string; badgeTx: string }> = {
-  hot: { color: '#F0531F', border: '#FCD9C6', badgeBg: '#FDEBE3', badgeTx: '#C2410C' },
-  dropping: { color: '#6C3CE1', border: '#DDD3FB', badgeBg: '#EDE9FE', badgeTx: '#6D28D9' },
+  hot: { color: '#6D28D9', border: '#E9E4FB', badgeBg: '#FDEBE3', badgeTx: '#C2410C' },
+  dropping: { color: '#6D28D9', border: '#E9E4FB', badgeBg: '#EDE9FE', badgeTx: '#6D28D9' },
   complete: { color: '#0F9D58', border: '#BBF0D8', badgeBg: '#E7F7EF', badgeTx: '#0B7B44' },
 }
 
@@ -39,7 +41,7 @@ export default function DesktopProductCard({ product, isFavorited = false }: Pro
 
   const category: Category = isComplete
     ? 'complete'
-    : nextTier && (unitsToNext <= 5 || (hoursLeft != null && hoursLeft < 48))
+    : nextTier && unitsToNext > 0 && unitsToNext < 4
       ? 'hot'
       : 'dropping'
   const t = THEME[category]
@@ -62,7 +64,7 @@ export default function DesktopProductCard({ product, isFavorited = false }: Pro
           {category === 'hot' && <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2c1 3-1 4-1 6a3 3 0 006 0c2 3 1 6-1 8a5 5 0 01-9-3c0-2 2-3 2-5 0 0 3 1 4-6z" /></svg>}
           {category === 'dropping' && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true"><path d="M12 5v14M6 13l6 6 6-6" /></svg>}
           {category === 'complete' && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true"><path d="M5 12l5 5 9-11" /></svg>}
-          {category === 'hot' ? `Faltan ${missing} unidades` : category === 'dropping' ? 'Bajando de precio' : 'Meta alcanzada'}
+          {category === 'complete' ? 'Meta alcanzada' : missing > 0 ? `Faltan ${missing} unidades` : 'Bajando de precio'}
         </span>
         <div className="flex items-center gap-2 flex-shrink-0">
           {timeLabel && (
@@ -102,18 +104,14 @@ export default function DesktopProductCard({ product, isFavorited = false }: Pro
         </div>
       </div>
 
-      {/* Progress bar (relleno + círculo objetivo) */}
-      <div className="relative h-[18px] flex items-center">
-        <div className="flex-1 h-1.5 rounded-full bg-neutral-200 overflow-hidden mr-1">
-          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: t.color }} />
-        </div>
-        <span
-          className="w-[18px] h-[18px] rounded-full flex items-center justify-center shrink-0"
-          style={{ background: isComplete ? t.color : '#fff', border: `2.5px solid ${t.color}` }}
-        >
-          {isComplete && <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" aria-hidden="true"><path d="M5 12l5 5 9-11" /></svg>}
-        </span>
-      </div>
+      {/* VONDA PULSE: barra completa (nodos + precios + glow + conversión) */}
+      <PulseBar
+        groupId={product.id}
+        current={product.currentUnits}
+        tiers={product.tiers.map((tier) => ({ units: tier.minUnits, price: tier.price }))}
+        variant={category}
+        disabled={isComplete}
+      />
 
       {/* Progreso: texto único (sin "X/Y uds", regla de oro) */}
       <p className="text-[13px] text-neutral-700 mt-2.5">
@@ -152,8 +150,11 @@ export default function DesktopProductCard({ product, isFavorited = false }: Pro
 
       {/* Footer: CTA + corazón */}
       <div className="flex items-center gap-2 mt-4">
-        <div className="flex-1 flex items-center justify-center py-3 rounded-xl text-sm font-bold text-white transition-[filter] hover:brightness-95" style={{ backgroundColor: t.color }}>
-          {isComplete ? 'Entrar al precio mínimo' : `Asegurar precio · ${fmt(currentPrice)}`}
+        <div
+          className="flex-1 flex items-center justify-center py-3 rounded-xl text-sm font-bold transition-[filter] hover:brightness-95"
+          style={{ backgroundColor: `${t.color}12`, color: t.color, border: `1px solid ${t.color}2E` }}
+        >
+          {isComplete ? 'Entrar al precio mínimo' : `Asegurar plaza · ${fmt(currentPrice)}`}
         </div>
         <FavoriteButton
           groupId={product.id}
