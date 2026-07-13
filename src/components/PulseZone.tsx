@@ -129,7 +129,10 @@ export default function PulseZone({
           <button onClick={cancel} disabled={busy} className="text-neutral-400 font-semibold hover:text-neutral-600">Quitar</button>
         </div>
       )
-    } else if (mine?.status === 'watching' && !canAccept) {
+    } else if (mine?.status === 'watching') {
+      // Stepper de cantidad SIEMPRE visible en watching — también cuando ya se
+      // puede aceptar (antes, canAccept ocultaba esta línea y era imposible
+      // cambiar la cantidad antes de comprometerse).
       statusLine = (
         <div className="flex items-center justify-between text-[12px]">
           <span className="inline-flex items-center gap-2 font-bold" style={{ color: '#6D28D9' }}>

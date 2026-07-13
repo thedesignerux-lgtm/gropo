@@ -22,7 +22,7 @@ Next.js 14 App Router (`src/`, alias `@/` → `src/`) · Supabase (PostgreSQL + 
 - **GitHub:** `thedesignerux-lgtm/kuorum`
 - **Supabase project ID:** `xpktkuozspreuxucnguh`
 - **Producción:** `https://www.vonda.es` (SIEMPRE con `www` — Stripe y server-to-server fallan con el 308 del apex)
-- **Localhost:** puerto 3001 (no 3000). `stripe listen` debe apuntar a `localhost:3001/api/stripe/webhook`
+- **Localhost:** puerto 3000. `stripe listen` debe apuntar a `localhost:3000/api/stripe/webhook`
 - **Git author:** `benjaminperezsouto@gmail.com`
 
 ## Roles
@@ -103,18 +103,25 @@ Next.js 14 App Router (`src/`, alias `@/` → `src/`) · Supabase (PostgreSQL + 
 - Admin panel con close manual, member table, CSV export
 - Logo Vonda desplegado
 - Ensayo 1 (cierre con dinero real, compradores "ahora") — VERDE
+- Ensayo 3 (cierre con esperadores: capturas por PMA, parcial y liberación) — VERDE (13 jul)
+- Ensayo E2E Vonda Pulse (pledge→aceptar→masa→conversión, fallo de tarjeta aislado, masa no consolidada) — VERDE (13 jul)
+- Login con Google (OAuth via Supabase; magic link como fallback) — verificado en localhost 13 jul
+- Fixes 13 jul: RadarAuthSheet con portal (bug clicks/hover), stepper cantidad PulseZone
 
 ### Pendiente crítico
-- Ensayo 3: cierre con esperadores reales en Stripe (money-critical)
-- Limpiar mock-data de la ficha (getActivationState, getMilestones, avatares hardcoded)
 - Cutover Stripe test → live (pk_live, sk_live, webhook live, vars Vercel)
 - Rotación claves Sendcloud (expuestas en chat durante desarrollo)
 - Conseguir vendedor real con tramos confirmados
+- Confirmar Custom SMTP (Resend) en Supabase Auth — el SMTP integrado limita a ~2-4 emails/h TODA la app (bloqueante para login por email en producción)
+- Bug display esperador: JoinFlow mostró retención 80 € con target 60 € (hold real correcto: 60) + admin member table enseña guaranteed_price para esperadores
+- Limpiar mock-data de la ficha (getActivationState, getMilestones, avatares hardcoded)
 
 ### Pendiente menor
 - Guard de group_id en webhook route
 - Página "unido" basada en webhook confirmado (no solo Payment Element)
-- DST fix para closes_at (20:00 UTC = 22:00 CEST pero 21:00 CET en invierno)
+- Pulse UX: quitar favorito no cancela pledge (decisión de producto) · selector de cantidad en PulseAcceptModal
+- Limpieza antes del dom 19: grupos DEMO + usuarios demo_pulse_* + ENSAYO_F1/F2 históricos + restos instructed 28 jun (Cubierta)
+- Verificar login Google en www.vonda.es tras el deploy (origins ya incluyen producción)
 - Centralizar Resend client (duplicado entre resend.ts y webhook)
 - Dedup latente en confirm_join (check por tel OR email, upsert ON CONFLICT email)
 - Código muerto: DesktopTierBar, TierBar, NextTierCallout, funciones mock-data.ts sin uso
