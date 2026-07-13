@@ -51,7 +51,7 @@ export default async function AdminGroupDetailPage({ params }: { params: { id: s
       .single(),
     supabaseAdmin
       .from('group_members')
-      .select('id, join_order, quantity, guaranteed_price, final_price, payment_status, users(name, email, phone)')
+      .select('id, join_order, quantity, guaranteed_price, final_price, payment_status, join_mode, target_price, authorized_amount, users(name, email, phone)')
       .eq('group_id', id)
       .order('join_order'),
     supabaseAdmin
@@ -142,9 +142,10 @@ export default async function AdminGroupDetailPage({ params }: { params: { id: s
                   <th className="px-4 py-3 text-left">Nombre</th>
                   <th className="px-4 py-3 text-left">Teléfono</th>
                   <th className="px-4 py-3 text-left">Email</th>
+                  <th className="px-4 py-3 text-left">Modo</th>
                   <th className="px-4 py-3 text-right">Cant.</th>
                   <th className="px-4 py-3 text-right">Precio</th>
-                  <th className="px-4 py-3 text-right">Total</th>
+                  <th className="px-4 py-3 text-right">Hold</th>
                   <th className="px-4 py-3 text-left">Pago</th>
                 </tr>
               </thead>
@@ -153,19 +154,35 @@ export default async function AdminGroupDetailPage({ params }: { params: { id: s
                   const u = m.users as any
                   const payBadge = PAYMENT_BADGE[m.payment_status] ?? PAYMENT_BADGE.pending
                   const isReleased = m.payment_status === 'released' || m.payment_status === 'cancelled'
-                  const unitPrice = isReleased ? 0 : Number(m.final_price ?? m.guaranteed_price)
+                  const isEsperar = m.join_mode === 'esperar'
+                  // Precio: final_price si cerrado, para esperadores target_price, sino guaranteed_price
+                  const unitPrice = isReleased ? 0 : Number(m.final_price ?? (isEsperar ? m.target_price : null) ?? m.guaranteed_price)
+                  // Hold: authorized_amount es total en €, dividir por qty para mostrar /ud
+                  const holdTotal = m.authorized_amount ? Number(m.authorized_amount) : unitPrice * m.quantity
                   return (
                     <tr key={m.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-3 text-gray-400">{m.join_order ?? '—'}</td>
                       <td className="px-4 py-3 font-medium text-gray-900">{u?.name ?? '—'}</td>
                       <td className="px-4 py-3 text-gray-600">{u?.phone ?? '—'}</td>
                       <td className="px-4 py-3 text-gray-600">{u?.email ?? '—'}</td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          isEsperar ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
+                        }`}>
+                          {isEsperar ? 'Esperar' : 'Comprar'}
+                        </span>
+                        {isEsperar && m.target_price && (
+                          <span className="block text-[10px] text-gray-400 mt-0.5">
+                            Obj. {fmt(Number(m.target_price))}
+                          </span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-right text-gray-700">{m.quantity}</td>
                       <td className="px-4 py-3 text-right text-gray-700">
                         {isReleased ? '—' : fmt(unitPrice)}
                       </td>
-                      <td className="px-4 py-3 text-right font-semibold text-gray-900">
-                        {isReleased ? '—' : fmt(unitPrice * m.quantity)}
+                      <td className="px-4 py-3 text-right text-gray-700">
+                        {isReleased ? '—' : fmt(holdTotal)}
                       </td>
                       <td className="px-4 py-3">
                         <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-semibold ${payBadge.cls}`}>
@@ -179,14 +196,14 @@ export default async function AdminGroupDetailPage({ params }: { params: { id: s
               {memberCount > 0 && (
                 <tfoot className="border-t border-gray-200 bg-gray-50">
                   <tr className="text-sm font-semibold text-gray-900">
-                    <td colSpan={4} className="px-4 py-3">Total</td>
+                    <td colSpan={5} className="px-4 py-3">Total</td>
                     <td className="px-4 py-3 text-right">{totalUnits}</td>
                     <td />
                     <td className="px-4 py-3 text-right">
                       {fmt(
                         (members ?? [])
                           .filter(m => m.payment_status !== 'released' && m.payment_status !== 'cancelled')
-                          .reduce((s, m) => s + Number(m.final_price ?? m.guaranteed_price) * m.quantity, 0)
+                          .reduce((s, m) => s + (m.authorized_amount ? Number(m.authorized_amount) : Number(m.final_price ?? m.guaranteed_price) * m.quantity), 0)
                       )}
                     </td>
                     <td />

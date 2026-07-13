@@ -163,7 +163,7 @@ export default function JoinFlow({
               <div>
                 <p className="text-sm font-semibold text-neutral-900">Compra automática a {eur(efectiveTargetPrice)}</p>
                 <p className="text-xs text-neutral-500 mt-1">
-                  Tu pago se reservará ahora al precio actual ({eur(pricePerUnit)}). Si la vonda alcanza {eur(efectiveTargetPrice)} antes del cierre, se confirma automáticamente al precio más bajo. Si no se alcanza, puedes quedarte al precio actual o cancelar sin cargo.
+                  Se retendrán {eur(efectiveTargetPrice * quantity)} en tu tarjeta ({eur(efectiveTargetPrice)}/ud × {quantity}). Si la vonda alcanza ese precio antes del cierre, se confirma automáticamente. Si no se alcanza, se libera sin cargo.
                 </p>
               </div>
             </div>

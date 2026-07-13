@@ -1,15 +1,9 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
-import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import { useTierDemand } from '@/hooks/useTierDemand'
-import { useCheckout } from '@/components/checkout/CheckoutProvider'
-import { createClient } from '@/lib/supabase-browser'
+import GroupCountdown from '@/components/GroupCountdown'
 import TierDemandLadder from '@/components/TierDemandLadder'
-import JoinModeSelector, { type ProjectionResult } from '@/components/JoinModeSelector'
-import BestPriceReached from '@/components/BestPriceReached'
-import PriceJourney from '@/components/PriceJourney'
 
 function fmt(n: number): string {
   return (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
@@ -26,223 +20,160 @@ interface Props {
   tiers: Tier[]
   maxStock: number
   initialBestPrice: number
+  closesAt: string
 }
 
 export default function GroupCenterContent({
-  groupId, name, spec, imageUrl, pvp, tiers, maxStock, initialBestPrice,
+  groupId, name, spec, imageUrl, pvp, tiers, maxStock, initialBestPrice, closesAt,
 }: Props) {
-  const [joinMode, setJoinMode] = useState<'comprar' | 'esperar'>('comprar')
-  const [joinTarget, setJoinTarget] = useState<number | undefined>(undefined)
-  const [quantity, setQuantity] = useState(1)
-  const [, setProjection] = useState<ProjectionResult | null>(null)
-
-  // Checkout 1-Click (Gate A3): logueado → FastCheckoutModal; invitado → /unirme.
-  const { open } = useCheckout()
-  const router = useRouter()
-  const [authed, setAuthed] = useState<boolean | null>(null)
-  useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data: { user } }) => setAuthed(!!user))
-  }, [])
-
   const { tiers: demandTiers, currentPrice, nextTier, missing } = useTierDemand(groupId)
   const displayPrice = currentPrice > 0 ? currentPrice : initialBestPrice
-
-  const totalParticipants = demandTiers.length > 0
-    ? Math.max(...demandTiers.map(t => t.demand))
-    : 0
-
-  const savings = pvp > 0 && pvp > displayPrice ? pvp - displayPrice : 0
-  const savingsPct = pvp > 0 ? Math.round((savings / pvp) * 100) : 0
   const isBestPrice = !nextTier
+  const savings = pvp > 0 && pvp > displayPrice ? pvp - displayPrice : 0
+  const totalParticipants = demandTiers.length > 0 ? Math.max(...demandTiers.map(t => t.demand)) : 0
 
-  const handleProjection = useCallback((result: ProjectionResult | null) => {
-    setProjection(result)
-  }, [])
+  // Summary (firm + reserve)
+  const [summary, setSummary] = useState<{ firmUnits: number; reserveUnits: number } | null>(null)
+  useEffect(() => {
+    fetch(`/api/group/${groupId}/summary`).then(r => r.json()).then(setSummary).catch(() => {})
+  }, [groupId])
 
-  const selectedMaxPrice = joinMode === 'esperar' && joinTarget ? joinTarget : displayPrice
+  // Badge de descuento
+  const discountBadge = isBestPrice
+    ? { text: 'Mejor precio alcanzado', cls: 'bg-green-50 text-green-700 border-green-200' }
+    : savings > 0
+    ? { text: `Ahorras ${fmt(savings)}`, cls: 'bg-green-50 text-green-700 border-green-200' }
+    : { text: 'Aún sin descuento', cls: 'bg-neutral-100 text-neutral-500 border-neutral-200' }
 
-  // Build CTA href with all params (qty, mode, target)
-  const ctaParams = new URLSearchParams()
-  if (joinMode === 'esperar' && joinTarget) {
-    ctaParams.set('mode', 'esperar')
-    ctaParams.set('target', String(joinTarget))
-  }
-  if (quantity > 1) ctaParams.set('qty', String(quantity))
-  const ctaHref = `/grupo/${groupId}/unirme${ctaParams.toString() ? `?${ctaParams.toString()}` : ''}`
-
-  const handleBuy = () => {
-    if (authed) {
-      open({
-        groupId,
-        productName: name,
-        productSpec: spec,
-        imageUrl: imageUrl ?? null,
-        quantity,
-        maxPricePerUnit: displayPrice,
-      })
-    } else {
-      router.push(ctaHref)
-    }
-  }
-
-  // ¿La cantidad seleccionada desbloquearía el siguiente tramo? (para el texto de la tarjeta)
-  const wouldUnlock = nextTier ? quantity >= missing && missing > 0 : false
+  // Próximo descuento — pill verde
+  const nextDiscountPill = nextTier && !isBestPrice
+    ? `Faltan ${missing} compra${missing !== 1 ? 's' : ''} para ${fmt(nextTier.price)}`
+    : null
 
   return (
-    <div className="space-y-5">
-      {/* ROW 1: Precios */}
-      {isBestPrice ? (
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-white rounded-2xl border border-neutral-100 p-5 flex flex-col justify-center">
-            <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-1">Precio habitual</p>
-            <p className="text-2xl font-bold text-neutral-300 line-through">{fmt(pvp)}</p>
-          </div>
-          <div className="bg-white rounded-2xl border border-neutral-100 p-5 flex flex-col justify-center">
-            <p className="text-xs font-semibold text-green-600 uppercase tracking-wide mb-1">Tu precio hoy</p>
-            <p className="text-3xl font-bold text-green-600">{fmt(displayPrice)}</p>
-            {savings > 0.01 && (
-              <p className="text-sm font-semibold text-green-600 mt-1">Ahorras {fmt(savings)} ({savingsPct}%)</p>
-            )}
-          </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-white rounded-2xl border border-neutral-100 p-5 flex flex-col justify-center">
-            <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-1">Precio normal</p>
-            <p className="text-2xl font-bold text-neutral-300 line-through">{fmt(pvp)}</p>
-          </div>
-          <div className="bg-white rounded-2xl border border-neutral-100 p-5 flex flex-col justify-center">
-            <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-1">Precio del grupo</p>
-            <p className="text-3xl font-bold text-brand">{fmt(displayPrice)}</p>
-            {savings > 0.01 && (
-              <p className="text-xs font-semibold text-green-600 mt-1">Ahorras {fmt(savings)}</p>
-            )}
-          </div>
-          <div className="bg-white rounded-2xl border border-neutral-100 p-5 flex flex-col justify-center">
-            <p className="text-xs font-semibold text-neutral-400 uppercase tracking-wide mb-1">Próximo descuento</p>
-            <p className="text-3xl font-bold text-green-600">{fmt(nextTier!.price)}</p>
-            {wouldUnlock ? (
-              <p className="text-xs font-semibold text-green-600 mt-1">
-                ¡Con tus {quantity} ud{quantity > 1 ? 's' : ''} se desbloquea!
-              </p>
+    <div className="space-y-6">
+
+      {/* ── HEADER CARD ── */}
+      <div className="bg-white rounded-2xl border border-neutral-200 p-6">
+        <div className="flex gap-5">
+          {/* Product image */}
+          <div className="w-[120px] h-[120px] flex-shrink-0 rounded-xl bg-[#F5F5F5] overflow-hidden flex items-center justify-center">
+            {imageUrl ? (
+              <img src={imageUrl} alt={name} className="w-full h-full object-cover" />
             ) : (
-              <p className="text-xs text-neutral-500 mt-1">Faltan {missing} compra{missing !== 1 ? 's' : ''}</p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Banner de mejor precio alcanzado */}
-      {isBestPrice && (
-        <BestPriceReached
-          currentPrice={displayPrice}
-          pvp={pvp}
-          maxStock={maxStock}
-          totalDemand={totalParticipants}
-        />
-      )}
-
-      {/* Quantity + CTA — arriba cuando mejor precio alcanzado */}
-      {isBestPrice && (
-        <div className="bg-white rounded-2xl border border-neutral-100 p-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <span className="text-sm font-medium text-neutral-700">Cantidad</span>
-              <div className="flex items-center gap-3">
-                <button type="button" onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                  className="w-9 h-9 rounded-lg border border-neutral-200 flex items-center justify-center text-neutral-600 hover:border-brand transition-colors text-lg">−</button>
-                <span className="text-base font-semibold text-neutral-900 tabular-nums w-6 text-center">{quantity}</span>
-                <button type="button" onClick={() => setQuantity(q => Math.min(10, q + 1))}
-                  className="w-9 h-9 rounded-lg border border-neutral-200 flex items-center justify-center text-neutral-600 hover:border-brand transition-colors text-lg">+</button>
-              </div>
-              <span className="text-xs text-neutral-400">unidad{quantity > 1 ? 'es' : ''}</span>
-            </div>
-
-            <button type="button" onClick={handleBuy}
-              className="bg-green-600 text-white font-semibold text-base px-8 py-3.5 rounded-xl hover:bg-green-700 active:scale-[0.98] transition-all flex items-center gap-2">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                <path d="M7 11V7a5 5 0 0110 0v4"/>
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-neutral-300">
+                <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
               </svg>
-              Bloquear precio · {fmt(selectedMaxPrice)}
-            </button>
-          </div>
-          <p className="text-xs text-neutral-400 text-center mt-3">Pago 100% seguro con Stripe</p>
-        </div>
-      )}
-
-      {/* Recorrido de precio (solo cuando mejor precio alcanzado) */}
-      {isBestPrice && (
-        <PriceJourney pvp={pvp} currentPrice={displayPrice} tiers={demandTiers} />
-      )}
-
-      {/* Cómo baja el precio (solo cuando hay siguiente descuento) */}
-      {!isBestPrice && (
-        <>
-          {demandTiers.length > 0 ? (
-            <TierDemandLadder tiers={demandTiers} currentPrice={displayPrice} selectedQuantity={quantity} />
-          ) : (
-            <TierDemandLadder groupId={groupId} selectedQuantity={quantity} />
-          )}
-        </>
-      )}
-
-      {/* PMA Selector (solo cuando hay siguiente descuento) */}
-      {!isBestPrice && (
-        <div className="bg-white rounded-2xl border border-neutral-100 p-5">
-          <JoinModeSelector
-            groupId={groupId}
-            tiers={tiers}
-            currentPrice={displayPrice}
-            totalUnits={totalParticipants}
-            quantity={quantity}
-            demandTiers={demandTiers}
-            onChange={(m, tp) => { setJoinMode(m); setJoinTarget(tp) }}
-            onProjection={handleProjection}
-          />
-        </div>
-      )}
-
-      {/* Quantity + CTA (solo cuando hay siguiente descuento) */}
-      {!isBestPrice && (
-        <div className="bg-white rounded-2xl border border-neutral-100 p-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <span className="text-sm font-medium text-neutral-700">Cantidad</span>
-              <div className="flex items-center gap-3">
-                <button type="button" onClick={() => setQuantity(q => Math.max(1, q - 1))}
-                  className="w-9 h-9 rounded-lg border border-neutral-200 flex items-center justify-center text-neutral-600 hover:border-brand transition-colors text-lg">−</button>
-                <span className="text-base font-semibold text-neutral-900 tabular-nums w-6 text-center">{quantity}</span>
-                <button type="button" onClick={() => setQuantity(q => Math.min(10, q + 1))}
-                  className="w-9 h-9 rounded-lg border border-neutral-200 flex items-center justify-center text-neutral-600 hover:border-brand transition-colors text-lg">+</button>
-              </div>
-              <span className="text-xs text-neutral-400">unidad{quantity > 1 ? 'es' : ''}</span>
-            </div>
-
-            {joinMode === 'esperar' && joinTarget ? (
-              <Link href={ctaHref}
-                className="bg-brand text-white font-semibold text-base px-8 py-3.5 rounded-xl hover:bg-brand-dark active:scale-[0.98] transition-all flex items-center gap-2">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                  <path d="M7 11V7a5 5 0 0110 0v4"/>
-                </svg>
-                Reservar plaza · {fmt(joinTarget)} máx.
-              </Link>
-            ) : (
-              <button type="button" onClick={handleBuy}
-                className="bg-brand text-white font-semibold text-base px-8 py-3.5 rounded-xl hover:bg-brand-dark active:scale-[0.98] transition-all flex items-center gap-2">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                  <path d="M7 11V7a5 5 0 0110 0v4"/>
-                </svg>
-                {nextTier ? `Bloquear precio (Máx. ${fmt(selectedMaxPrice)})` : `Bloquear precio · ${fmt(selectedMaxPrice)}`}
-              </button>
             )}
           </div>
-          <p className="text-xs text-neutral-400 text-center mt-3">Pago 100% seguro con Stripe</p>
+
+          {/* Product info */}
+          <div className="flex-1 min-w-0">
+            <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-1">
+              Compra conjunta{spec ? ` · ${spec}` : ''}
+            </p>
+            <h1 className="text-xl font-bold text-neutral-900 leading-tight mb-2">{name}</h1>
+            <div className="flex items-center gap-3">
+              <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-green-700 bg-green-50 px-2.5 py-1 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                Grupo abierto
+              </span>
+              <span className="text-sm text-neutral-500">
+                Cierra en <GroupCountdown closesAt={closesAt} minimal />
+              </span>
+            </div>
+          </div>
+
+          {/* Price block */}
+          <div className="flex-shrink-0 text-right">
+            <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-1">Precio del grupo</p>
+            <div className="flex items-baseline gap-2 justify-end">
+              {savings > 0 && (
+                <span className="text-base text-neutral-400 line-through">{fmt(pvp)}</span>
+              )}
+              <span className="text-4xl font-bold text-neutral-900">{fmt(displayPrice)}</span>
+            </div>
+            <span className={`inline-flex mt-2 text-xs font-medium px-3 py-1 rounded-full border ${discountBadge.cls}`}>
+              {discountBadge.text}
+            </span>
+          </div>
         </div>
-      )}
+      </div>
+
+      {/* ── PRICE LADDER ── */}
+      <div className="bg-white rounded-2xl border border-neutral-200 p-6">
+        <div className="flex items-start justify-between mb-1">
+          <div>
+            <h2 className="text-base font-bold text-neutral-900">Cómo baja el precio</h2>
+            <p className="text-sm text-neutral-500 mt-0.5">Cuantos más compradores se unen, menor será el precio para todos.</p>
+          </div>
+          {nextDiscountPill && (
+            <span className="flex-shrink-0 inline-flex items-center text-xs font-semibold text-green-700 bg-green-50 px-3 py-1.5 rounded-full border border-green-200">
+              {nextDiscountPill}
+            </span>
+          )}
+        </div>
+
+        {/* Reuse existing TierDemandLadder (horizontal stepper) */}
+        <div className="mt-4">
+          {demandTiers.length > 0 ? (
+            <TierDemandLadder tiers={demandTiers} currentPrice={displayPrice} />
+          ) : (
+            <TierDemandLadder groupId={groupId} />
+          )}
+        </div>
+
+        {/* Bottom stats row */}
+        <div className="flex items-center justify-between mt-4 pt-3 border-t border-neutral-100 text-sm text-neutral-500">
+          <span>
+            {summary
+              ? `${summary.firmUnits} compras aseguradas · ${summary.reserveUnits} en espera`
+              : `${totalParticipants} compras aseguradas`}
+          </span>
+          <span>Stock disponible: {maxStock} uds</span>
+        </div>
+      </div>
+
+      {/* ── DETAILS + WHY JOIN (2 cards side by side) ── */}
+      <div className="grid grid-cols-2 gap-6">
+        {/* Product details */}
+        <div className="bg-white rounded-2xl border border-neutral-200 p-6">
+          <h3 className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-4">Detalles del producto</h3>
+          <div className="divide-y divide-neutral-100">
+            {[
+              { label: 'Categoría', value: 'Cubiertas' },
+              { label: 'Marca', value: 'Continental' },
+              { label: 'Medidas', value: '700×25' },
+              { label: 'Uso', value: 'Carretera' },
+            ].map(row => (
+              <div key={row.label} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+                <span className="text-sm text-neutral-500">{row.label}</span>
+                <span className="text-sm font-semibold text-neutral-900">{row.value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Why join */}
+        <div className="bg-white rounded-2xl border border-neutral-200 p-6">
+          <h3 className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-4">¿Por qué unirte?</h3>
+          <ul className="space-y-3">
+            {[
+              'Aseguras tu unidad',
+              'Siempre pagarás el mejor precio conseguido',
+              'Cada nuevo comprador ayuda a bajar el precio',
+              'Pago seguro con Stripe',
+            ].map(text => (
+              <li key={text} className="flex items-start gap-2.5 text-sm text-neutral-700">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-green-500 flex-shrink-0 mt-0.5">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+                {text}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
     </div>
   )
 }

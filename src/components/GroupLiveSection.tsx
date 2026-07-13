@@ -134,14 +134,31 @@ export default function GroupLiveSection({
           )}
         </div>
 
-        {/* Progress to next price — now reacts to selected quantity */}
+        {/* Progress to next price — or celebration when best price reached */}
         <div style={{ marginBottom: 6 }}>
-          <ProgressToNextPrice
-            currentPrice={displayPrice}
-            nextTier={nextTier}
-            missing={missing}
-            selectedQuantity={quantity}
-          />
+          {nextTier ? (
+            <ProgressToNextPrice
+              currentPrice={displayPrice}
+              nextTier={nextTier}
+              missing={missing}
+              selectedQuantity={quantity}
+            />
+          ) : demandTiers.length > 0 ? (
+            <div className="bg-green-50 rounded-xl border border-green-200 p-4 flex items-start gap-3">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-green-600">
+                  <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+                  <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-bold text-neutral-900">Mejor precio desbloqueado</p>
+                <p className="text-xs text-neutral-600 mt-0.5">
+                  El grupo alcanzó {fmt(displayPrice)}/ud — el máximo descuento posible.
+                </p>
+              </div>
+            </div>
+          ) : null}
         </div>
 
         {/* Tier demand ladder */}
