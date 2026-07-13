@@ -99,7 +99,7 @@ Next.js 14 App Router (`src/`, alias `@/` → `src/`) · Supabase (PostgreSQL + 
 - JoinModeSelector (comprar ahora / esperar a precio)
 - Sendcloud v3 shipping (correos_express:paq24)
 - Transactional email via Resend
-- Vercel cron cierre domingos (0 20 * * 0 UTC)
+- Vercel cron cierre domingos (0 21 * * 0 UTC — límite plan Hobby: cierra 22:00 Madrid en invierno / 23:00 en verano, nunca ANTES de las 22:00; cron pulse respaldo 1×/día 08:30 UTC. Si se pasa a Pro: restaurar 0 20,21 * * 0 y */10)
 - Admin panel con close manual, member table, CSV export
 - Logo Vonda desplegado
 - Ensayo 1 (cierre con dinero real, compradores "ahora") — VERDE
