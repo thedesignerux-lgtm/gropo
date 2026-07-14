@@ -7,14 +7,14 @@ import HomeCarousel from './HomeCarousel'
 import HomeProductCard from './HomeProductCard'
 
 const CATEGORIES = [
-  { key: 'todos', label: 'Todos', icon: '🔥' },
-  { key: 'deporte', label: 'Deporte', icon: '🚴' },
-  { key: 'tecnologia', label: 'Tecnología', icon: '💻' },
-  { key: 'hogar', label: 'Hogar', icon: '🏠' },
-  { key: 'moda', label: 'Moda', icon: '👕' },
-  { key: 'herramientas', label: 'Herramientas', icon: '🔧' },
-  { key: 'infantil', label: 'Infantil', icon: '🧸' },
-  { key: 'otros', label: 'Otros', icon: '📦' },
+  { key: 'todos', label: 'Todos' },
+  { key: 'deporte', label: 'Deporte' },
+  { key: 'tecnologia', label: 'Tecnología' },
+  { key: 'hogar', label: 'Hogar' },
+  { key: 'moda', label: 'Moda' },
+  { key: 'herramientas', label: 'Herramientas' },
+  { key: 'infantil', label: 'Infantil' },
+  { key: 'otros', label: 'Otros' },
 ]
 
 // For now all products go to "Deporte" since Vonda is cycling.
@@ -56,70 +56,71 @@ export default function HomeDesktopView({ products, favoriteIds = [] }: Props) {
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
       {/* ── TOP NAV ── */}
-      <header className="sticky top-0 z-30 bg-white border-b border-neutral-100">
+      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-neutral-100">
         <div className="max-w-[1280px] mx-auto px-8 h-16 flex items-center justify-between">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5" aria-label="Vonda">
-            <span className="w-[32px] h-[32px] rounded-lg bg-brand flex items-center justify-center text-white">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h4l2 6 4-14 2 8h6" /></svg>
-            </span>
-            <span className="text-lg font-bold text-neutral-900 tracking-tight">Vonda</span>
-          </Link>
-
-          {/* Center nav links */}
-          <nav className="hidden xl:flex items-center gap-8">
-            <Link href="/" className="text-sm font-semibold text-brand">Explorar</Link>
-            <Link href="/mis-grupos" className="text-sm font-medium text-neutral-500 hover:text-neutral-900 transition-colors">Mis grupos</Link>
-            <Link href="/favoritos" className="text-sm font-medium text-neutral-500 hover:text-neutral-900 transition-colors">Mi Radar</Link>
-            <Link href="/como-funciona" className="text-sm font-medium text-neutral-500 hover:text-neutral-900 transition-colors">Cómo funciona</Link>
+          {/* Left: nav links in pill container */}
+          <nav className="hidden xl:flex items-center gap-1 bg-neutral-100 rounded-full p-1">
+            <Link href="/" className="px-4 py-2 rounded-full text-sm font-semibold bg-white text-neutral-900 shadow-sm">Explorar</Link>
+            <Link href="/mis-grupos" className="px-4 py-2 rounded-full text-sm font-medium text-neutral-500 hover:text-neutral-900 transition-colors">Mis grupos</Link>
+            <Link href="/favoritos" className="px-4 py-2 rounded-full text-sm font-medium text-neutral-500 hover:text-neutral-900 transition-colors">Mi Radar</Link>
           </nav>
 
-          {/* Right actions */}
-          <div className="flex items-center gap-4">
+          {/* Center: Logo */}
+          <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2.5" aria-label="Vonda">
+            <img src="/logo.png" alt="Vonda" className="h-8 w-auto" />
+            <span className="text-xl font-bold text-neutral-900 tracking-tight">Vonda</span>
+          </Link>
+
+          {/* Right: CTA + avatar */}
+          <div className="flex items-center gap-3">
             <Link
               href="/crear-peticion"
-              className="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl bg-brand text-white text-sm font-semibold hover:bg-brand-dark transition-colors"
+              className="hidden md:flex items-center gap-2 px-5 py-2.5 rounded-full border border-neutral-200 text-sm font-semibold text-neutral-700 hover:border-brand hover:text-brand transition-colors"
             >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               Crea tu grupo
             </Link>
-            <button className="w-9 h-9 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-500 hover:bg-neutral-200 transition-colors" aria-label="Ajustes">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-            </button>
             <div className="w-9 h-9 rounded-full bg-brand flex items-center justify-center text-sm font-semibold text-white cursor-pointer">
-              B
+              V
             </div>
           </div>
         </div>
       </header>
 
       {/* ── HERO SECTION ── */}
-      <section className="bg-white border-b border-neutral-100">
-        <div className="max-w-[1280px] mx-auto px-8 py-12 text-center">
-          <h1 className="text-4xl font-extrabold text-neutral-900 mb-3 tracking-tight">
+      <section className="bg-[#F8F7F4] border-b border-neutral-100">
+        <div className="max-w-[1280px] mx-auto px-8 pt-14 pb-10 text-center">
+          <h1 className="text-[40px] leading-tight font-extrabold text-neutral-900 mb-3" style={{ fontFamily: "'Georgia', serif" }}>
             Cuantos más seamos, menos pagamos
           </h1>
-          <p className="text-lg text-neutral-500 mb-8 max-w-xl mx-auto">
-            Únete a grupos de compra y consigue los mejores precios. El precio baja en tiempo real según se unen más personas.
+          <p className="text-base text-neutral-500 mb-10 max-w-md mx-auto">
+            Únete a un grupo de compra. El precio baja según se llenan las plazas.
           </p>
 
           {/* Search bar */}
           <div className="max-w-lg mx-auto mb-8">
-            <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-2 block text-left">
-              Qué buscas
-            </label>
-            <div className="relative">
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Busca cubiertas, cascos, rodillos..."
-                className="w-full h-12 pl-12 pr-4 rounded-xl border border-neutral-200 bg-white text-sm text-neutral-700 placeholder:text-neutral-400 focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 shadow-sm"
-              />
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400">
-                <circle cx="11" cy="11" r="8" />
-                <line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
+            <div className="relative bg-white rounded-2xl shadow-sm border border-neutral-200 px-5 pt-3 pb-3">
+              <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-[0.12em] block text-left mb-1.5">
+                Qué buscas
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Busca un producto entre todos los grupos"
+                  className="flex-1 text-sm text-neutral-700 placeholder:text-neutral-400 focus:outline-none bg-transparent"
+                />
+                <button
+                  type="button"
+                  className="w-10 h-10 rounded-full bg-brand flex items-center justify-center text-white flex-shrink-0 hover:bg-brand-dark transition-colors"
+                  aria-label="Buscar"
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="11" cy="11" r="8" />
+                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  </svg>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -129,13 +130,12 @@ export default function HomeDesktopView({ products, favoriteIds = [] }: Props) {
               <button
                 key={cat.key}
                 onClick={() => setSelectedCat(cat.key)}
-                className={`inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-medium transition-all ${
+                className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all ${
                   selectedCat === cat.key
                     ? 'bg-brand text-white shadow-sm'
                     : 'bg-white border border-neutral-200 text-neutral-600 hover:border-neutral-300 hover:bg-neutral-50'
                 }`}
               >
-                <span className="text-base">{cat.icon}</span>
                 {cat.label}
               </button>
             ))}
