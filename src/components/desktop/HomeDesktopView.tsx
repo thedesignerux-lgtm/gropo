@@ -60,7 +60,7 @@ export default function HomeDesktopView({ products, favoriteIds = [] }: Props) {
       {/* ── HERO SECTION ── */}
       <section className="border-b border-neutral-100" style={{ backgroundColor: '#F7F5F0' }}>
         <div className="max-w-[1280px] mx-auto px-8 pt-14 pb-10 text-center">
-          <h1 className="text-[42px] leading-tight font-extrabold text-neutral-900 mb-3" style={{ fontFamily: "'Georgia', serif" }}>
+          <h1 className="text-[44px] leading-tight font-extrabold tracking-tight text-neutral-900 mb-3">
             Cuantos más seamos, menos pagamos
           </h1>
           <p className="text-base text-neutral-500 mb-10 max-w-md mx-auto">
@@ -68,9 +68,9 @@ export default function HomeDesktopView({ products, favoriteIds = [] }: Props) {
           </p>
 
           {/* Search bar — card with overlapping purple button */}
-          <div className="max-w-[540px] mx-auto mb-10 relative">
-            <div className="bg-white rounded-[20px] shadow-md border border-neutral-200/60 pl-6 pr-16 pt-3.5 pb-3.5">
-              <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-[0.14em] block text-left mb-1">
+          <div className="max-w-[560px] mx-auto mb-10 relative">
+            <div className="bg-white rounded-full shadow-md border border-neutral-200/60 pl-7 pr-20 pt-4 pb-4">
+              <label className="text-[10px] font-bold text-neutral-900 uppercase tracking-[0.14em] block text-left mb-1">
                 Qué buscas
               </label>
               <input
@@ -84,7 +84,7 @@ export default function HomeDesktopView({ products, favoriteIds = [] }: Props) {
             {/* Purple search button — overlapping right edge */}
             <button
               type="button"
-              className="absolute right-[-6px] top-1/2 -translate-y-1/2 w-[52px] h-[52px] rounded-full bg-brand flex items-center justify-center text-white shadow-lg hover:bg-brand-dark transition-colors"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 w-[56px] h-[56px] rounded-full bg-brand flex items-center justify-center text-white shadow-lg hover:bg-brand-dark transition-colors"
               aria-label="Buscar"
             >
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

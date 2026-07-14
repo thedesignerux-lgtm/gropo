@@ -13,7 +13,7 @@ export default function DesktopNavbar() {
   const pathname = usePathname()
 
   return (
-    <header className="sticky top-0 z-30 border-b border-neutral-100" style={{ backgroundColor: 'rgba(247,249,252,0.92)', backdropFilter: 'blur(12px)' }}>
+    <header className="sticky top-0 z-30 border-b border-neutral-100" style={{ backgroundColor: 'rgba(247,245,240,0.92)', backdropFilter: 'blur(12px)' }}>
       <div className="max-w-[1280px] mx-auto px-8 h-16 flex items-center justify-between">
         {/* Left: nav links in pill container */}
         <nav className="hidden xl:flex items-center gap-1 bg-neutral-200/50 rounded-full p-1">
@@ -45,11 +45,11 @@ export default function DesktopNavbar() {
         <div className="flex items-center gap-3">
           <Link
             href="/crear-peticion"
-            className="hidden md:flex items-center gap-2 px-5 py-2.5 rounded-full border border-neutral-200 text-sm font-semibold text-neutral-700 hover:border-brand hover:text-brand transition-colors"
+            className="hidden md:flex items-center gap-2 px-5 py-2.5 rounded-full border border-brand/30 bg-white text-sm font-semibold text-brand hover:border-brand hover:bg-brand/5 transition-colors"
           >
             Crea tu grupo
           </Link>
-          <div className="w-9 h-9 rounded-full bg-brand flex items-center justify-center text-sm font-semibold text-white cursor-pointer">
+          <div className="w-9 h-9 rounded-full bg-brand/10 flex items-center justify-center text-sm font-semibold text-brand cursor-pointer">
             V
           </div>
         </div>
