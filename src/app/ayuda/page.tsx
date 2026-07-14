@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import HomeSidebar from '@/components/desktop/HomeSidebar'
+import DesktopNavbar from '@/components/desktop/DesktopNavbar'
 import BottomNav from '@/components/BottomNav'
 
 const FAQS = [
@@ -21,11 +21,11 @@ export default function AyudaPage() {
   const [open, setOpen] = useState<number | null>(0)
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: '#F7F9FC' }}>
-      <HomeSidebar />
+    <div className="min-h-screen" style={{ backgroundColor: '#F7F9FC' }}>
+      <div className="hidden lg:block"><DesktopNavbar /></div>
 
       <div className="flex-1 min-w-0 flex flex-col pb-24 lg:pb-0">
-        <main className="w-full max-w-[760px] px-4 lg:px-10 pt-6 lg:pt-10 pb-14">
+        <main className="w-full max-w-[760px] mx-auto px-4 lg:px-10 pt-6 lg:pt-10 pb-14">
           <span className="inline-block text-xs font-bold uppercase tracking-wide text-brand bg-brand/10 rounded-full px-3 py-1 mb-4">Centro de ayuda</span>
           <h1 className="text-[28px] lg:text-4xl font-extrabold tracking-tight text-neutral-900">¿En qué te ayudamos?</h1>
           <p className="text-[15px] text-neutral-500 mt-3 leading-relaxed">Las preguntas más frecuentes sobre cómo comprar en grupo con Vonda.</p>

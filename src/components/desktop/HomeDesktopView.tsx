@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import type { GroupProduct } from '@/lib/mock-data'
+import DesktopNavbar from './DesktopNavbar'
 import HomeCarousel from './HomeCarousel'
 import HomeProductCard from './HomeProductCard'
 
@@ -55,77 +55,47 @@ export default function HomeDesktopView({ products, favoriteIds = [] }: Props) {
 
   return (
     <div className="min-h-screen bg-[#FAFAFA]">
-      {/* ── TOP NAV ── */}
-      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-neutral-100">
-        <div className="max-w-[1280px] mx-auto px-8 h-16 flex items-center justify-between">
-          {/* Left: nav links in pill container */}
-          <nav className="hidden xl:flex items-center gap-1 bg-neutral-100 rounded-full p-1">
-            <Link href="/" className="px-4 py-2 rounded-full text-sm font-semibold bg-white text-neutral-900 shadow-sm">Explorar</Link>
-            <Link href="/mis-grupos" className="px-4 py-2 rounded-full text-sm font-medium text-neutral-500 hover:text-neutral-900 transition-colors">Mis grupos</Link>
-            <Link href="/favoritos" className="px-4 py-2 rounded-full text-sm font-medium text-neutral-500 hover:text-neutral-900 transition-colors">Mi Radar</Link>
-          </nav>
-
-          {/* Center: Logo */}
-          <Link href="/" className="absolute left-1/2 -translate-x-1/2 flex items-center gap-2.5" aria-label="Vonda">
-            <img src="/logo.png" alt="Vonda" className="h-8 w-auto" />
-            <span className="text-xl font-bold text-neutral-900 tracking-tight">Vonda</span>
-          </Link>
-
-          {/* Right: CTA + avatar */}
-          <div className="flex items-center gap-3">
-            <Link
-              href="/crear-peticion"
-              className="hidden md:flex items-center gap-2 px-5 py-2.5 rounded-full border border-neutral-200 text-sm font-semibold text-neutral-700 hover:border-brand hover:text-brand transition-colors"
-            >
-              Crea tu grupo
-            </Link>
-            <div className="w-9 h-9 rounded-full bg-brand flex items-center justify-center text-sm font-semibold text-white cursor-pointer">
-              V
-            </div>
-          </div>
-        </div>
-      </header>
+      <DesktopNavbar />
 
       {/* ── HERO SECTION ── */}
-      <section className="bg-[#F8F7F4] border-b border-neutral-100">
+      <section className="border-b border-neutral-100" style={{ backgroundColor: '#F7F5F0' }}>
         <div className="max-w-[1280px] mx-auto px-8 pt-14 pb-10 text-center">
-          <h1 className="text-[40px] leading-tight font-extrabold text-neutral-900 mb-3" style={{ fontFamily: "'Georgia', serif" }}>
+          <h1 className="text-[42px] leading-tight font-extrabold text-neutral-900 mb-3" style={{ fontFamily: "'Georgia', serif" }}>
             Cuantos más seamos, menos pagamos
           </h1>
           <p className="text-base text-neutral-500 mb-10 max-w-md mx-auto">
             Únete a un grupo de compra. El precio baja según se llenan las plazas.
           </p>
 
-          {/* Search bar */}
-          <div className="max-w-lg mx-auto mb-8">
-            <div className="relative bg-white rounded-2xl shadow-sm border border-neutral-200 px-5 pt-3 pb-3">
-              <label className="text-[10px] font-bold text-neutral-400 uppercase tracking-[0.12em] block text-left mb-1.5">
+          {/* Search bar — card with overlapping purple button */}
+          <div className="max-w-[540px] mx-auto mb-10 relative">
+            <div className="bg-white rounded-[20px] shadow-md border border-neutral-200/60 pl-6 pr-16 pt-3.5 pb-3.5">
+              <label className="text-[10px] font-bold text-neutral-500 uppercase tracking-[0.14em] block text-left mb-1">
                 Qué buscas
               </label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="text"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Busca un producto entre todos los grupos"
-                  className="flex-1 text-sm text-neutral-700 placeholder:text-neutral-400 focus:outline-none bg-transparent"
-                />
-                <button
-                  type="button"
-                  className="w-10 h-10 rounded-full bg-brand flex items-center justify-center text-white flex-shrink-0 hover:bg-brand-dark transition-colors"
-                  aria-label="Buscar"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="11" cy="11" r="8" />
-                    <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                  </svg>
-                </button>
-              </div>
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Busca un producto entre todos los grupos"
+                className="w-full text-[15px] text-neutral-700 placeholder:text-neutral-400 focus:outline-none bg-transparent"
+              />
             </div>
+            {/* Purple search button — overlapping right edge */}
+            <button
+              type="button"
+              className="absolute right-[-6px] top-1/2 -translate-y-1/2 w-[52px] h-[52px] rounded-full bg-brand flex items-center justify-center text-white shadow-lg hover:bg-brand-dark transition-colors"
+              aria-label="Buscar"
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+            </button>
           </div>
 
           {/* Category pills */}
-          <div className="flex items-center justify-center gap-2 flex-wrap">
+          <div className="flex items-center justify-center gap-2.5 flex-wrap">
             {CATEGORIES.map((cat) => (
               <button
                 key={cat.key}

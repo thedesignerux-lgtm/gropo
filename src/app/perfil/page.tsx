@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
-import HomeSidebar from '@/components/desktop/HomeSidebar'
+import DesktopNavbar from '@/components/desktop/DesktopNavbar'
 import BottomNav from '@/components/BottomNav'
 
 // ── Datos ──────────────────────────────────────────────
@@ -134,15 +134,11 @@ export default function PerfilPage() {
   const inputCls = 'w-full text-sm border border-neutral-200 rounded-lg px-3 py-2 outline-none focus:border-brand focus:ring-2 focus:ring-brand/15'
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: '#F7F9FC' }}>
-      <HomeSidebar />
+    <div className="min-h-screen" style={{ backgroundColor: '#F7F9FC' }}>
+      <div className="hidden lg:block"><DesktopNavbar /></div>
 
       <div className="flex-1 min-w-0 flex flex-col pb-24 lg:pb-0">
-        <header className="hidden lg:flex sticky top-0 z-20 px-8 h-16 items-center justify-end gap-4" style={{ backgroundColor: 'rgba(247,249,252,0.85)', backdropFilter: 'blur(8px)' }}>
-          <div className="w-9 h-9 rounded-full bg-brand flex items-center justify-center text-sm font-semibold text-white">{initials}</div>
-        </header>
-
-        <main className="w-full max-w-[1180px] px-4 lg:px-8 pt-5 lg:pt-2 pb-10">
+        <main className="w-full max-w-[1180px] mx-auto px-4 lg:px-8 pt-5 lg:pt-8 pb-10">
           <div className="flex items-center gap-4 lg:gap-5 mb-6">
             <div className="w-16 h-16 lg:w-[72px] lg:h-[72px] rounded-full bg-brand/10 text-brand flex items-center justify-center text-2xl font-extrabold shrink-0">{initials}</div>
             <div className="min-w-0">

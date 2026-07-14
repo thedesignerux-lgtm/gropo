@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import HomeSidebar from '@/components/desktop/HomeSidebar'
+import DesktopNavbar from '@/components/desktop/DesktopNavbar'
 import BottomNav from '@/components/BottomNav'
 import { useLadders, derive, type Membership } from '@/components/desktop/MisGruposDesktop'
 
@@ -54,11 +54,11 @@ export default function NotificacionesPage() {
   const notis = buildNotis(memberships, ladders)
 
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: '#F7F9FC' }}>
-      <HomeSidebar />
+    <div className="min-h-screen" style={{ backgroundColor: '#F7F9FC' }}>
+      <div className="hidden lg:block"><DesktopNavbar /></div>
 
       <div className="flex-1 min-w-0 flex flex-col pb-24 lg:pb-0">
-        <main className="w-full max-w-[720px] px-4 lg:px-10 pt-6 lg:pt-10 pb-14">
+        <main className="w-full max-w-[720px] mx-auto px-4 lg:px-10 pt-6 lg:pt-10 pb-14">
           <h1 className="text-2xl lg:text-[28px] font-extrabold tracking-tight text-neutral-900">Notificaciones</h1>
           <p className="text-sm text-neutral-500 mt-1">Lo que pasa con tus grupos, en un vistazo.</p>
 

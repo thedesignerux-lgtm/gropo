@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import HomeSidebar from '@/components/desktop/HomeSidebar'
+import DesktopNavbar from '@/components/desktop/DesktopNavbar'
 import BottomNav from '@/components/BottomNav'
 
 const STEPS = [
@@ -28,11 +28,11 @@ const GUARANTEES = [
 
 export default function ComoFuncionaPage() {
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: '#F7F9FC' }}>
-      <HomeSidebar />
+    <div className="min-h-screen" style={{ backgroundColor: '#F7F9FC' }}>
+      <div className="hidden lg:block"><DesktopNavbar /></div>
 
       <div className="flex-1 min-w-0 flex flex-col pb-24 lg:pb-0">
-        <main className="w-full max-w-[820px] px-4 lg:px-10 pt-6 lg:pt-10 pb-14">
+        <main className="w-full max-w-[820px] mx-auto px-4 lg:px-10 pt-6 lg:pt-10 pb-14">
           <span className="inline-block text-xs font-bold uppercase tracking-wide text-brand bg-brand/10 rounded-full px-3 py-1 mb-4">Cómo funciona</span>
           <h1 className="text-[28px] lg:text-4xl font-extrabold tracking-tight text-neutral-900">Compra en grupo. Paga menos.</h1>
           <p className="text-[15px] lg:text-base text-neutral-500 mt-3 leading-relaxed max-w-[620px]">

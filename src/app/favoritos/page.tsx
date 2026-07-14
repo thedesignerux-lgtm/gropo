@@ -5,8 +5,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin'
 import PulseZone from '@/components/PulseZone'
 import RadarCardMenu from '@/components/RadarCardMenu'
 import BottomNav from '@/components/BottomNav'
-import HomeSidebar from '@/components/desktop/HomeSidebar'
-import CountdownChip from '@/components/CountdownChip'
+import DesktopNavbar from '@/components/desktop/DesktopNavbar'
 
 export const dynamic = 'force-dynamic'
 
@@ -202,32 +201,10 @@ export default async function RadarPage() {
   return (
     <>
       {/* ═══════════ Desktop ═══════════ */}
-      <div className="hidden lg:flex min-h-screen" style={{ backgroundColor: '#F7F9FC' }}>
-        <HomeSidebar promo="radar" activeCount={activeCount} />
+      <div className="hidden lg:block min-h-screen" style={{ backgroundColor: '#F7F9FC' }}>
+        <DesktopNavbar />
 
-        {/* Content column */}
-        <div className="flex-1 min-w-0 flex flex-col">
-          {/* Top bar (sobre el contenido, sin logo — el logo vive en el sidebar) */}
-          <header className="sticky top-0 z-20 px-8 h-16 flex items-center gap-4" style={{ backgroundColor: 'rgba(247,249,252,0.85)', backdropFilter: 'blur(8px)' }}>
-            <div className="flex-1 max-w-md relative">
-              <input
-                type="text"
-                placeholder="Busca productos, marcas o categorías..."
-                className="w-full h-10 pl-10 pr-4 rounded-full border border-neutral-200 bg-white text-sm text-neutral-700 placeholder:text-neutral-400 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand"
-              />
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400">
-                <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-              </svg>
-            </div>
-            <CountdownChip />
-            <button className="relative text-neutral-500 hover:text-brand transition-colors" aria-label="Notificaciones">
-              <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-red-500 border-2 border-[#F7F9FC]" />
-            </button>
-            <div className="w-9 h-9 rounded-full bg-brand flex items-center justify-center text-sm font-semibold text-white">V</div>
-          </header>
-
-          <main className="w-full max-w-[1180px] px-8 pb-16 pt-2">
+        <main className="max-w-[1180px] mx-auto px-8 pb-16 pt-8">
             {/* Título + tag + herramientas */}
             <div className="flex items-start justify-between gap-4 mb-6">
               <div>
@@ -280,7 +257,6 @@ export default async function RadarPage() {
               </div>
             )}
           </main>
-        </div>
       </div>
 
       {/* ═══════════ Mobile ═══════════ */}

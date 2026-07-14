@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import HomeSidebar from './HomeSidebar'
-import CountdownChip from '@/components/CountdownChip'
+import DesktopNavbar from './DesktopNavbar'
 import PulseBar from '@/components/PulseBar'
 
 // ── Tipos ──────────────────────────────────────────────
@@ -121,20 +120,10 @@ export default function MisGruposDesktop({ memberships, userName }: { membership
   const openMem = memberships.find(m => m.member_id === open) || null
 
   return (
-    <div className="hidden lg:flex min-h-screen" style={{ backgroundColor: '#F7F9FC' }}>
-      <HomeSidebar />
+    <div className="hidden lg:block min-h-screen" style={{ backgroundColor: '#F7F9FC' }}>
+      <DesktopNavbar />
 
-      <div className="flex-1 min-w-0 flex flex-col">
-        <header className="sticky top-0 z-20 px-8 h-16 flex items-center gap-4" style={{ backgroundColor: 'rgba(247,249,252,0.85)', backdropFilter: 'blur(8px)' }}>
-          <div className="flex-1 max-w-md relative">
-            <input type="text" placeholder="Busca productos, marcas o categorías..." className="w-full h-10 pl-10 pr-4 rounded-full border border-neutral-200 bg-white text-sm text-neutral-700 placeholder:text-neutral-400 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand" />
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
-          </div>
-          <CountdownChip />
-          <div className="w-9 h-9 rounded-full bg-brand flex items-center justify-center text-sm font-semibold text-white">{(userName || 'V').charAt(0).toUpperCase()}</div>
-        </header>
-
-        <main className="w-full max-w-[1180px] px-8 pb-16 pt-2">
+        <main className="max-w-[1180px] mx-auto px-8 pb-16 pt-8">
           <div className="mb-6">
             <div className="flex items-center gap-3">
               <h1 className="text-[30px] font-extrabold text-neutral-900 tracking-tight">Mis grupos</h1>
@@ -155,7 +144,6 @@ export default function MisGruposDesktop({ memberships, userName }: { membership
             </div>
           )}
         </main>
-      </div>
 
       {/* Drawer */}
       <div onClick={() => setOpen(null)} className="fixed inset-0 z-40 transition-opacity duration-300" style={{ background: 'rgba(15,23,42,.45)', backdropFilter: 'blur(2px)', opacity: open ? 1 : 0, pointerEvents: open ? 'auto' : 'none' }} />

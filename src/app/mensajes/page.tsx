@@ -1,14 +1,14 @@
 import Link from 'next/link'
-import HomeSidebar from '@/components/desktop/HomeSidebar'
+import DesktopNavbar from '@/components/desktop/DesktopNavbar'
 import BottomNav from '@/components/BottomNav'
 
 export default function MensajesPage() {
   return (
-    <div className="min-h-screen flex" style={{ backgroundColor: '#F7F9FC' }}>
-      <HomeSidebar />
+    <div className="min-h-screen" style={{ backgroundColor: '#F7F9FC' }}>
+      <div className="hidden lg:block"><DesktopNavbar /></div>
 
       <div className="flex-1 min-w-0 flex flex-col pb-24 lg:pb-0">
-        <main className="w-full max-w-[720px] px-4 lg:px-10 pt-6 lg:pt-10 pb-14">
+        <main className="w-full max-w-[720px] mx-auto px-4 lg:px-10 pt-6 lg:pt-10 pb-14">
           <h1 className="text-2xl lg:text-[28px] font-extrabold tracking-tight text-neutral-900">Mensajes</h1>
           <p className="text-sm text-neutral-500 mt-1">Tu comunicación con Vonda.</p>
 
