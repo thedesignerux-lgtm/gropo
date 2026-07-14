@@ -87,15 +87,25 @@ export default function GroupCenterContent({
           {/* Price block */}
           <div className="flex-shrink-0 text-right">
             <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-widest mb-1">Precio del grupo</p>
-            <div className="flex items-baseline gap-2 justify-end">
+            <div className="flex items-center gap-2.5 justify-end">
+              <span className="text-4xl font-bold text-neutral-900 tabular-nums">{fmt(displayPrice)}</span>
               {savings > 0 && (
-                <span className="text-base text-neutral-400 line-through">{fmt(pvp)}</span>
+                <span className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-full bg-green-50 text-green-700 flex-shrink-0">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                    <line x1="7" y1="7" x2="7.01" y2="7" />
+                  </svg>
+                  Ahorras {fmt(savings)}
+                </span>
               )}
-              <span className="text-4xl font-bold text-neutral-900">{fmt(displayPrice)}</span>
             </div>
-            <span className={`inline-flex mt-2 text-xs font-medium px-3 py-1 rounded-full border ${discountBadge.cls}`}>
-              {discountBadge.text}
-            </span>
+            {savings > 0 ? (
+              <p className="text-base text-neutral-400 line-through mt-1">{fmt(pvp)}</p>
+            ) : (
+              <span className={`inline-flex mt-2 text-xs font-medium px-3 py-1 rounded-full border ${discountBadge.cls}`}>
+                {discountBadge.text}
+              </span>
+            )}
           </div>
         </div>
       </div>

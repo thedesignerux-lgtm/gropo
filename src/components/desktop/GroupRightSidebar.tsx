@@ -124,16 +124,16 @@ export default function GroupRightSidebar({
                 onClick={() => setSelectedPrice(opt.price)}
                 className={`w-full flex items-center justify-between px-5 py-4 rounded-xl border-2 transition-all text-left ${
                   isSelected
-                    ? 'border-brand bg-white'
+                    ? 'border-brand-light bg-brand-light/5'
                     : 'border-neutral-200 bg-white hover:border-neutral-300'
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  {/* Radio dot */}
+                  {/* Radio dot — brand-light, menos intenso que la CTA */}
                   <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                    isSelected ? 'border-brand' : 'border-neutral-300'
+                    isSelected ? 'border-brand-light' : 'border-neutral-300'
                   }`}>
-                    {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-brand" />}
+                    {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-brand-light" />}
                   </div>
                   <span className="text-lg font-bold text-neutral-900">{fmt(opt.price)}</span>
                 </div>
