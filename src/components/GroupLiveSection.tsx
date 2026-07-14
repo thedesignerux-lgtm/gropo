@@ -7,8 +7,6 @@ import { useCheckout } from '@/components/checkout/CheckoutProvider'
 import { createClient } from '@/lib/supabase-browser'
 import GroupCountdown from './GroupCountdown'
 import CountdownChip from './CountdownChip'
-import TierDemandLadder from '@/components/TierDemandLadder'
-import WaveProgress from '@/components/WaveProgress'
 
 function fmt(n: number | undefined | null): string {
   if (n === undefined || n === null) return '—'
@@ -328,10 +326,10 @@ export default function GroupLiveSection({
                     key={opt.price}
                     type="button"
                     onClick={() => handleSelectTier(opt.price)}
-                    className={`flex-1 py-3 rounded-xl text-base font-bold tabular-nums transition-all ${
+                    className={`flex-1 py-3 rounded-xl text-base font-bold tabular-nums border-2 transition-all ${
                       isSelected
-                        ? 'bg-brand text-white shadow-md'
-                        : 'text-neutral-700 hover:bg-white/60'
+                        ? 'bg-white border-brand text-neutral-900 shadow-sm'
+                        : 'border-transparent text-neutral-700 hover:bg-white/60'
                     }`}
                   >
                     {fmt(opt.price)}
@@ -365,25 +363,6 @@ export default function GroupLiveSection({
             Cada persona que asegura su plaza acerca el siguiente tramo y el precio baja para
             todos. No pagas hasta que el grupo cierra.
           </p>
-        </div>
-
-        {/* ── SECCIONES EXISTENTES ── */}
-        {/* Escalera de demanda por tramo */}
-        <div className="mb-5">
-          {demandTiers.length > 0 ? (
-            <TierDemandLadder tiers={demandTiers} currentPrice={displayPrice} />
-          ) : (
-            <TierDemandLadder groupId={groupId} />
-          )}
-        </div>
-
-        {/* Progreso del grupo */}
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-xs text-neutral-500 font-medium">Progreso del grupo</span>
-            <span className="text-xs text-neutral-400">{totalParticipants} / {maxStock > 0 ? maxStock : '∞'} uds</span>
-          </div>
-          <WaveProgress current={totalParticipants} max={maxStock > 0 ? maxStock : totalParticipants * 2} height={20} />
         </div>
 
         {/* Barra de métricas */}

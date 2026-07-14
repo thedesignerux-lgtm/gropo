@@ -150,7 +150,12 @@ export default function GroupRightSidebar({
                       {label}
                     </span>
                     <div className="relative w-5 h-5">
-                      {isSel && <span className="absolute -inset-1.5 rounded-full ring-2 ring-brand/40" />}
+                      {isSel && (
+                        <>
+                          <span className="absolute -inset-2 rounded-full ring-2 ring-brand/50 animate-pulse" />
+                          <span className="absolute -inset-2 rounded-full bg-brand/10 animate-pulse" />
+                        </>
+                      )}
                       {pt.unlocked ? (
                         <div className="relative w-5 h-5 rounded-full bg-brand flex items-center justify-center">
                           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
@@ -225,8 +230,10 @@ export default function GroupRightSidebar({
                   key={opt.price}
                   type="button"
                   onClick={() => setSelectedPrice(opt.price)}
-                  className={`flex-1 py-3 rounded-xl text-base font-bold tabular-nums transition-all ${
-                    isSelected ? 'bg-brand text-white shadow-md' : 'text-neutral-700 hover:bg-white/60'
+                  className={`flex-1 py-3 rounded-xl text-base font-bold tabular-nums border-2 transition-all ${
+                    isSelected
+                      ? 'bg-white border-brand text-neutral-900 shadow-sm'
+                      : 'border-transparent text-neutral-700 hover:bg-white/60'
                   }`}
                 >
                   {fmt(opt.price)}
