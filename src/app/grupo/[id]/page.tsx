@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import type { Tier } from '@/lib/mock-data'
 import HeroShareButton from '@/components/HeroShareButton'
+import FavoriteButton from '@/components/FavoriteButton'
+import BottomNav from '@/components/BottomNav'
 import GroupLiveSection from '@/components/GroupLiveSection'
 import GroupDesktopView from '@/components/desktop/GroupDesktopView'
 
@@ -108,7 +110,7 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
 
       {/* ── MOBILE (<1024px) — existing layout ── */}
       <div className="lg:hidden bg-white">
-        <div className="max-w-md mx-auto bg-white">
+        <div className="max-w-md mx-auto bg-white pb-16">
           {/* HERO IMAGE */}
           <div
             className="relative w-full bg-[#F5F5F5] overflow-hidden flex-shrink-0"
@@ -139,13 +141,18 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
                   <polyline points="15 18 9 12 15 6" />
                 </svg>
               </Link>
-              <HeroShareButton
-                productName={group.name}
-                bestPrice={group.bestPrice}
-                pvp={group.pvp}
-                nextPrice={group.nextPrice}
-                groupId={group.id}
-              />
+              <div className="flex items-center gap-2">
+                <HeroShareButton
+                  productName={group.name}
+                  bestPrice={group.bestPrice}
+                  pvp={group.pvp}
+                  nextPrice={group.nextPrice}
+                  groupId={group.id}
+                />
+                <div className="w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center">
+                  <FavoriteButton groupId={group.id} size={18} icon="heart" />
+                </div>
+              </div>
             </div>
           </div>
 
@@ -164,6 +171,7 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
             closesAt={group.closesAt}
           />
         </div>
+        <BottomNav />
       </div>
     </>
   )
