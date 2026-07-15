@@ -15,14 +15,14 @@ interface Props {
   onSelIdx: (i: number) => void
   /** 'full' muestra tallas grandes; 'mini' compacto para cards */
   size?: 'mini' | 'full'
-  /** Muestra encabezado + chip de estado + nudge (solo ficha) */
-  showChrome?: boolean
+  /** 'none' solo slider · 'nudge' slider + nudge · 'full' encabezado+estado + nudge */
+  chrome?: 'none' | 'nudge' | 'full'
   /** Unidades que faltan para el siguiente tramo (para el nudge). Si no se pasa, se calcula. */
   udsToNext?: number
 }
 
 export default function VondaTargetSlider({
-  detents, curIdx, selIdx, onSelIdx, size = 'full', showChrome = false, udsToNext,
+  detents, curIdx, selIdx, onSelIdx, size = 'full', chrome = 'none', udsToNext,
 }: Props) {
   const trackRef = useRef<HTMLDivElement | null>(null)
   const n = detents.length
@@ -93,7 +93,7 @@ export default function VondaTargetSlider({
 
   return (
     <div className="select-none">
-      {showChrome && (
+      {chrome === 'full' && (
         <div className="flex items-center justify-between gap-3">
           <div className="font-extrabold text-neutral-900" style={{ fontSize: mini ? 14 : 16 }}>¿Cuál es el máximo que pagarías?</div>
           <div className="inline-flex items-center gap-1.5 font-extrabold rounded-full whitespace-nowrap" style={{ fontSize: 12.5, color: accent, background: statusBg, padding: '6px 11px' }}>
@@ -151,7 +151,7 @@ export default function VondaTargetSlider({
         </div>
       </div>
 
-      {showChrome && (
+      {(chrome === 'full' || chrome === 'nudge') && (
         <div className="flex items-start gap-2.5 rounded-2xl" style={{ background: nudgeBg, border: `1px solid ${nudgeBr}`, padding: '13px 15px', marginTop: 6 }}>
           <div style={{ width: 24, height: 24, borderRadius: 7, background: accent, display: 'grid', placeItems: 'center', flex: '0 0 auto', color: '#fff', fontSize: 13, fontWeight: 900 }}>{confirmed ? '✓' : '!'}</div>
           <div style={{ fontSize: 13, lineHeight: 1.5, color: '#3a3a42' }}>{nudgeText}</div>

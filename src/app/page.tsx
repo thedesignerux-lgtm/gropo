@@ -101,7 +101,7 @@ export default async function Home() {
 
       <div className="lg:hidden min-h-screen bg-gray-50">
         <div className="max-w-md mx-auto min-h-screen pb-28">
-          <GroupsGrid products={products} favoriteIds={favoriteIds} />
+          <GroupsGrid products={products} favoriteIds={favoriteIds} isAuthed={isAuthed} />
         </div>
         <BottomNav />
       </div>

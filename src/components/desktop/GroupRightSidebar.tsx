@@ -143,7 +143,7 @@ export default function GroupRightSidebar({
             selIdx={selIdx}
             onSelIdx={handleSelIdx}
             size="full"
-            showChrome
+            chrome="full"
             udsToNext={missing}
           />
         ) : (
