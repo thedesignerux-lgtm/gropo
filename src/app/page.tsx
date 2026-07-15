@@ -76,16 +76,27 @@ async function fetchFavoriteIds(): Promise<string[]> {
   }
 }
 
+async function fetchIsAuthed(): Promise<boolean> {
+  try {
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    return !!user
+  } catch {
+    return false
+  }
+}
+
 export default async function Home() {
-  const [products, favoriteIds] = await Promise.all([
+  const [products, favoriteIds, isAuthed] = await Promise.all([
     fetchGroups(),
     fetchFavoriteIds(),
+    fetchIsAuthed(),
   ])
 
   return (
     <>
       <div className="hidden lg:block">
-        <HomeDesktopView products={products} favoriteIds={favoriteIds} />
+        <HomeDesktopView products={products} favoriteIds={favoriteIds} isAuthed={isAuthed} />
       </div>
 
       <div className="lg:hidden min-h-screen bg-gray-50">

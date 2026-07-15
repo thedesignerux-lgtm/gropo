@@ -1,24 +1,29 @@
+'use client'
+
+import { useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import type { GroupProduct } from '@/lib/mock-data'
 import { getStepPricing } from '@/lib/mock-data'
+import { useCheckout } from '@/components/checkout/CheckoutProvider'
 import FavoriteButton from '@/components/FavoriteButton'
+import HomeCardSlider, { type Detent } from './HomeCardSlider'
 
-function fmt(price: number): string {
-  return (price % 1 === 0 ? String(price) : price.toFixed(2).replace('.', ',')) + ' €'
+function fmt(n: number): string {
+  return (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
 }
 
-// Unsplash placeholders by keyword (cycling-related)
+// Unsplash placeholders (cycling-related) — hasta que exista imagen real
 const UNSPLASH_IMAGES = [
-  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=300&fit=crop&q=80', // cycling
-  'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=400&h=300&fit=crop&q=80', // bike tire
-  'https://images.unsplash.com/photo-1532298229144-0ec0c57515c7?w=400&h=300&fit=crop&q=80', // cycling gear
-  'https://images.unsplash.com/photo-1571068316344-75bc76f77890?w=400&h=300&fit=crop&q=80', // road bike
-  'https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=400&h=300&fit=crop&q=80', // bicycle
-  'https://images.unsplash.com/photo-1576435728678-68d0fbf94e91?w=400&h=300&fit=crop&q=80', // bike parts
+  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=300&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=400&h=300&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1532298229144-0ec0c57515c7?w=400&h=300&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1571068316344-75bc76f77890?w=400&h=300&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=400&h=300&fit=crop&q=80',
+  'https://images.unsplash.com/photo-1576435728678-68d0fbf94e91?w=400&h=300&fit=crop&q=80',
 ]
 
 function getPlaceholderImage(id: string): string {
-  // Deterministic pick based on group id
   let hash = 0
   for (let i = 0; i < id.length; i++) hash = ((hash << 5) - hash + id.charCodeAt(i)) | 0
   return UNSPLASH_IMAGES[Math.abs(hash) % UNSPLASH_IMAGES.length]
@@ -27,102 +32,121 @@ function getPlaceholderImage(id: string): string {
 interface Props {
   product: GroupProduct
   isFavorited?: boolean
+  isAuthed?: boolean
 }
 
-export default function HomeProductCard({ product, isFavorited = false }: Props) {
+export default function HomeProductCard({ product, isFavorited = false, isAuthed = false }: Props) {
+  const { open } = useCheckout()
+  const router = useRouter()
+
   const { currentPrice, nextTier, unitsToNext } = getStepPricing(product.tiers, product.currentUnits)
   const isComplete = !nextTier
   const missing = nextTier ? unitsToNext : 0
-  const toPrice = nextTier ? nextTier.price : currentPrice
   const savings = product.pvp > currentPrice ? product.pvp - currentPrice : 0
-  const savingsPct = product.pvp > 0 ? Math.round((savings / product.pvp) * 100) : 0
   const imageUrl = product.imageUrl || getPlaceholderImage(product.id)
+  const href = `/grupo/${product.id}`
+
+  // Detents: tramos ordenados por minUnits asc (= precio desc), como en el diseño
+  const detents: Detent[] = [...product.tiers]
+    .sort((a, b) => a.minUnits - b.minUnits)
+    .map(t => ({ price: t.price, uds: t.minUnits }))
+
+  // Índice del tramo actual dentro de los detents
+  let curIdx = 0
+  for (let i = 0; i < detents.length; i++) {
+    if (detents[i].uds <= product.currentUnits) curIdx = i
+  }
+
+  const [selIdx, setSelIdx] = useState(curIdx)
+  const selectedPrice = detents.length > 0 ? detents[selIdx].price : currentPrice
+  const confirmed = selIdx <= curIdx
+
+  const accent = confirmed ? '#6C4BF4' : '#E8944A'
+  const ctaBg = confirmed ? 'rgba(108,75,244,.10)' : 'rgba(232,148,74,.12)'
+  const ctaText = confirmed
+    ? `Asegurar plaza · ${fmt(selectedPrice)}`
+    : `Reservar plaza · Máx. ${fmt(selectedPrice)}`
+
+  const handleCheckout = () => {
+    if (!confirmed) {
+      router.push(`${href}/unirme?mode=esperar&target=${selectedPrice}`)
+    } else if (isAuthed) {
+      open({
+        groupId: product.id,
+        productName: product.name,
+        productSpec: product.variant,
+        imageUrl,
+        quantity: 1,
+        maxPricePerUnit: selectedPrice,
+      })
+    } else {
+      router.push(`${href}/unirme`)
+    }
+  }
 
   return (
-    <Link
-      href={`/grupo/${product.id}`}
-      className="group flex-shrink-0 w-[280px] rounded-2xl bg-white border border-neutral-200 overflow-hidden transition-all hover:shadow-lg hover:-translate-y-0.5"
-    >
+    <div className="flex-shrink-0 w-[300px] rounded-2xl bg-white border border-neutral-200 overflow-hidden flex flex-col transition-shadow hover:shadow-lg">
       {/* Image */}
-      <div className="relative w-full h-[180px] bg-neutral-100 overflow-hidden">
+      <Link href={href} className="relative block w-full overflow-hidden group" style={{ aspectRatio: '1 / 0.72', background: '#F1EEFA' }}>
         <img
           src={imageUrl}
           alt={product.name}
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           loading="lazy"
         />
-        {/* Badge top-left */}
-        <span className={`absolute top-3 left-3 inline-flex items-center gap-1 text-[11px] font-bold rounded-full px-2.5 py-1 backdrop-blur-sm ${
-          isComplete
-            ? 'bg-green-500/90 text-white'
-            : missing > 0 && missing < 4
-            ? 'bg-orange-500/90 text-white'
-            : 'bg-white/90 text-neutral-800'
-        }`}>
-          {isComplete ? 'Mejor precio' : `Faltan ${missing} uds`}
+        {/* Faltan pill */}
+        <span className="absolute top-3 left-3 inline-flex items-center gap-1 text-[11.5px] font-extrabold rounded-full px-2.5 py-1 bg-white/95 text-brand shadow-sm">
+          {isComplete ? '✓ Mejor precio' : `↓ Faltan ${missing} uds`}
         </span>
-        {/* Favorite top-right */}
-        <div className="absolute top-3 right-3">
+        {/* Favorite */}
+        <div className="absolute top-2.5 right-2.5">
           <FavoriteButton
             groupId={product.id}
             initialFavorited={isFavorited}
             size={16}
             icon="heart"
-            className="w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm hover:bg-white flex items-center justify-center"
+            className="w-8 h-8 rounded-full bg-white/95 hover:bg-white flex items-center justify-center"
           />
         </div>
-      </div>
+      </Link>
 
       {/* Content */}
-      <div className="p-4">
-        <h3 className="text-sm font-bold text-neutral-900 leading-tight line-clamp-2 mb-1">{product.name}</h3>
-        {product.variant && (
-          <p className="text-xs text-neutral-500 mb-2 line-clamp-1">{product.variant}</p>
-        )}
-
-        {/* Prices row */}
-        <div className="flex items-baseline gap-2 mb-2">
-          <span className="text-lg font-extrabold text-neutral-900 tabular-nums">{fmt(currentPrice)}</span>
-          {product.pvp > currentPrice && (
-            <span className="text-sm text-neutral-400 line-through tabular-nums">{fmt(product.pvp)}</span>
+      <div className="p-3.5 pt-3 flex flex-col flex-1">
+        <Link href={href} className="block">
+          <div className="text-[14.5px] font-bold text-neutral-900 leading-tight line-clamp-1">{product.name}</div>
+          {product.variant && (
+            <div className="text-xs text-neutral-500 mt-0.5 line-clamp-1">{product.variant}</div>
           )}
-          {savingsPct > 0 && (
-            <span className="text-xs font-bold text-green-600">-{savingsPct}%</span>
+          <div className="flex items-baseline gap-2 mt-2.5">
+            <span className="text-[18px] font-extrabold text-neutral-900 tabular-nums">{fmt(currentPrice)}</span>
+            {!isComplete && nextTier && (
+              <span className="text-xs text-neutral-500">luego {fmt(nextTier.price)}</span>
+            )}
+          </div>
+          {savings > 0 && (
+            <div className="text-xs font-bold text-[#157F52] mt-2">Ahorra {fmt(savings)}</div>
           )}
-        </div>
+        </Link>
 
-        {/* Progress info */}
-        {!isComplete && nextTier && (
-          <div className="mb-3">
-            <div className="flex items-center justify-between text-[11px] text-neutral-500 mb-1">
-              <span>Siguiente: <b className="text-brand">{fmt(toPrice)}</b></span>
-              <span className="text-neutral-400">{product.currentUnits}/{nextTier.minUnits} uds</span>
-            </div>
-            <div className="w-full h-1.5 bg-neutral-100 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-brand rounded-full transition-all"
-                style={{ width: `${Math.min(100, (product.currentUnits / nextTier.minUnits) * 100)}%` }}
-              />
-            </div>
+        {/* Interactive target slider */}
+        {detents.length > 1 ? (
+          <div className="mt-2.5">
+            <HomeCardSlider detents={detents} curIdx={curIdx} selIdx={selIdx} onSelIdx={setSelIdx} />
           </div>
+        ) : (
+          <div className="mt-3" />
         )}
 
-        {isComplete && (
-          <p className="text-xs font-semibold text-green-600 mb-3">Mejor precio alcanzado</p>
-        )}
-
-        {/* Footer: participants */}
-        <div className="flex items-center gap-1.5 text-xs text-neutral-500">
-          <div className="flex -space-x-1">
-            {Array.from({ length: Math.min(3, Math.max(1, product.currentUnits)) }).map((_, i) => (
-              <div key={i} className="w-5 h-5 rounded-full bg-neutral-200 border-[1.5px] border-white flex items-center justify-center text-[8px] font-bold text-neutral-500">
-                {String.fromCharCode(65 + i)}
-              </div>
-            ))}
-          </div>
-          <span>{product.currentUnits} {product.currentUnits === 1 ? 'persona' : 'personas'}</span>
-        </div>
+        {/* CTA */}
+        <button
+          type="button"
+          onClick={handleCheckout}
+          className="w-full mt-auto font-extrabold text-[13px] rounded-xl cursor-pointer transition-colors active:scale-[0.99] whitespace-nowrap"
+          style={{ border: `2px solid ${accent}`, background: ctaBg, color: accent, padding: '12px 10px', marginTop: 14, boxShadow: `0 12px 26px -14px ${confirmed ? 'rgba(108,75,244,.28)' : 'rgba(232,148,74,.28)'}` }}
+        >
+          {ctaText}
+        </button>
       </div>
-    </Link>
+    </div>
   )
 }

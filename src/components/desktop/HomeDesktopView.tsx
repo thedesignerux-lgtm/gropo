@@ -26,9 +26,10 @@ function getProductCategory(_product: GroupProduct): string {
 interface Props {
   products: GroupProduct[]
   favoriteIds?: string[]
+  isAuthed?: boolean
 }
 
-export default function HomeDesktopView({ products, favoriteIds = [] }: Props) {
+export default function HomeDesktopView({ products, favoriteIds = [], isAuthed = false }: Props) {
   const [query, setQuery] = useState('')
   const [selectedCat, setSelectedCat] = useState('todos')
   const favSet = new Set(favoriteIds)
@@ -131,6 +132,7 @@ export default function HomeDesktopView({ products, favoriteIds = [] }: Props) {
                 key={product.id}
                 product={product}
                 isFavorited={favSet.has(product.id)}
+                isAuthed={isAuthed}
               />
             ))}
           </HomeCarousel>
@@ -144,6 +146,7 @@ export default function HomeDesktopView({ products, favoriteIds = [] }: Props) {
                   key={product.id}
                   product={product}
                   isFavorited={favSet.has(product.id)}
+                  isAuthed={isAuthed}
                 />
               ))}
             </HomeCarousel>
@@ -156,6 +159,7 @@ export default function HomeDesktopView({ products, favoriteIds = [] }: Props) {
                     key={product.id}
                     product={product}
                     isFavorited={favSet.has(product.id)}
+                    isAuthed={isAuthed}
                   />
                 ))}
               </HomeCarousel>

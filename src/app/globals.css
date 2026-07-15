@@ -151,3 +151,13 @@ body {
   .vonda-glow { animation: none; opacity: 0.35; }
   .vonda-reverse-fill { animation: none; }
 }
+
+/* Target slider (home cards board 1b) */
+@keyframes tsWave { from { background-position: 0 0; } to { background-position: 26px 0; } }
+@keyframes tsPulse { 0%, 100% { opacity: .35; } 50% { opacity: .75; } }
+.ts-wave { animation: tsWave 1s linear infinite; }
+.ts-pulse { animation: tsPulse 1.4s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ts-wave, .ts-pulse { animation: none; }
+}
