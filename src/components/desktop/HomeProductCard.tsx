@@ -7,7 +7,7 @@ import type { GroupProduct } from '@/lib/mock-data'
 import { getStepPricing } from '@/lib/mock-data'
 import { useCheckout } from '@/components/checkout/CheckoutProvider'
 import FavoriteButton from '@/components/FavoriteButton'
-import HomeCardSlider, { type Detent } from './HomeCardSlider'
+import VondaTargetSlider, { type Detent } from '@/components/VondaTargetSlider'
 
 function fmt(n: number): string {
   return (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
@@ -131,7 +131,7 @@ export default function HomeProductCard({ product, isFavorited = false, isAuthed
         {/* Interactive target slider */}
         {detents.length > 1 ? (
           <div className="mt-2.5">
-            <HomeCardSlider detents={detents} curIdx={curIdx} selIdx={selIdx} onSelIdx={setSelIdx} />
+            <VondaTargetSlider detents={detents} curIdx={curIdx} selIdx={selIdx} onSelIdx={setSelIdx} size="mini" />
           </div>
         ) : (
           <div className="mt-3" />
