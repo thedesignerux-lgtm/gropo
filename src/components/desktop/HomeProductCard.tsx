@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import type { GroupProduct } from '@/lib/mock-data'
 import { getStepPricing } from '@/lib/mock-data'
 import { useCheckout } from '@/components/checkout/CheckoutProvider'
+import { usePulse } from '@/hooks/usePulse'
 import FavoriteButton from '@/components/FavoriteButton'
 import VondaTargetSlider, { type Detent } from '@/components/VondaTargetSlider'
 
@@ -58,6 +59,7 @@ export default function HomeProductCard({ product, isFavorited = false, isAuthed
   }
 
   const [selIdx, setSelIdx] = useState(curIdx)
+  const { data: pulseData } = usePulse(isComplete ? null : product.id)
   const selectedPrice = detents.length > 0 ? detents[selIdx].price : currentPrice
   const confirmed = selIdx <= curIdx
 
@@ -131,7 +133,7 @@ export default function HomeProductCard({ product, isFavorited = false, isAuthed
         {/* Interactive target slider */}
         {detents.length > 1 ? (
           <div className="mt-2.5">
-            <VondaTargetSlider detents={detents} curIdx={curIdx} selIdx={selIdx} onSelIdx={setSelIdx} size="mini" />
+            <VondaTargetSlider detents={detents} curIdx={curIdx} selIdx={selIdx} onSelIdx={setSelIdx} size="mini" pulse={pulseData?.steps} glow={pulseData?.glow} />
           </div>
         ) : (
           <div className="mt-3" />

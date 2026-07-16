@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTierDemand } from '@/hooks/useTierDemand'
+import { usePulse } from '@/hooks/usePulse'
 import { useCheckout } from '@/components/checkout/CheckoutProvider'
 import GroupCountdown from './GroupCountdown'
 import VondaTargetSlider, { type Detent } from '@/components/VondaTargetSlider'
@@ -45,6 +46,7 @@ export default function GroupLiveSection({
   }, [])
 
   const { tiers: demandTiers, currentPrice, nextTier, missing } = useTierDemand(groupId)
+  const { data: pulseData } = usePulse(nextTier ? groupId : null)
   const displayPrice = currentPrice > 0 ? currentPrice : initialBestPrice
   const totalParticipants = demandTiers.length > 0
     ? Math.max(...demandTiers.map(t => t.demand))
@@ -136,6 +138,8 @@ export default function GroupLiveSection({
                 size="mini"
                 chrome="nudge"
                 udsToNext={missing}
+                pulse={pulseData?.steps}
+                glow={pulseData?.glow}
               />
             </div>
           )}

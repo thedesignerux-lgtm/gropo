@@ -1,10 +1,14 @@
 'use client'
 
 import { useCallback, useRef } from 'react'
+import PulseRings from '@/components/PulseRings'
+import type { TierPulse } from '@/components/TierProgress'
 
 function fmt(n: number): string {
   return (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
 }
+
+const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
 
 export interface Detent { price: number; uds: number }
 
@@ -19,15 +23,21 @@ interface Props {
   chrome?: 'none' | 'nudge' | 'full'
   /** Unidades que faltan para el siguiente tramo (para el nudge). Si no se pasa, se calcula. */
   udsToNext?: number
+  /** VONDA PULSE: estado por tramo (de usePulse). Decorativo; si no se pasa, no se pinta. */
+  pulse?: TierPulse[]
+  /** Bruma de observadores 0–3 (de usePulse). */
+  glow?: 0 | 1 | 2 | 3
 }
 
 export default function VondaTargetSlider({
   detents, curIdx, selIdx, onSelIdx, size = 'full', chrome = 'none', udsToNext,
+  pulse, glow = 0,
 }: Props) {
   const trackRef = useRef<HTMLDivElement | null>(null)
   const n = detents.length
   const mini = size === 'mini'
-  const pos = (i: number) => (n <= 1 ? 50 : 7 + (i / (n - 1)) * 86) + '%'
+  const posN = (i: number) => (n <= 1 ? 50 : 7 + (i / (n - 1)) * 86)
+  const pos = (i: number) => posN(i) + '%'
 
   const ui = {
     dot: mini ? 17 : 20,
@@ -91,6 +101,58 @@ export default function VondaTargetSlider({
   const nudgeBg = confirmed ? '#F4F1FE' : '#FCF4EA'
   const nudgeBr = confirmed ? '#E4DCFB' : '#F3E3CC'
 
+  // ── VONDA PULSE ──────────────────────────────────────────────
+  // Capas de actividad en vivo mapeadas al sistema de posiciones del slider
+  // (detents equiespaciados de 7% a 93%). Réplica de la lógica de TierProgress
+  // adaptada; puramente decorativo (nunca afecta al thumb ni a la selección).
+  const stepsP = pulse ?? []
+  const pulseByUnits = new Map<number, TierPulse>(stepsP.map((p) => [p.units, p]))
+  const firmUnits = detents[curIdx]?.uds ?? 0
+  const firmPct = posN(curIdx)
+
+  interface PLayer { left: number; width: number; kind: 'money' | 'marked' }
+  const pLayers: PLayer[] = []
+  const lockedSteps = stepsP.filter((p) => !(p.reached ?? false)).sort((a, b) => a.units - b.units)
+  const condStep = lockedSteps[0] ?? null
+  let moneyUnits = 0
+
+  if (n > 1) lockedSteps.forEach((p) => {
+    const idx = detents.findIndex((d) => d.uds === p.units)
+    if (idx < 0) return
+    const nodePct = posN(idx)
+    const segStart = Math.max(firmPct, idx > 0 ? posN(idx - 1) : posN(0))
+    const seg = Math.max(0, nodePct - segStart)
+    if (seg <= 0) return
+    const gapUnits = Math.max(1, p.units - firmUnits)
+
+    let moneyW = 0
+    if (condStep && p.units === condStep.units) {
+      const held = Math.max(0, (p.committed ?? firmUnits) - firmUnits)
+      const needed = Math.max(0, p.units - (p.committed ?? firmUnits))
+      const accepted = clamp(p.acceptedFraction, 0, 1) * needed
+      moneyUnits = held + accepted
+      if (moneyUnits > 0) {
+        const gap = Math.max(0, nodePct - firmPct)
+        moneyW = Math.min(gap, Math.max((moneyUnits / gapUnits) * gap, 5))
+        pLayers.push({ left: Math.max(firmPct, nodePct - moneyW), width: moneyW, kind: 'money' })
+      }
+    }
+
+    const mf = clamp(p.markedFraction ?? 0, 0, 2)
+    if (mf > 0) {
+      const anchor = nodePct - moneyW
+      let width = seg * Math.min(1, mf)
+      width = Math.max(width, 5)
+      let left = anchor - width
+      const overflow = mf > 1 ? Math.min(4, (mf - 1) * seg) : 0
+      left = Math.max(segStart - overflow, left - overflow)
+      if (width > 0.5) pLayers.push({ left, width: anchor - left, kind: 'marked' })
+    }
+  })
+
+  const surgeUnits = condStep && moneyUnits > 0 ? condStep.units : null
+  const effectiveGlow = pLayers.length > 0 ? 0 : glow
+
   return (
     <div className="select-none">
       {chrome === 'full' && (
@@ -116,12 +178,41 @@ export default function VondaTargetSlider({
         <div ref={trackRef} onPointerDown={startDrag} style={{ position: 'relative', height: 30, cursor: 'pointer', touchAction: 'none' }}>
           <div style={{ position: 'absolute', left: 0, right: 0, top: '50%', transform: 'translateY(-50%)', height: 8, borderRadius: 999, background: '#ECEAF4' }} />
           <div className="ts-pulse" style={{ position: 'absolute', left: pos(curIdx), width: projW, top: '50%', transform: 'translateY(-50%)', height: 8, borderRadius: 999, background: 'repeating-linear-gradient(90deg,#C9BEF6 0 6px,transparent 6px 12px)' }} />
-          <div className="ts-wave" style={{ position: 'absolute', left: 0, width: pos(curIdx), top: '50%', transform: 'translateY(-50%)', height: 8, borderRadius: 999, backgroundImage: 'repeating-linear-gradient(115deg,#8A6BF7 0 8px,#6C4BF4 8px 15px)', backgroundSize: '26px 100%' }} />
+
+          {/* VONDA PULSE · capas de actividad en vivo (sobre la proyección, bajo la onda firme) */}
+          {(pLayers.length > 0 || effectiveGlow > 0) && (
+            <div style={{ position: 'absolute', left: 0, right: 0, top: '50%', transform: 'translateY(-50%)', height: 8, borderRadius: 999, overflow: 'hidden', pointerEvents: 'none', zIndex: 1 }}>
+              {effectiveGlow > 0 && (
+                <span
+                  className="vonda-glow"
+                  style={{
+                    left: `${firmPct}%`,
+                    width: `${Math.max(0, 100 - firmPct)}%`,
+                    ['--glow-min' as never]: `${0.06 + effectiveGlow * 0.04}`,
+                    ['--glow-max' as never]: `${0.12 + effectiveGlow * 0.07}`,
+                  }}
+                />
+              )}
+              {pLayers.filter((l) => l.kind === 'marked').map((l, i) => (
+                <span key={`mk-${i}`} className="vonda-marked" style={{ left: `${l.left}%`, width: `${l.width}%` }} />
+              ))}
+              {pLayers.filter((l) => l.kind === 'money').map((l, i) => (
+                <span key={`mn-${i}`} className="vonda-reverse-fill" style={{ left: `${l.left}%`, width: `${l.width}%` }} />
+              ))}
+            </div>
+          )}
+
+          <div className="ts-wave" style={{ position: 'absolute', left: 0, width: pos(curIdx), top: '50%', transform: 'translateY(-50%)', height: 8, borderRadius: 999, backgroundImage: 'repeating-linear-gradient(115deg,#8A6BF7 0 8px,#6C4BF4 8px 15px)', backgroundSize: '26px 100%', zIndex: 1 }} />
 
           {detents.map((d, i) => {
             const achieved = i <= curIdx
+            const pp = pulseByUnits.get(d.uds)
+            const isSurgeNode = surgeUnits != null && d.uds === surgeUnits
+            const ringIntensity = achieved ? 0 : (isSurgeNode ? 3 : Math.min(1, pp?.marked ?? 0))
+            const activePulse = ringIntensity > 0
             return (
-              <div key={i} style={{ position: 'absolute', top: '50%', left: pos(i), transform: 'translate(-50%,-50%)', width: ui.dot, height: ui.dot, borderRadius: '50%', background: achieved ? '#6C4BF4' : '#fff', border: `2.5px solid ${achieved ? '#6C4BF4' : '#CFCADE'}`, display: 'grid', placeItems: 'center', color: '#fff', fontSize: 9, fontWeight: 900, lineHeight: 1, zIndex: 2, boxShadow: '0 2px 6px -2px rgba(30,20,60,.35)' }}>
+              <div key={i} style={{ position: 'absolute', top: '50%', left: pos(i), transform: 'translate(-50%,-50%)', width: ui.dot, height: ui.dot, borderRadius: '50%', background: achieved ? '#6C4BF4' : '#fff', border: `2.5px solid ${achieved ? '#6C4BF4' : (activePulse ? '#6C3CE1' : '#CFCADE')}`, display: 'grid', placeItems: 'center', color: '#fff', fontSize: 9, fontWeight: 900, lineHeight: 1, zIndex: 2, boxShadow: '0 2px 6px -2px rgba(30,20,60,.35)' }}>
+                {ringIntensity > 0 && <PulseRings tone="purple" intensity={ringIntensity as 1 | 2 | 3} />}
                 {achieved ? '✓' : ''}
               </div>
             )

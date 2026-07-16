@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTierDemand } from '@/hooks/useTierDemand'
+import { usePulse } from '@/hooks/usePulse'
 import { useCheckout } from '@/components/checkout/CheckoutProvider'
 import { createClient } from '@/lib/supabase-browser'
 import VondaTargetSlider, { type Detent } from '@/components/VondaTargetSlider'
@@ -30,6 +31,7 @@ export default function GroupRightSidebar({
   groupId, name, spec, imageUrl, tiers,
 }: Props) {
   const { tiers: demandTiers, currentPrice, nextTier, missing } = useTierDemand(groupId)
+  const { data: pulseData } = usePulse(nextTier ? groupId : null)
   const displayPrice = currentPrice > 0 ? currentPrice : (tiers.length > 0 ? Math.max(...tiers.map(t => t.price)) : 0)
   const totalParticipants = demandTiers.length > 0 ? Math.max(...demandTiers.map(t => t.demand)) : 0
 
@@ -145,6 +147,8 @@ export default function GroupRightSidebar({
             size="full"
             chrome="full"
             udsToNext={missing}
+            pulse={pulseData?.steps}
+            glow={pulseData?.glow}
           />
         ) : (
           <div className="text-lg font-bold text-neutral-900">{fmt(displayPrice)}</div>

@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import type { GroupProduct } from '@/lib/mock-data'
 import { getStepPricing, getActivationState } from '@/lib/mock-data'
 import { useCheckout } from '@/components/checkout/CheckoutProvider'
+import { usePulse } from '@/hooks/usePulse'
 import FavoriteButton from '@/components/FavoriteButton'
 import VondaTargetSlider, { type Detent } from '@/components/VondaTargetSlider'
 
@@ -66,6 +67,7 @@ export default function DesktopProductCard({ product, isFavorited = false, isAut
   for (let i = 0; i < detents.length; i++) if (detents[i].uds <= product.currentUnits) curIdx = i
 
   const [selIdx, setSelIdx] = useState(curIdx)
+  const { data: pulseData } = usePulse(isComplete ? null : product.id)
   const selectedPrice = detents.length > 0 ? detents[selIdx].price : currentPrice
   const confirmed = selIdx <= curIdx
   const accent = confirmed ? '#6C4BF4' : '#E8944A'
@@ -133,7 +135,7 @@ export default function DesktopProductCard({ product, isFavorited = false, isAut
       {/* VONDA target slider (arrastrable) */}
       {detents.length > 1 ? (
         <div className="mt-2">
-          <VondaTargetSlider detents={detents} curIdx={curIdx} selIdx={selIdx} onSelIdx={setSelIdx} size="mini" />
+          <VondaTargetSlider detents={detents} curIdx={curIdx} selIdx={selIdx} onSelIdx={setSelIdx} size="mini" pulse={pulseData?.steps} glow={pulseData?.glow} />
         </div>
       ) : (
         <div className="mt-2" />
