@@ -96,9 +96,12 @@ export default function GroupRightSidebar({
   const avatarCount = Math.min(totalParticipants, AVATAR_LETTERS.length)
   const extraCount = totalParticipants - avatarCount
 
+  const accent = confirmed ? '#6C4BF4' : '#E8944A'
+  const accentShadow = confirmed ? 'rgba(108,75,244,.35)' : 'rgba(232,148,74,.35)'
+
   return (
-    <aside className="w-[380px] flex-shrink-0 sticky top-[24px]">
-      <div className="bg-white rounded-2xl border border-neutral-200 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.12)] p-6">
+    <aside className="flex-shrink-0 sticky top-[24px]">
+      <div className="bg-white rounded-[22px] border border-[#ECEAF2] p-6" style={{ boxShadow: '0 24px 60px -34px rgba(30,20,60,.4)' }}>
 
         {/* ── Precio actual + siguiente ── */}
         <div className="flex items-start justify-between">
@@ -135,7 +138,7 @@ export default function GroupRightSidebar({
           </div>
         )}
 
-        <div className="border-t border-neutral-100 my-5" />
+        <div className="border-t border-[#F1EFF5] my-5" />
 
         {/* ── Target slider (reemplaza stepper + selector) ── */}
         {detents.length > 1 ? (
@@ -155,20 +158,20 @@ export default function GroupRightSidebar({
         )}
 
         {/* ── Cantidad + CTA ── */}
-        <div className="flex items-center gap-3 mt-5">
-          <div className="inline-flex items-center rounded-xl border border-neutral-200 flex-shrink-0">
+        <div className="flex items-center gap-3 mt-4">
+          <div className="inline-flex items-center rounded-xl border border-[#E4E1DA] flex-shrink-0 overflow-hidden">
             <button type="button" onClick={() => setQuantity(q => Math.max(1, q - 1))} disabled={quantity <= 1}
-              className="flex h-12 w-11 items-center justify-center text-lg text-neutral-700 disabled:text-neutral-300" aria-label="Menos">−</button>
-            <span className="w-7 text-center text-base font-semibold tabular-nums text-neutral-900">{quantity}</span>
+              className="flex h-[46px] w-[42px] items-center justify-center text-xl text-[#3a3a42] bg-white disabled:text-neutral-300 cursor-pointer" aria-label="Menos">−</button>
+            <span className="w-9 text-center text-[15px] font-extrabold tabular-nums text-neutral-900">{quantity}</span>
             <button type="button" onClick={() => setQuantity(q => Math.min(10, q + 1))} disabled={quantity >= 10}
-              className="flex h-12 w-11 items-center justify-center text-lg text-neutral-700 disabled:text-neutral-300" aria-label="Más">+</button>
+              className="flex h-[46px] w-[42px] items-center justify-center text-xl text-[#3a3a42] bg-white disabled:text-neutral-300 cursor-pointer" aria-label="Más">+</button>
           </div>
 
           <button
             type="button"
             onClick={handleBuy}
-            className="flex-1 h-12 rounded-xl font-semibold text-[13px] active:scale-[0.98] transition-all whitespace-nowrap text-white"
-            style={{ background: confirmed ? '#6C4BF4' : '#E8944A' }}
+            className="flex-1 h-[46px] rounded-[14px] font-extrabold text-[13.5px] active:scale-[0.98] transition-all whitespace-nowrap"
+            style={{ border: `2px solid ${accent}`, background: `${accent}14`, color: accent, boxShadow: `0 12px 26px -14px ${accentShadow}` }}
           >
             {confirmed ? `Bloquear precio · Máx. ${fmt(selectedPrice)}` : `Reservar plaza · Máx. ${fmt(selectedPrice)}`}
           </button>
