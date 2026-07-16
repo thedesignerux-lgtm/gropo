@@ -259,21 +259,32 @@ export default async function RadarPage() {
           </main>
       </div>
 
-      {/* ═══════════ Mobile ═══════════ */}
-      <div className="lg:hidden min-h-screen" style={{ backgroundColor: '#F7F9FC' }}>
+      {/* ═══════════ Mobile (8c) ═══════════ */}
+      <div className="lg:hidden min-h-screen" style={{ background: '#FBFAF8' }}>
         <div className="min-h-screen pb-28">
-          <div className="px-4 pt-6 pb-1">
-            <h1 className="text-lg font-bold text-neutral-900">Mi Radar</h1>
-            <p className="text-xs text-neutral-500 mt-0.5">
-              {hasAnything ? 'Esto es lo que tu radar tiene en el punto de mira.' : 'Oportunidades detectadas para ti.'}
-            </p>
+          {/* Sticky header */}
+          <div className="sticky top-0 z-10 pb-2" style={{ background: '#FBFAF8' }}>
+            <div className="px-5 pt-3 pb-1.5">
+              <div className="text-[10.5px] font-bold tracking-[.14em] text-brand uppercase" style={{ fontFamily: "'Space Mono', monospace" }}>Guardados</div>
+              <div className="flex items-baseline justify-between gap-2.5 mt-1.5">
+                <h1 className="text-[32px] tracking-tight text-[#1a1a1f]" style={{ fontFamily: 'var(--font-instrument-serif), serif', fontWeight: 400 }}>Mi Radar</h1>
+                <span className="text-xs font-bold text-brand rounded-full px-3 py-1.5" style={{ background: '#EDE9FB' }}>
+                  {activeCount} guardado{activeCount !== 1 ? 's' : ''}
+                </span>
+              </div>
+            </div>
+            {/* Filter chips */}
+            <div className="flex gap-2 px-5 pt-2.5 pb-1">
+              <span className="text-[12.5px] font-bold text-white rounded-full px-3.5 py-2" style={{ background: '#6C4BF4' }}>Todos</span>
+              <span className="text-[12.5px] font-semibold text-[#57545e] bg-white rounded-full px-3.5 py-2" style={{ border: '1px solid #E4E1DA' }}>Con precio anclado</span>
+            </div>
           </div>
 
           {!hasAnything ? (
-            <div className="px-4"><EmptyRadar /></div>
+            <div className="px-5"><EmptyRadar /></div>
           ) : (
-            <div className="px-4 mt-4">
-              <SmartFeed cats={cats} activeCount={activeCount} suggestions={suggestions} />
+            <div className="px-5 pt-3 pb-6">
+              <MobileRadarFeed cats={cats} />
             </div>
           )}
         </div>
@@ -553,6 +564,63 @@ function HistoryList({ items }: { items: RadarGroup[] }) {
             </div>
           </Link>
         ))}
+      </div>
+    </div>
+  )
+}
+
+// ─── Mobile radar feed (8c) ────────────────────────────────
+
+function MobileRadarFeed({ cats }: { cats: Record<RadarCategory, RadarGroup[]> }) {
+  const all = [...cats.hot, ...cats.dropping, ...cats.secured]
+  return (
+    <>
+      {all.map(g => <MobileRadarCard key={g.id} group={g} />)}
+      {cats.history.length > 0 && <HistoryList items={cats.history} />}
+    </>
+  )
+}
+
+function MobileRadarCard({ group: g }: { group: RadarGroup }) {
+  const complete = g.status === 'open' && g.nextPrice == null
+  const urgent = !complete && g.missing > 0 && g.missing < 4
+  const variant: 'hot' | 'dropping' | 'complete' = complete ? 'complete' : urgent ? 'hot' : 'dropping'
+  const t = THEME[variant]
+  const saving = g.pvp > 0 && g.currentPrice < g.pvp ? g.pvp - g.currentPrice : 0
+
+  return (
+    <div className="rounded-[18px] bg-white p-3.5 mb-3.5" style={{ border: '1px solid #ECEAF2', boxShadow: '0 12px 30px -26px rgba(30,20,60,.4)' }}>
+      {/* Compact row: thumbnail + name/price + heart */}
+      <div className="flex gap-3 items-center">
+        <Link href={`/grupo/${g.id}`} className="w-14 h-14 rounded-[13px] overflow-hidden shrink-0" style={{ background: '#1a1a1f' }}>
+          {g.imageUrl && <img src={g.imageUrl} alt="" className="w-full h-full object-cover opacity-90" />}
+        </Link>
+        <div className="flex-1 min-w-0">
+          <Link href={`/grupo/${g.id}`}>
+            <div className="text-[14.5px] font-bold tracking-tight truncate">{g.name}</div>
+            <div className="flex items-baseline gap-1.5 mt-0.5">
+              <span className="text-base font-bold tabular-nums">{fmt(g.currentPrice)}</span>
+              {saving > 0 && <span className="text-[11.5px] font-bold text-[#157F52]">Ahorra {fmt(saving)}</span>}
+            </div>
+          </Link>
+        </div>
+        <div className="shrink-0">
+          <RadarCardMenu groupId={g.id} />
+        </div>
+      </div>
+
+      {/* PulseZone: slider + status + CTA */}
+      <div className="mt-5">
+        <PulseZone
+          groupId={g.id}
+          productName={g.name}
+          current={g.currentUnits}
+          tiers={g.tiers}
+          variant={variant}
+          currentPrice={g.currentPrice}
+          complete={complete}
+          ctaColor={t.cta}
+        />
       </div>
     </div>
   )
