@@ -109,7 +109,7 @@ export default function GroupLiveSection({
         )}
 
         {/* ── CARD FUSIONADA (2d) ── */}
-        <div className="border border-neutral-200 rounded-2xl p-[18px] mt-4">
+        <div className={`border border-neutral-200 rounded-2xl p-[18px] ${heroMode ? 'mt-0' : 'mt-4'}`}>
           {/* Precio + estado */}
           <div className="flex items-end justify-between gap-2">
             <div>
