@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef } from 'react'
+import { useCallback, useRef, useEffect } from 'react'
 import PulseRings from '@/components/PulseRings'
 import type { TierPulse } from '@/components/TierProgress'
 
@@ -40,6 +40,7 @@ export default function VondaTargetSlider({
   pulse, glow = 0, onCommit, minIdx = 0, disabled = false,
 }: Props) {
   const trackRef = useRef<HTMLDivElement | null>(null)
+  const rootRef = useRef<HTMLDivElement | null>(null)
   const lastIdxRef = useRef(selIdx)
   const n = detents.length
   const mini = size === 'mini'
@@ -164,11 +165,21 @@ export default function VondaTargetSlider({
   const surgeUnits = condStep && moneyUnits > 0 ? condStep.units : null
   const effectiveGlow = pLayers.length > 0 ? 0 : glow
 
+  // El slider puede vivir dentro de un <Link> (Mi Radar y cards): el click nativo
+  // del <a> navega aunque React frene el onClick de burbuja (el re-render del
+  // arrastre desincroniza el dispatch sintético). Interceptamos el click con un
+  // listener NATIVO en fase de captura para neutralizar la navegación sin afectar
+  // al arrastre. Solo cuando es interactivo (no disabled).
+  useEffect(() => {
+    const el = rootRef.current
+    if (!el || disabled) return
+    const guard = (e: MouseEvent) => { e.preventDefault(); e.stopPropagation() }
+    el.addEventListener('click', guard, true)
+    return () => el.removeEventListener('click', guard, true)
+  }, [disabled])
+
   return (
-    <div
-      className="select-none"
-      onClick={disabled ? undefined : (e) => { e.preventDefault(); e.stopPropagation() }}
-    >
+    <div ref={rootRef} className="select-none">
       {chrome === 'full' && (
         <div className="flex items-center justify-between gap-3">
           <div className="font-extrabold text-neutral-900" style={{ fontSize: mini ? 14 : 16 }}>¿Cuál es el máximo que pagarías?</div>
