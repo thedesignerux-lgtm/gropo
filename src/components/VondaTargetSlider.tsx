@@ -169,14 +169,16 @@ export default function VondaTargetSlider({
   // del <a> navega aunque React frene el onClick de burbuja (el re-render del
   // arrastre desincroniza el dispatch sintético). Interceptamos el click con un
   // listener NATIVO en fase de captura para neutralizar la navegación sin afectar
-  // al arrastre. Solo cuando es interactivo (no disabled).
+  // al arrastre. Se monta UNA vez y permanece siempre: si dependiera de `disabled`,
+  // el `setBusy(true)` que dispara el pledge al soltar quitaría la guarda justo
+  // antes del click y este navegaría. Un click sobre el slider nunca debe navegar.
   useEffect(() => {
     const el = rootRef.current
-    if (!el || disabled) return
+    if (!el) return
     const guard = (e: MouseEvent) => { e.preventDefault(); e.stopPropagation() }
     el.addEventListener('click', guard, true)
     return () => el.removeEventListener('click', guard, true)
-  }, [disabled])
+  }, [])
 
   return (
     <div ref={rootRef} className="select-none">
