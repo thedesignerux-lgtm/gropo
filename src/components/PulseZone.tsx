@@ -11,9 +11,10 @@
 //   resto                 → "Asegurar precio · Y €" (color del variant)
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import TierProgress, { type TierPoint, type TierVariant } from '@/components/TierProgress'
+import { type TierPoint, type TierVariant } from '@/components/TierProgress'
+import VondaTargetSlider, { type Detent } from '@/components/VondaTargetSlider'
 import PulseAcceptModal from '@/components/PulseAcceptModal'
 import { usePulse } from '@/hooks/usePulse'
 
@@ -38,7 +39,7 @@ interface Props {
 }
 
 export default function PulseZone({
-  groupId, productName, current, tiers, variant, currentPrice, complete = false, ctaColor = '#F0531F', children,
+  groupId, productName, current, tiers, currentPrice, complete = false, ctaColor = '#F0531F', children,
 }: Props) {
   const { data, refresh } = usePulse(complete ? null : groupId)
   const router = useRouter()
@@ -83,8 +84,8 @@ export default function PulseZone({
     } finally { setBusy(false) }
   }
 
-  async function cancel(e: React.MouseEvent) {
-    stop(e); setBusy(true); setError(null)
+  async function removePledge() {
+    setBusy(true); setError(null)
     try {
       const res = await fetch('/api/pulse/pledge', {
         method: 'DELETE',
@@ -101,10 +102,49 @@ export default function PulseZone({
     } finally { setBusy(false) }
   }
 
-  function onSelectTier(t: TierPoint) {
-    if (!markable || busy || t.price == null) return
-    if (mine && myStep && t.units === myStep.units) return
-    upsertPledge(t.price, qty)
+  async function cancel(e: React.MouseEvent) {
+    stop(e)
+    await removePledge()
+  }
+
+  // ── Target slider: detents, índice actual y ancla ──
+  const detents: Detent[] = useMemo(
+    () => [...tiers]
+      .filter((t) => t.price != null)
+      .sort((a, b) => a.units - b.units)
+      .map((t) => ({ price: t.price as number, uds: t.units })),
+    [tiers]
+  )
+  const curIdx = useMemo(() => {
+    let idx = 0
+    for (let i = 0; i < detents.length; i++) {
+      const reached = tiers.find((t) => t.units === detents[i].uds)?.unlocked ?? current >= detents[i].uds
+      if (reached) idx = i
+    }
+    return idx
+  }, [detents, tiers, current])
+  const anchoredIdx = useMemo(() => {
+    if (selectedUnits != null) {
+      const i = detents.findIndex((d) => d.uds === selectedUnits)
+      if (i >= 0) return i
+    }
+    return curIdx
+  }, [selectedUnits, detents, curIdx])
+
+  const [selIdx, setSelIdx] = useState(anchoredIdx)
+  useEffect(() => { setSelIdx(anchoredIdx) }, [anchoredIdx])
+
+  const sliderDisabled = complete || !markable || busy
+
+  function onCommitAnchor(i: number) {
+    if (sliderDisabled || busy) return
+    if (i > curIdx) {
+      // Ancla en un tramo más barato (esperador): persistir pledge a ese precio
+      if (detents[i] && detents[i].price !== mine?.tier_price) upsertPledge(detents[i].price, qty)
+    } else {
+      // Vuelta al precio actual: sin ancla (si había pledge en espera, se retira)
+      if (mine?.status === 'watching') { setSelIdx(curIdx); removePledge() }
+    }
   }
 
   // ── Línea de estado (máx. UNA) ──
@@ -201,15 +241,19 @@ export default function PulseZone({
 
   return (
     <div onClick={(e) => e.stopPropagation()}>
-      {tiers.length > 0 && (
-        <TierProgress
-          current={current}
-          tiers={tiers}
-          variant={variant}
+      {detents.length > 0 && (
+        <VondaTargetSlider
+          detents={detents}
+          curIdx={curIdx}
+          selIdx={selIdx}
+          onSelIdx={setSelIdx}
+          onCommit={onCommitAnchor}
+          minIdx={curIdx}
+          disabled={sliderDisabled}
+          size="mini"
+          chrome="none"
           pulse={complete ? undefined : pulse}
           glow={complete ? 0 : glow}
-          selectedUnits={selectedUnits}
-          onSelectTier={markable ? onSelectTier : undefined}
         />
       )}
 

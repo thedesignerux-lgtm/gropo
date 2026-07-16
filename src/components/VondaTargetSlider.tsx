@@ -27,13 +27,20 @@ interface Props {
   pulse?: TierPulse[]
   /** Bruma de observadores 0–3 (de usePulse). */
   glow?: 0 | 1 | 2 | 3
+  /** Se dispara SOLO al soltar el thumb (drag-end/tap). Para persistir el ancla. */
+  onCommit?: (i: number) => void
+  /** Índice mínimo seleccionable: bloquea el thumb por debajo (p. ej. Mi Radar). */
+  minIdx?: number
+  /** Modo lectura: desactiva el arrastre/tap del thumb. */
+  disabled?: boolean
 }
 
 export default function VondaTargetSlider({
   detents, curIdx, selIdx, onSelIdx, size = 'full', chrome = 'none', udsToNext,
-  pulse, glow = 0,
+  pulse, glow = 0, onCommit, minIdx = 0, disabled = false,
 }: Props) {
   const trackRef = useRef<HTMLDivElement | null>(null)
+  const lastIdxRef = useRef(selIdx)
   const n = detents.length
   const mini = size === 'mini'
   const posN = (i: number) => (n <= 1 ? 50 : 7 + (i / (n - 1)) * 86)
@@ -54,10 +61,13 @@ export default function VondaTargetSlider({
     if (!el || n <= 1) return
     const r = el.getBoundingClientRect()
     const ratio = Math.min(1, Math.max(0, (clientX - r.left) / r.width))
-    onSelIdx(Math.round(ratio * (n - 1)))
-  }, [n, onSelIdx])
+    const i = Math.max(minIdx, Math.min(n - 1, Math.round(ratio * (n - 1))))
+    lastIdxRef.current = i
+    onSelIdx(i)
+  }, [n, onSelIdx, minIdx])
 
   const startDrag = useCallback((e: React.PointerEvent) => {
+    if (disabled) return
     e.preventDefault()
     e.stopPropagation()
     setFromClientX(e.clientX)
@@ -65,10 +75,11 @@ export default function VondaTargetSlider({
     const up = () => {
       window.removeEventListener('pointermove', move)
       window.removeEventListener('pointerup', up)
+      onCommit?.(lastIdxRef.current)
     }
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', up)
-  }, [setFromClientX])
+  }, [setFromClientX, disabled, onCommit])
 
   const confirmed = selIdx <= curIdx
   const accent = confirmed ? '#6C4BF4' : '#E8944A'
