@@ -36,11 +36,14 @@ interface Props {
   /** Modo Mi Radar: oculta el tooltip "Máx · X€" y muestra una flecha de ancla
    *  sobre el tramo elegido (el precio ya se ve en la línea de estado). */
   anchorMode?: boolean
+  /** La flecha de ancla está desvaneciéndose (fade-out antes de desanclar). */
+  anchorFading?: boolean
 }
 
 export default function VondaTargetSlider({
   detents, curIdx, selIdx, onSelIdx, size = 'full', chrome = 'none', udsToNext,
   pulse, glow = 0, onCommit, minIdx = 0, disabled = false, anchorMode = false,
+  anchorFading = false,
 }: Props) {
   const trackRef = useRef<HTMLDivElement | null>(null)
   const rootRef = useRef<HTMLDivElement | null>(null)
@@ -207,8 +210,8 @@ export default function VondaTargetSlider({
         )}
 
         {/* Flecha de ancla (Mi Radar): marca el tramo donde anclas el precio */}
-        {anchorMode && selIdx > curIdx && (
-          <div style={{ position: 'absolute', top: -11, left: pos(selIdx), transform: 'translateX(-50%)', transition: 'left .22s cubic-bezier(.34,1.56,.64,1)', zIndex: 6, pointerEvents: 'none' }}>
+        {anchorMode && (selIdx > curIdx || anchorFading) && (
+          <div style={{ position: 'absolute', top: -11, left: pos(selIdx), transform: 'translateX(-50%)', transition: 'left .22s cubic-bezier(.34,1.56,.64,1), opacity .3s ease', opacity: anchorFading ? 0 : 1, zIndex: 6, pointerEvents: 'none' }}>
             <div style={{ width: 0, height: 0, borderLeft: '6px solid transparent', borderRight: '6px solid transparent', borderTop: `7px solid ${accent}` }} />
           </div>
         )}
@@ -250,14 +253,14 @@ export default function VondaTargetSlider({
             const ringIntensity = achieved ? 0 : (isSurgeNode ? 3 : Math.min(1, pp?.marked ?? 0))
             const activePulse = ringIntensity > 0
             return (
-              <div key={i} style={{ position: 'absolute', top: '50%', left: pos(i), transform: 'translate(-50%,-50%)', width: ui.dot, height: ui.dot, borderRadius: '50%', background: achieved ? '#6C4BF4' : '#fff', border: `2.5px solid ${achieved ? '#6C4BF4' : (activePulse ? '#6C3CE1' : '#CFCADE')}`, display: 'grid', placeItems: 'center', color: '#fff', fontSize: 9, fontWeight: 900, lineHeight: 1, zIndex: 2, boxShadow: '0 2px 6px -2px rgba(30,20,60,.35)' }}>
+              <div key={i} style={{ position: 'absolute', top: '50%', left: pos(i), transform: 'translate(-50%,-50%)', width: ui.dot, height: ui.dot, borderRadius: '50%', background: achieved ? '#6C4BF4' : '#fff', border: `2.5px solid ${achieved ? '#6C4BF4' : (activePulse ? '#6C3CE1' : '#CFCADE')}`, display: 'grid', placeItems: 'center', color: '#fff', fontSize: 9, fontWeight: 900, lineHeight: 1, zIndex: 2, boxShadow: '0 2px 6px -2px rgba(30,20,60,.35)', pointerEvents: 'none' }}>
                 {ringIntensity > 0 && <PulseRings tone="purple" intensity={ringIntensity as 1 | 2 | 3} />}
                 {achieved ? '✓' : ''}
               </div>
             )
           })}
 
-          <div style={{ position: 'absolute', top: '50%', left: pos(curIdx), transform: 'translate(-50%,-50%)', width: ui.curDot, height: ui.curDot, borderRadius: '50%', background: '#fff', border: '1px solid #F0EDE7', display: 'grid', placeItems: 'center', zIndex: 3, boxShadow: '0 3px 10px -3px rgba(30,20,60,.5)' }}>
+          <div style={{ position: 'absolute', top: '50%', left: pos(curIdx), transform: 'translate(-50%,-50%)', width: ui.curDot, height: ui.curDot, borderRadius: '50%', background: '#fff', border: '1px solid #F0EDE7', display: 'grid', placeItems: 'center', zIndex: 3, boxShadow: '0 3px 10px -3px rgba(30,20,60,.5)', pointerEvents: 'none' }}>
             <span style={{ width: ui.curDot * 0.42, height: ui.curDot * 0.42, borderRadius: '50%', background: '#F0503A' }} />
           </div>
 

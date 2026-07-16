@@ -46,6 +46,7 @@ export default function PulseZone({
   const [modal, setModal] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [fading, setFading] = useState(false)
 
   const steps = data?.steps ?? []
   const glow = data?.glow ?? 0
@@ -134,16 +135,24 @@ export default function PulseZone({
   const [selIdx, setSelIdx] = useState(anchoredIdx)
   useEffect(() => { setSelIdx(anchoredIdx) }, [anchoredIdx])
 
-  const sliderDisabled = complete || !markable || busy
+  const sliderDisabled = complete || !markable || busy || fading
 
   function onCommitAnchor(i: number) {
-    if (sliderDisabled || busy) return
+    if (sliderDisabled || busy || fading) return
+    // Toggle: re-tap en la misma ancla → desanclar con fade
+    const isToggle = mine?.status === 'watching' && (
+      i === anchoredIdx || Number(detents[i]?.price) === Number(mine?.tier_price)
+    )
     if (i > curIdx) {
       if (detents[i]) {
-        if (detents[i].price === mine?.tier_price) {
-          // Toggle: re-click en la misma ancla → desanclar
-          setSelIdx(curIdx)
-          removePledge()
+        if (isToggle) {
+          // Fade out: la flecha se desvanece, luego se retira el pledge
+          setFading(true)
+          setTimeout(() => {
+            setSelIdx(curIdx)
+            setFading(false)
+            removePledge()
+          }, 300)
         } else {
           // Ancla en un tramo más barato (esperador): persistir pledge a ese precio
           upsertPledge(detents[i].price, qty)
@@ -151,7 +160,14 @@ export default function PulseZone({
       }
     } else {
       // Vuelta al precio actual: sin ancla (si había pledge en espera, se retira)
-      if (mine?.status === 'watching') { setSelIdx(curIdx); removePledge() }
+      if (mine?.status === 'watching') {
+        setFading(true)
+        setTimeout(() => {
+          setSelIdx(curIdx)
+          setFading(false)
+          removePledge()
+        }, 300)
+      }
     }
   }
 
@@ -270,6 +286,7 @@ export default function PulseZone({
           size="mini"
           chrome="none"
           anchorMode
+          anchorFading={fading}
           pulse={complete ? undefined : pulse}
           glow={complete ? 0 : glow}
         />
