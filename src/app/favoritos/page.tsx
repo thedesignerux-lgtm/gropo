@@ -460,6 +460,7 @@ function OpportunityCard({ group: g }: { group: RadarGroup; category?: 'hot' | '
           currentPrice={g.currentPrice}
           complete={complete}
           ctaColor={t.cta}
+          boxedLegend
         >
           {/* frase informativa única */}
           {complete ? (
@@ -609,7 +610,7 @@ function MobileRadarCard({ group: g }: { group: RadarGroup }) {
         </div>
       </div>
 
-      {/* PulseZone: slider + status + CTA */}
+      {/* PulseZone: slider + leyenda en caja (8c) + CTA */}
       <div className="mt-5">
         <PulseZone
           groupId={g.id}
@@ -620,6 +621,7 @@ function MobileRadarCard({ group: g }: { group: RadarGroup }) {
           currentPrice={g.currentPrice}
           complete={complete}
           ctaColor={t.cta}
+          boxedLegend
         />
       </div>
     </div>

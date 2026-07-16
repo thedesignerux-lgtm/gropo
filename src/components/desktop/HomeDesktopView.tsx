@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { GroupProduct } from '@/lib/mock-data'
@@ -21,6 +21,13 @@ const CATEGORIES = [
   { key: 'herramientas', label: 'Herramientas' },
   { key: 'infantil', label: 'Infantil' },
   { key: 'otros', label: 'Otros' },
+]
+
+const NAV_LINKS = [
+  { href: '/', label: 'Explorar' },
+  { href: '/mis-grupos', label: 'Mis grupos' },
+  { href: '/favoritos', label: 'Mi Radar' },
+  { href: '/como-funciona', label: 'Cómo funciona' },
 ]
 
 function getProductCategory(_product: GroupProduct): string {
@@ -54,6 +61,16 @@ function useCountdown() {
   return label
 }
 
+/* ── Brand logo (cuadrado morado "v" + Vonda) ── */
+function BrandLogo() {
+  return (
+    <Link href="/" className="flex items-center gap-2.5 shrink-0" aria-label="Vonda">
+      <div className="w-[34px] h-[34px] rounded-[10px] grid place-items-center text-white font-extrabold text-lg" style={{ background: '#6C4BF4' }}>v</div>
+      <span className="text-xl font-extrabold tracking-tight text-neutral-900">Vonda</span>
+    </Link>
+  )
+}
+
 interface Props {
   products: GroupProduct[]
   favoriteIds?: string[]
@@ -72,47 +89,60 @@ export default function HomeDesktopView({ products, favoriteIds = [], isAuthed =
     return true
   })
 
+  // Grupo destacado = primero de la lista completa (sin filtrar). Resto → grid.
+  const featured = products[0]
+  const gridProducts = filtered.filter((p) => p.id !== featured?.id)
+
+  // Stats hero
+  const stats = useMemo(() => {
+    const active = products.length
+    let pctSum = 0, pctCount = 0
+    for (const p of products) {
+      const { currentPrice } = getStepPricing(p.tiers, p.currentUnits)
+      if (p.pvp > 0 && currentPrice > 0) {
+        pctSum += (currentPrice - p.pvp) / p.pvp
+        pctCount++
+      }
+    }
+    const avgPct = pctCount > 0 ? Math.round((pctSum / pctCount) * 100) : 0
+    return { active, avgPct }
+  }, [products])
+
   return (
-    <div className="min-h-screen bg-white">
-      {/* ── Compact header (1b) ── */}
-      <header className="sticky top-0 z-30 bg-white border-b" style={{ borderColor: '#F1EFF5' }}>
-        <div className="max-w-[1240px] mx-auto flex items-center gap-5 px-8 py-4">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 shrink-0">
-            <div className="w-[34px] h-[34px] rounded-[10px] bg-brand grid place-items-center text-white font-extrabold text-lg">v</div>
-            <span className="text-xl font-extrabold tracking-tight text-neutral-900">Vonda</span>
-          </Link>
+    <div className="min-h-screen" style={{ background: '#FBFAF8' }}>
+      {/* ══════════ NAVBAR ══════════ */}
+      <header className="sticky top-0 z-30 border-b" style={{ background: 'rgba(251,250,248,0.9)', backdropFilter: 'blur(12px)', borderColor: '#EFEDE7' }}>
+        <div className="max-w-[1240px] mx-auto flex items-center gap-8 px-8 h-[72px]">
+          <BrandLogo />
 
-          {/* Search bar with countdown badge */}
-          <div className="flex-1 max-w-[460px] flex items-center h-12 rounded-full px-4 pr-1.5" style={{ background: '#F6F5FA', border: '1px solid #ECEAF2' }}>
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#9a97a2" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><line x1="16.5" y1="16.5" x2="21" y2="21" /></svg>
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Busca tu producto…"
-              className="flex-1 text-sm text-neutral-700 placeholder:text-neutral-400 bg-transparent ml-3 focus:outline-none"
-            />
-            {countdown && (
-              <span className="shrink-0 text-xs font-bold text-brand rounded-full px-3 py-1.5" style={{ background: '#EDE9FB' }}>
-                {countdown}
-              </span>
-            )}
-          </div>
+          <nav className="hidden lg:flex items-center gap-7 ml-4">
+            {NAV_LINKS.map((link) => {
+              const active = link.href === '/'
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={`text-[15px] transition-colors ${active ? 'font-semibold text-neutral-900' : 'font-medium text-neutral-500 hover:text-neutral-900'}`}
+                >
+                  {active && <span className="text-brand mr-1.5" style={{ color: '#6C4BF4' }}>•</span>}
+                  {link.label}
+                </Link>
+              )
+            })}
+          </nav>
 
-          {/* Right: CTA + avatar */}
           <div className="flex items-center gap-3.5 ml-auto">
             <Link
               href="/crear-peticion"
-              className="text-sm font-bold text-brand rounded-full px-4 py-2.5"
-              style={{ border: '1.5px solid #DAD2FA' }}
+              className="text-[15px] font-semibold text-neutral-900 rounded-full px-5 py-2.5 bg-white transition-colors hover:border-brand"
+              style={{ border: '1.5px solid #E4E1DA' }}
             >
-              Crear petición
+              Crea tu grupo
             </Link>
             <Link
               href="/perfil"
-              className="w-9 h-9 rounded-full grid place-items-center text-sm font-extrabold text-brand"
-              style={{ background: '#EDE9FB' }}
+              className="w-9 h-9 rounded-full grid place-items-center text-sm font-extrabold"
+              style={{ background: '#EDE9FB', color: '#6C4BF4' }}
             >
               V
             </Link>
@@ -120,60 +150,129 @@ export default function HomeDesktopView({ products, favoriteIds = [], isAuthed =
         </div>
       </header>
 
-      <main className="max-w-[1240px] mx-auto px-8">
-        {/* ── Category chips ── */}
-        <div className="flex gap-2.5 flex-wrap pt-5 pb-2">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat.key}
-              onClick={() => setSelectedCat(cat.key)}
-              className="text-[13.5px] font-semibold rounded-full px-4 py-2.5 transition-colors cursor-pointer"
-              style={
-                selectedCat === cat.key
-                  ? { background: '#6C4BF4', color: '#fff', border: '1px solid #6C4BF4' }
-                  : { background: '#fff', color: '#4a4a52', border: '1px solid #ECEAF2' }
-              }
-            >
-              {cat.label}
-            </button>
-          ))}
-        </div>
+      {/* ══════════ HERO ══════════ */}
+      <section style={{ background: '#FBFAF8' }}>
+        <div className="max-w-[1240px] mx-auto px-8 pt-14 pb-16 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          {/* Left: editorial */}
+          <div>
+            <h1 className="font-serif leading-[1.02] text-neutral-900" style={{ fontFamily: 'var(--font-instrument-serif), Georgia, serif', fontSize: 'clamp(44px, 4.4vw, 64px)' }}>
+              Cuantos más seamos,
+              <br />
+              <span className="italic" style={{ color: '#6C4BF4' }}>menos pagamos.</span>
+            </h1>
 
-        {/* ── Heading ── */}
-        <div className="flex items-center justify-between pt-5 pb-1">
-          <div className="flex items-center gap-3">
-            <h2 className="text-[26px] font-extrabold tracking-tight text-neutral-900">Grupos abiertos</h2>
-            <span className="text-[13px] font-bold text-brand rounded-full px-3 py-1" style={{ background: '#EDE9FB' }}>
-              {filtered.length} activo{filtered.length !== 1 ? 's' : ''}
-            </span>
-          </div>
-          <span className="text-sm text-neutral-400">
-            Ordenar por: <strong className="text-neutral-900">Recomendados</strong>
-          </span>
-        </div>
+            <p className="mt-6 text-[16.5px] leading-relaxed text-neutral-500 max-w-[440px]">
+              Únete al grupo con el precio que te resulte cómodo. Si antes del cierre se desbloquea un precio mejor, pagarás automáticamente el más bajo alcanzado.
+            </p>
 
-        {/* ── 4-column grid ── */}
-        {filtered.length === 0 ? (
-          <div className="py-20 text-center text-neutral-400 text-lg">
-            {query.trim() ? `No se encontraron productos para "${query}"` : 'No hay grupos abiertos en esta categoría'}
+            {/* Search bar card */}
+            <div className="mt-8 flex items-center gap-2 bg-white rounded-full pl-6 pr-2 py-2 max-w-[540px]" style={{ boxShadow: '0 18px 40px -24px rgba(30,20,60,.28)', border: '1px solid #EFEDE7' }}>
+              <div className="flex-1 min-w-0">
+                <div className="text-[10.5px] font-bold tracking-[0.14em] text-neutral-400 uppercase">Qué buscas</div>
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Busca un producto entre todos los grupos"
+                  className="w-full text-[15px] text-neutral-800 placeholder:text-neutral-400 bg-transparent focus:outline-none mt-0.5"
+                />
+              </div>
+              <button
+                type="button"
+                aria-label="Buscar"
+                className="shrink-0 w-12 h-12 rounded-full grid place-items-center transition-transform active:scale-95"
+                style={{ background: '#6C4BF4' }}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><line x1="16.5" y1="16.5" x2="21" y2="21" /></svg>
+              </button>
+            </div>
+
+            {/* Stats */}
+            <div className="mt-9 flex items-start gap-10">
+              <Stat value={String(stats.active)} label="grupos activos" />
+              <Stat value={`${stats.avgPct}%`} label="ahorro medio" accent="#157F52" />
+              <Stat value="0 €" label="hasta desbloquear" />
+            </div>
           </div>
-        ) : (
-          <div className="grid grid-cols-4 gap-5 pt-5 pb-10">
-            {filtered.map((product) => (
-              <GridCard key={product.id} product={product} isFavorited={favSet.has(product.id)} isAuthed={isAuthed} />
+
+          {/* Right: featured group */}
+          {featured ? (
+            <FeaturedCard product={featured} isFavorited={favSet.has(featured.id)} isAuthed={isAuthed} countdown={countdown} />
+          ) : (
+            <div className="rounded-[26px] bg-white grid place-items-center text-neutral-400 text-sm" style={{ border: '1px solid #EFEDE7', minHeight: 380 }}>
+              No hay grupos destacados
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ══════════ CATEGORÍAS + GRID ══════════ */}
+      <section className="bg-white border-t" style={{ borderColor: '#EFEDE7' }}>
+        <div className="max-w-[1240px] mx-auto px-8 pt-8 pb-16">
+          {/* Category chips */}
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <span className="text-[11px] font-bold tracking-[0.14em] uppercase text-neutral-400 mr-1">Categorías</span>
+            {CATEGORIES.map((cat) => (
+              <button
+                key={cat.key}
+                onClick={() => setSelectedCat(cat.key)}
+                className="text-[13.5px] font-semibold rounded-full px-4 py-2.5 transition-colors cursor-pointer"
+                style={
+                  selectedCat === cat.key
+                    ? { background: '#6C4BF4', color: '#fff', border: '1px solid #6C4BF4' }
+                    : { background: '#fff', color: '#4a4a52', border: '1px solid #ECEAF2' }
+                }
+              >
+                {cat.label}
+              </button>
             ))}
           </div>
-        )}
-      </main>
+
+          {/* Heading */}
+          <div className="flex items-center justify-between pt-8 pb-1">
+            <div className="flex items-center gap-3">
+              <h2 className="text-[26px] font-extrabold tracking-tight text-neutral-900">Grupos abiertos</h2>
+              <span className="text-[13px] font-bold rounded-full px-3 py-1" style={{ background: '#EDE9FB', color: '#6C4BF4' }}>
+                {gridProducts.length} activo{gridProducts.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+            <span className="text-sm text-neutral-400">
+              Ordenar por: <strong className="text-neutral-900">Recomendados</strong>
+            </span>
+          </div>
+
+          {/* Grid */}
+          {gridProducts.length === 0 ? (
+            <div className="py-20 text-center text-neutral-400 text-lg">
+              {query.trim() ? `No se encontraron productos para "${query}"` : 'No hay más grupos abiertos en esta categoría'}
+            </div>
+          ) : (
+            <div className="grid grid-cols-4 gap-5 pt-5">
+              {gridProducts.map((product) => (
+                <GridCard key={product.id} product={product} isFavorited={favSet.has(product.id)} isAuthed={isAuthed} />
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
+  )
+}
+
+/* ── Stat ── */
+function Stat({ value, label, accent }: { value: string; label: string; accent?: string }) {
+  return (
+    <div>
+      <div className="text-[28px] font-extrabold tracking-tight" style={{ color: accent ?? '#171717' }}>{value}</div>
+      <div className="text-[13px] text-neutral-500 mt-0.5">{label}</div>
     </div>
   )
 }
 
 /* ═══════════════════════════════════════════
-   GridCard — 1b image card with gradient overlay
+   Shared card hook — pricing + checkout logic
    ═══════════════════════════════════════════ */
-
-function GridCard({ product, isFavorited, isAuthed }: { product: GroupProduct; isFavorited: boolean; isAuthed: boolean }) {
+function useCardState(product: GroupProduct, isAuthed: boolean) {
   const { open } = useCheckout()
   const router = useRouter()
   const { currentPrice, nextTier, unitsToNext } = getStepPricing(product.tiers, product.currentUnits)
@@ -195,8 +294,8 @@ function GridCard({ product, isFavorited, isAuthed }: { product: GroupProduct; i
   const accent = confirmed ? '#6C4BF4' : '#E8944A'
   const ctaBg = confirmed ? 'rgba(108,75,244,.10)' : 'rgba(232,148,74,.12)'
   const ctaText = confirmed
-    ? `Asegurar plaza · ${fmt(selectedPrice)}`
-    : `Reservar plaza · Máx. ${fmt(selectedPrice)}`
+    ? `Bloquear precio · ${fmt(selectedPrice)}`
+    : `Bloquear precio · Máx. ${fmt(selectedPrice)}`
 
   const handleCheckout = () => {
     if (!confirmed) {
@@ -215,66 +314,120 @@ function GridCard({ product, isFavorited, isAuthed }: { product: GroupProduct; i
     }
   }
 
+  return { currentPrice, nextTier, isComplete, missing, savings, href, detents, curIdx, selIdx, setSelIdx, pulseData, accent, ctaBg, ctaText, handleCheckout }
+}
+
+/* ═══════════════════════════════════════════
+   FeaturedCard — grupo destacado (hero derecha)
+   ═══════════════════════════════════════════ */
+function FeaturedCard({ product, isFavorited, isAuthed, countdown }: { product: GroupProduct; isFavorited: boolean; isAuthed: boolean; countdown: string | null }) {
+  const s = useCardState(product, isAuthed)
+
+  return (
+    <div className="rounded-[26px] bg-white p-5" style={{ boxShadow: '0 30px 70px -40px rgba(30,20,60,.45)', border: '1px solid #EFEDE7' }}>
+      <div className="flex items-center justify-between px-1 pb-3">
+        <span className="text-[10.5px] font-bold tracking-[0.16em] uppercase text-neutral-400">Grupo destacado</span>
+        {countdown && (
+          <span className="inline-flex items-center gap-1.5 text-[12px] font-bold rounded-full px-3 py-1" style={{ background: '#FBEEE0', color: '#C77A2E' }}>
+            <span>⏱</span>{countdown}
+          </span>
+        )}
+      </div>
+
+      {/* Image */}
+      <Link href={s.href} className="relative block w-full overflow-hidden rounded-[18px] group" style={{ aspectRatio: '1 / 0.62', background: '#111114' }}>
+        {product.imageUrl ? (
+          <img src={product.imageUrl} alt={product.name} className="absolute inset-0 w-full h-full object-cover opacity-[.92] group-hover:scale-105 transition-transform duration-300" loading="lazy" />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-brand/20 to-brand/5" />
+        )}
+        <div className="absolute top-3 right-3">
+          <FavoriteButton groupId={product.id} initialFavorited={isFavorited} size={17} icon="heart" className="w-9 h-9 rounded-full bg-white/90 hover:bg-white flex items-center justify-center shadow-md" />
+        </div>
+        <div className="absolute bottom-0 left-0 right-0 px-4 pb-4 pt-12 flex items-end justify-between" style={{ background: 'linear-gradient(transparent, rgba(0,0,0,.72))' }}>
+          <div>
+            <div className="text-[17px] font-bold text-white tracking-tight leading-tight">{product.name}</div>
+            <div className="flex items-baseline gap-1.5 mt-1">
+              <span className="text-[20px] font-extrabold text-white">{fmt(s.currentPrice)}</span>
+              {!s.isComplete && s.nextTier && <span className="text-[13px] text-white/70">→ {fmt(s.nextTier.price)}</span>}
+            </div>
+          </div>
+          {s.savings > 0 && (
+            <div className="text-[12.5px] font-bold pb-1" style={{ color: '#A8F0C0' }}>Ahorra {fmt(s.savings)}</div>
+          )}
+        </div>
+      </Link>
+
+      {/* Slider + CTA */}
+      <div className="px-1 pt-5">
+        {s.detents.length > 1 ? (
+          <VondaTargetSlider detents={s.detents} curIdx={s.curIdx} selIdx={s.selIdx} onSelIdx={s.setSelIdx} size="mini" pulse={s.pulseData?.steps} glow={s.pulseData?.glow} />
+        ) : (
+          <div className="h-3" />
+        )}
+        <button
+          type="button"
+          onClick={s.handleCheckout}
+          className="w-full mt-5 font-extrabold text-[14px] rounded-xl cursor-pointer transition-colors active:scale-[0.99] whitespace-nowrap py-3.5"
+          style={{ border: `2px solid ${s.accent}`, background: s.ctaBg, color: s.accent }}
+        >
+          {s.ctaText}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/* ═══════════════════════════════════════════
+   GridCard — tarjeta de grupo (grid inferior)
+   ═══════════════════════════════════════════ */
+function GridCard({ product, isFavorited, isAuthed }: { product: GroupProduct; isFavorited: boolean; isAuthed: boolean }) {
+  const s = useCardState(product, isAuthed)
+
   return (
     <div className="rounded-[18px] overflow-hidden bg-white flex flex-col" style={{ border: '1px solid #ECEAF2' }}>
       {/* Image with gradient overlay */}
-      <Link href={href} className="relative block w-full overflow-hidden group" style={{ aspectRatio: '1 / 0.85', background: '#1a1a1f' }}>
+      <Link href={s.href} className="relative block w-full overflow-hidden group" style={{ aspectRatio: '1 / 0.85', background: '#1a1a1f' }}>
         {product.imageUrl ? (
-          <img
-            src={product.imageUrl}
-            alt={product.name}
-            className="absolute inset-0 w-full h-full object-cover opacity-[.88] group-hover:scale-105 transition-transform duration-300"
-            loading="lazy"
-          />
+          <img src={product.imageUrl} alt={product.name} className="absolute inset-0 w-full h-full object-cover opacity-[.88] group-hover:scale-105 transition-transform duration-300" loading="lazy" />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-brand/20 to-brand/5" />
         )}
 
-        {/* Faltan badge */}
-        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-extrabold text-brand" style={{ background: 'rgba(255,255,255,.94)', boxShadow: '0 4px 14px -6px rgba(30,20,60,.4)' }}>
-          {isComplete ? '✓ Mejor precio' : `↓ Faltan ${missing} uds`}
+        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-extrabold" style={{ background: 'rgba(255,255,255,.94)', color: '#6C4BF4', boxShadow: '0 4px 14px -6px rgba(30,20,60,.4)' }}>
+          {s.isComplete ? '✓ Mejor precio' : `↓ Faltan ${s.missing} uds`}
         </div>
 
-        {/* Heart */}
         <div className="absolute top-2 right-2">
-          <FavoriteButton
-            groupId={product.id}
-            initialFavorited={isFavorited}
-            size={16}
-            icon="heart"
-            className="w-8 h-8 rounded-full bg-white/90 hover:bg-white flex items-center justify-center shadow-md"
-          />
+          <FavoriteButton groupId={product.id} initialFavorited={isFavorited} size={16} icon="heart" className="w-8 h-8 rounded-full bg-white/90 hover:bg-white flex items-center justify-center shadow-md" />
         </div>
 
-        {/* Gradient overlay with name + prices */}
         <div className="absolute bottom-0 left-0 right-0 px-3.5 pb-3.5 pt-10" style={{ background: 'linear-gradient(transparent, rgba(0,0,0,.68))' }}>
           <div className="text-sm font-bold text-white tracking-tight leading-tight line-clamp-1">{product.name}</div>
           <div className="flex items-baseline gap-1.5 mt-1">
-            <span className="text-[17px] font-extrabold text-white">{fmt(currentPrice)}</span>
-            {!isComplete && nextTier && (
-              <span className="text-[11.5px] text-white/70">→ {fmt(nextTier.price)}</span>
-            )}
+            <span className="text-[17px] font-extrabold text-white">{fmt(s.currentPrice)}</span>
+            {!s.isComplete && s.nextTier && <span className="text-[11.5px] text-white/70">→ {fmt(s.nextTier.price)}</span>}
           </div>
-          {savings > 0 && (
-            <div className="text-[11px] font-bold mt-0.5" style={{ color: '#A8F0C0' }}>Ahorra {fmt(savings)}</div>
+          {s.savings > 0 && (
+            <div className="text-[11px] font-bold mt-0.5" style={{ color: '#A8F0C0' }}>Ahorra {fmt(s.savings)}</div>
           )}
         </div>
       </Link>
 
       {/* Slider + CTA */}
       <div className="px-3.5 pt-2.5 pb-3.5">
-        {detents.length > 1 ? (
-          <VondaTargetSlider detents={detents} curIdx={curIdx} selIdx={selIdx} onSelIdx={setSelIdx} size="mini" pulse={pulseData?.steps} glow={pulseData?.glow} />
+        {s.detents.length > 1 ? (
+          <VondaTargetSlider detents={s.detents} curIdx={s.curIdx} selIdx={s.selIdx} onSelIdx={s.setSelIdx} size="mini" pulse={s.pulseData?.steps} glow={s.pulseData?.glow} />
         ) : (
           <div className="h-3" />
         )}
         <button
           type="button"
-          onClick={handleCheckout}
+          onClick={s.handleCheckout}
           className="w-full mt-3 font-extrabold text-[12.5px] rounded-xl cursor-pointer transition-colors active:scale-[0.99] whitespace-nowrap py-3"
-          style={{ border: `2px solid ${accent}`, background: ctaBg, color: accent }}
+          style={{ border: `2px solid ${s.accent}`, background: s.ctaBg, color: s.accent }}
         >
-          {ctaText}
+          {s.ctaText}
         </button>
       </div>
     </div>

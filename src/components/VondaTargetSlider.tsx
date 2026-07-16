@@ -38,12 +38,15 @@ interface Props {
   anchorMode?: boolean
   /** La flecha de ancla está desvaneciéndose (fade-out antes de desanclar). */
   anchorFading?: boolean
+  /** Oculta el thumb (p. ej. estado deseleccionado en Mi Radar): el tramo actual
+   *  queda representado solo por su nodo morado con ✓. El track sigue siendo tappable. */
+  hideThumb?: boolean
 }
 
 export default function VondaTargetSlider({
   detents, curIdx, selIdx, onSelIdx, size = 'full', chrome = 'none', udsToNext,
   pulse, glow = 0, onCommit, minIdx = 0, disabled = false, anchorMode = false,
-  anchorFading = false,
+  anchorFading = false, hideThumb = false,
 }: Props) {
   const trackRef = useRef<HTMLDivElement | null>(null)
   const rootRef = useRef<HTMLDivElement | null>(null)
@@ -92,7 +95,15 @@ export default function VondaTargetSlider({
   const accent = confirmed ? '#6C4BF4' : '#E8944A'
   const accentShadow = confirmed ? 'rgba(108,75,244,.28)' : 'rgba(232,148,74,.28)'
   const nextIdx = curIdx < n - 1 ? curIdx + 1 : null
-  const projW = nextIdx != null && n > 1 ? ((nextIdx - curIdx) / (n - 1)) * 86 + '%' : '0%'
+  // Rastro del track:
+  //  · anchorMode + ancla en tramo inferior → rastro NARANJA de curIdx→selIdx
+  //  · fuera de anchorMode → preview morado de curIdx→nextIdx (home cards)
+  //  · anchorMode sin ancla → sin rastro (track liso, como el mockup 8c)
+  const anchorTrail = anchorMode && selIdx > curIdx
+  const projEndIdx = anchorTrail ? selIdx : nextIdx
+  const showProj = anchorTrail || (!anchorMode && nextIdx != null)
+  const projW = showProj && projEndIdx != null && n > 1 ? ((projEndIdx - curIdx) / (n - 1)) * 86 + '%' : '0%'
+  const projColor = anchorTrail ? '#E8944A' : '#C9BEF6'
   const bubbleX = selIdx === 0 ? 'translateX(-16%)' : (selIdx === n - 1 ? 'translateX(-84%)' : 'translateX(-50%)')
   const caretX = selIdx === 0 ? '16%' : (selIdx === n - 1 ? '84%' : '50%')
 
@@ -219,7 +230,7 @@ export default function VondaTargetSlider({
         {/* Track */}
         <div ref={trackRef} onPointerDown={startDrag} style={{ position: 'relative', height: 30, cursor: 'pointer', touchAction: 'none' }}>
           <div style={{ position: 'absolute', left: 0, right: 0, top: '50%', transform: 'translateY(-50%)', height: 8, borderRadius: 999, background: '#ECEAF4' }} />
-          <div className="ts-pulse" style={{ position: 'absolute', left: pos(curIdx), width: projW, top: '50%', transform: 'translateY(-50%)', height: 8, borderRadius: 999, background: 'repeating-linear-gradient(90deg,#C9BEF6 0 6px,transparent 6px 12px)' }} />
+          <div className="ts-pulse" style={{ position: 'absolute', left: pos(curIdx), width: projW, top: '50%', transform: 'translateY(-50%)', height: 8, borderRadius: 999, background: `repeating-linear-gradient(90deg,${projColor} 0 6px,transparent 6px 12px)` }} />
 
           {/* VONDA PULSE · capas de actividad en vivo (sobre la proyección, bajo la onda firme) */}
           {(pLayers.length > 0 || effectiveGlow > 0) && (
@@ -260,13 +271,11 @@ export default function VondaTargetSlider({
             )
           })}
 
-          <div style={{ position: 'absolute', top: '50%', left: pos(curIdx), transform: 'translate(-50%,-50%)', width: ui.curDot, height: ui.curDot, borderRadius: '50%', background: '#fff', border: '1px solid #F0EDE7', display: 'grid', placeItems: 'center', zIndex: 3, boxShadow: '0 3px 10px -3px rgba(30,20,60,.5)', pointerEvents: 'none' }}>
-            <span style={{ width: ui.curDot * 0.42, height: ui.curDot * 0.42, borderRadius: '50%', background: '#F0503A' }} />
-          </div>
-
-          <div onPointerDown={startDrag} style={{ position: 'absolute', top: '50%', left: pos(selIdx), transform: 'translate(-50%,-50%)', width: ui.thumb, height: ui.thumb, borderRadius: '50%', background: '#fff', border: `3px solid ${accent}`, display: 'grid', placeItems: 'center', zIndex: 4, cursor: 'grab', transition: 'left .22s cubic-bezier(.34,1.56,.64,1),border-color .2s', boxShadow: `0 6px 16px -4px ${accentShadow}` }}>
-            <span style={{ width: 11, height: 11, borderRadius: '50%', background: accent }} />
-          </div>
+          {!hideThumb && (
+            <div onPointerDown={startDrag} style={{ position: 'absolute', top: '50%', left: pos(selIdx), transform: 'translate(-50%,-50%)', width: ui.thumb, height: ui.thumb, borderRadius: '50%', background: '#fff', border: `3px solid ${accent}`, display: 'grid', placeItems: 'center', zIndex: 4, cursor: 'grab', transition: 'left .22s cubic-bezier(.34,1.56,.64,1),border-color .2s', boxShadow: `0 6px 16px -4px ${accentShadow}` }}>
+              <span style={{ width: 11, height: 11, borderRadius: '50%', background: accent }} />
+            </div>
+          )}
         </div>
 
         {/* Labels */}

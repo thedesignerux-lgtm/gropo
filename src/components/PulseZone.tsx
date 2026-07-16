@@ -11,7 +11,7 @@
 //   resto                 → "Asegurar precio · Y €" (color del variant)
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { type TierPoint, type TierVariant } from '@/components/TierProgress'
 import VondaTargetSlider, { type Detent } from '@/components/VondaTargetSlider'
@@ -36,17 +36,20 @@ interface Props {
   ctaColor?: string
   /** Línea informativa de la tarjeta (p. ej. "Faltan N unidades para bajar a X €") */
   children?: React.ReactNode
+  /** Mi Radar (8c): leyendas en caja (gris / morada + CTA / naranja) en
+   *  lugar de la línea de estado + CTA por defecto. */
+  boxedLegend?: boolean
 }
 
 export default function PulseZone({
   groupId, productName, current, tiers, currentPrice, complete = false, ctaColor = '#F0531F', children,
+  boxedLegend = false,
 }: Props) {
   const { data, refresh } = usePulse(complete ? null : groupId)
   const router = useRouter()
   const [modal, setModal] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [fading, setFading] = useState(false)
 
   const steps = data?.steps ?? []
   const glow = data?.glow ?? 0
@@ -132,41 +135,57 @@ export default function PulseZone({
     return curIdx
   }, [selectedUnits, detents, curIdx])
 
+  // ── UI OPTIMISTA ──────────────────────────────────────────────
+  // El thumb y la leyenda responden AL INSTANTE al toque; la llamada a
+  // /api/pulse/pledge (upsert/remove) va en segundo plano. Sin bloqueo por
+  // `busy` ni fade, así no se percibe latencia de red. `committedRef` guarda
+  // el ancla confirmada (o curIdx si no hay) para detectar el re-tap (toggle),
+  // ya que selIdx ya se ha actualizado cuando llega onCommit.
   const [selIdx, setSelIdx] = useState(anchoredIdx)
-  useEffect(() => { setSelIdx(anchoredIdx) }, [anchoredIdx])
+  const committedRef = useRef(anchoredIdx)
+  useEffect(() => {
+    // Sincroniza desde el servidor solo cuando el ancla confirmada cambia
+    // (carga inicial o confirmación); no pisa el estado local optimista.
+    committedRef.current = anchoredIdx
+    setSelIdx(anchoredIdx)
+  }, [anchoredIdx])
 
-  const sliderDisabled = complete || !markable || busy || fading
+  // 8c: ¿el usuario ha tocado el tramo ACTUAL (disponible)? → leyenda morada + CTA.
+  // Sin toque = leyenda gris. Un pledge en espera manda (leyenda naranja) y limpia esto.
+  const [curActive, setCurActive] = useState(false)
+  useEffect(() => { if (mine?.status === 'watching') setCurActive(false) }, [mine?.status])
+
+  const sliderDisabled = complete || !markable
 
   function onCommitAnchor(i: number) {
-    if (sliderDisabled || busy || fading) return
-    // Toggle: re-tap en la misma ancla → desanclar con fade
-    const isToggle = mine?.status === 'watching' && (
-      i === anchoredIdx || Number(detents[i]?.price) === Number(mine?.tier_price)
-    )
+    if (complete || !markable) return
+    const prev = committedRef.current
     if (i > curIdx) {
-      if (detents[i]) {
-        if (isToggle) {
-          // Fade out: la flecha se desvanece, luego se retira el pledge
-          setFading(true)
-          setTimeout(() => {
-            setSelIdx(curIdx)
-            setFading(false)
-            removePledge()
-          }, 300)
-        } else {
-          // Ancla en un tramo más barato (esperador): persistir pledge a ese precio
-          upsertPledge(detents[i].price, qty)
-        }
+      if (prev === i) {
+        // Re-tap sobre la misma ancla → desanclar (instantáneo)
+        committedRef.current = curIdx
+        setCurActive(false)
+        setSelIdx(curIdx)
+        removePledge()
+      } else if (detents[i]) {
+        // Ancla en un tramo más barato (esperador): persistir en segundo plano
+        committedRef.current = i
+        setCurActive(false)
+        setSelIdx(i)
+        upsertPledge(detents[i].price, qty)
       }
     } else {
-      // Vuelta al precio actual: sin ancla (si había pledge en espera, se retira)
-      if (mine?.status === 'watching') {
-        setFading(true)
-        setTimeout(() => {
-          setSelIdx(curIdx)
-          setFading(false)
-          removePledge()
-        }, 300)
+      // Toque en el tramo actual (o clamp inferior)
+      if (prev > curIdx) {
+        // Había ancla en espera → desanclar (vuelve a gris)
+        committedRef.current = curIdx
+        setCurActive(false)
+        setSelIdx(curIdx)
+        removePledge()
+      } else {
+        // Toggle gris ↔ morado sobre el tramo disponible
+        setSelIdx(curIdx)
+        setCurActive((v) => !v)
       }
     }
   }
@@ -272,6 +291,79 @@ export default function PulseZone({
     )
   }
 
+  // ── 8c: leyenda en caja (gris / morada + CTA / naranja) ──
+  // Solo en estados de navegación normales; los estados especiales (activado,
+  // meta, aceptado, activando, error…) siguen usando statusLine + primary.
+  // canAccept NO es estado especial en modo boxed: se integra en la leyenda con
+  // UNA sola CTA (sin la secundaria "Asegurar precio").
+  const specialState =
+    complete || !!error ||
+    mine?.status === 'failed' || mine?.status === 'accepted' ||
+    mine?.status === 'holding' || mine?.status === 'converted'
+  const useBoxed = boxedLegend && !specialState
+  const anchoredLower = mine?.status === 'watching' || selIdx > curIdx
+  // Estado gris (sin selección): sin thumb; el tramo actual = nodo morado con ✓.
+  const noSelection = useBoxed && !anchoredLower && !curActive
+
+  let boxed: React.ReactNode = null
+  if (useBoxed) {
+    if (anchoredLower && canAccept && mine) {
+      // Masa alcanzada para tu precio anclado → leyenda morada + UNA CTA de aceptar
+      boxed = (
+        <>
+          <div className="flex items-start gap-2.5 rounded-2xl mt-3.5" style={{ background: '#EEEAFB', border: '1px solid #E0D8FA', padding: '12px 14px' }}>
+            <MedalIcon color="#6C4BF4" />
+            <p className="text-[13px] leading-snug" style={{ color: '#5B3BD1' }}>
+              ¡Ya sois suficientes! Puedes fijar tu precio de <b>{fmt(mine.tier_price)}</b> ahora.
+            </p>
+          </div>
+          <button
+            onClick={(e) => { stop(e); setModal(true) }}
+            className="w-full mt-3 rounded-[12px] py-3.5 text-sm font-bold text-white transition-[filter] hover:brightness-95 active:scale-[0.99]"
+            style={{ background: '#6C4BF4' }}
+          >
+            Ya sois suficientes → Aceptar {fmt(mine.tier_price)}
+          </button>
+        </>
+      )
+    } else if (anchoredLower) {
+      const missUds = Math.max(0, (detents[selIdx]?.uds ?? 0) - current)
+      boxed = (
+        <div className="flex items-start gap-2.5 rounded-2xl mt-3.5" style={{ background: '#FCF3E9', border: '1px solid #F3E1CB', padding: '12px 14px' }}>
+          <MedalIcon color="#C77A2E" />
+          <p className="text-[13px] leading-snug" style={{ color: '#9A6428' }}>
+            Faltan <b>{missUds} uds</b> para este tramo. Solo te avisaremos si este precio puede hacerse realidad.
+          </p>
+        </div>
+      )
+    } else if (curActive) {
+      boxed = (
+        <>
+          <div className="flex items-start gap-2.5 rounded-2xl mt-3.5" style={{ background: '#EEEAFB', border: '1px solid #E0D8FA', padding: '12px 14px' }}>
+            <MedalIcon color="#6C4BF4" />
+            <p className="text-[13px] leading-snug" style={{ color: '#5B3BD1' }}>
+              Este precio ya está disponible. <b>¡Desbloquéalo ahora!</b>
+            </p>
+          </div>
+          <button
+            onClick={(e) => go(e, `/grupo/${groupId}/unirme`)}
+            className="w-full mt-3 rounded-[12px] py-3.5 text-sm font-bold text-white transition-[filter] hover:brightness-95 active:scale-[0.99]"
+            style={{ background: '#6C4BF4' }}
+          >
+            Desbloquear precio a {fmt(currentPrice)}
+          </button>
+        </>
+      )
+    } else {
+      boxed = (
+        <div className="flex items-center gap-2.5 rounded-2xl mt-3.5" style={{ background: '#F3F2EF', border: '1px solid #E7E5DF', padding: '12px 14px' }}>
+          <span className="w-4 h-4 rounded-full border-2 shrink-0" style={{ borderColor: '#BDBAB2' }} />
+          <p className="text-[13px]" style={{ color: '#8A8780' }}>Toca un precio para anclar tu interés</p>
+        </div>
+      )
+    }
+  }
+
   return (
     <div onClick={(e) => e.stopPropagation()}>
       {detents.length > 0 && (
@@ -286,15 +378,21 @@ export default function PulseZone({
           size="mini"
           chrome="none"
           anchorMode
-          anchorFading={fading}
+          hideThumb={noSelection}
           pulse={complete ? undefined : pulse}
           glow={complete ? 0 : glow}
         />
       )}
 
-      {statusLine && <div className="mt-1.5">{statusLine}</div>}
-      {children}
-      <div className="mt-3.5">{primary}</div>
+      {useBoxed ? (
+        boxed
+      ) : (
+        <>
+          {statusLine && <div className="mt-1.5">{statusLine}</div>}
+          {children}
+          <div className="mt-3.5">{primary}</div>
+        </>
+      )}
 
       {modal && mine && (
         <PulseAcceptModal
@@ -306,6 +404,16 @@ export default function PulseZone({
         />
       )}
     </div>
+  )
+}
+
+function MedalIcon({ color }: { color: string }) {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" style={{ flex: '0 0 auto', marginTop: 1 }} aria-hidden="true">
+      <path d="M7.5 3.5 10 8M16.5 3.5 14 8" />
+      <circle cx="12" cy="14.5" r="5.5" />
+      <path d="M12 12v2.5l1.6 1" />
+    </svg>
   )
 }
 
