@@ -28,6 +28,8 @@ interface Props {
   maxStock: number
   minExecution: number
   closesAt: string
+  /** When true, title/countdown/spec are in the hero overlay — hide them here */
+  heroMode?: boolean
 }
 
 const AVATAR_LETTERS = ['A', 'B', 'C']
@@ -35,7 +37,7 @@ const AVATAR_LETTERS = ['A', 'B', 'C']
 export default function GroupLiveSection({
   groupId, name, spec, pvp,
   initialBestPrice, initialTotalUnits,
-  tiers, closesAt,
+  tiers, closesAt, heroMode = false,
 }: Props) {
   const { open } = useCheckout()
   const router = useRouter()
@@ -94,15 +96,17 @@ export default function GroupLiveSection({
   return (
     <>
       <div className="px-4 pt-4 pb-2">
-        {/* Cierre */}
-        <span className="inline-flex items-center gap-1.5 text-xs font-bold text-orange-700 bg-orange-50 rounded-full px-3 py-1.5">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15 15" /></svg>
-          Cierra dom 22:00 · <GroupCountdown closesAt={closesAt} minimal />
-        </span>
-
-        {/* Título + spec */}
-        <h1 className="text-2xl font-extrabold text-neutral-900 leading-tight tracking-tight mt-3">{name}</h1>
-        {spec && <p className="text-sm text-neutral-500 mt-0.5">{spec}</p>}
+        {/* Cierre + título (hidden when heroMode — shown in hero overlay) */}
+        {!heroMode && (
+          <>
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold text-orange-700 bg-orange-50 rounded-full px-3 py-1.5">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15 15" /></svg>
+              Cierra dom 22:00 · <GroupCountdown closesAt={closesAt} minimal />
+            </span>
+            <h1 className="text-2xl font-extrabold text-neutral-900 leading-tight tracking-tight mt-3">{name}</h1>
+            {spec && <p className="text-sm text-neutral-500 mt-0.5">{spec}</p>}
+          </>
+        )}
 
         {/* ── CARD FUSIONADA (2d) ── */}
         <div className="border border-neutral-200 rounded-2xl p-[18px] mt-4">

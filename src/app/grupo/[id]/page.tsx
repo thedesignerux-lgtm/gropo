@@ -6,6 +6,7 @@ import FavoriteButton from '@/components/FavoriteButton'
 import BottomNav from '@/components/BottomNav'
 import GroupLiveSection from '@/components/GroupLiveSection'
 import GroupDesktopView from '@/components/desktop/GroupDesktopView'
+import GroupCountdownBadge from '@/components/GroupCountdownBadge'
 
 export const dynamic = 'force-dynamic'
 
@@ -108,40 +109,37 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
         />
       </div>
 
-      {/* ── MOBILE (<1024px) — existing layout ── */}
+      {/* ── MOBILE (<1024px) — 2d layout ── */}
       <div className="lg:hidden bg-white">
         <div className="max-w-md mx-auto bg-white pb-16">
-          {/* HERO IMAGE */}
+          {/* HERO IMAGE with gradient overlay (2d) */}
           <div
-            className="relative w-full bg-[#F5F5F5] overflow-hidden flex-shrink-0"
-            style={{ aspectRatio: '4/3' }}
+            className="relative w-full overflow-hidden shrink-0"
+            style={{ aspectRatio: '1 / 0.78', background: '#1a1a1f' }}
           >
             {group.imageUrl ? (
               <img
                 src={group.imageUrl}
                 alt={group.name}
-                className="absolute inset-0 w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full object-cover opacity-[.88]"
               />
             ) : (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300">
-                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                  <circle cx="8.5" cy="8.5" r="1.5" />
-                  <polyline points="21 15 16 10 5 21" />
-                </svg>
-              </div>
+              <div className="absolute inset-0 bg-gradient-to-br from-brand/20 to-brand/5" />
             )}
-            <div className="absolute left-3 right-3 flex justify-between z-10" style={{ top: 12 }}>
+
+            {/* Top bar: back + share/heart */}
+            <div className="absolute left-4 right-4 flex justify-between z-10" style={{ top: 'env(safe-area-inset-top, 12px)', paddingTop: 12 }}>
               <Link
                 href="/"
-                className="w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center text-gray-700 hover:bg-gray-50 transition-colors"
+                className="w-[38px] h-[38px] rounded-full flex items-center justify-center text-neutral-800"
+                style={{ background: 'rgba(255,255,255,.94)', boxShadow: '0 4px 12px -6px rgba(0,0,0,.4)' }}
                 aria-label="Volver"
               >
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="15 18 9 12 15 6" />
                 </svg>
               </Link>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <HeroShareButton
                   productName={group.name}
                   bestPrice={group.bestPrice}
@@ -149,10 +147,19 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
                   nextPrice={group.nextPrice}
                   groupId={group.id}
                 />
-                <div className="w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center">
-                  <FavoriteButton groupId={group.id} size={18} icon="heart" />
+                <div className="w-[38px] h-[38px] rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,.94)', boxShadow: '0 4px 12px -6px rgba(0,0,0,.4)' }}>
+                  <FavoriteButton groupId={group.id} size={17} icon="heart" />
                 </div>
               </div>
+            </div>
+
+            {/* Gradient overlay with countdown + name + spec */}
+            <div className="absolute bottom-0 left-0 right-0 px-[18px] pb-4 pt-16" style={{ background: 'linear-gradient(transparent, rgba(0,0,0,.72))' }}>
+              <GroupCountdownBadge closesAt={group.closesAt} />
+              <h1 className="text-[22px] font-extrabold text-white tracking-tight leading-tight mt-2">{group.name}</h1>
+              {group.spec && (
+                <p className="text-xs text-white/70 mt-0.5">{group.spec} · Deporte</p>
+              )}
             </div>
           </div>
 
@@ -169,6 +176,7 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
             maxStock={group.maxStock}
             minExecution={group.minExecution}
             closesAt={group.closesAt}
+            heroMode
           />
         </div>
         <BottomNav />
