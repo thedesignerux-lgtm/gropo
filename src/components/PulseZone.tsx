@@ -139,8 +139,16 @@ export default function PulseZone({
   function onCommitAnchor(i: number) {
     if (sliderDisabled || busy) return
     if (i > curIdx) {
-      // Ancla en un tramo más barato (esperador): persistir pledge a ese precio
-      if (detents[i] && detents[i].price !== mine?.tier_price) upsertPledge(detents[i].price, qty)
+      if (detents[i]) {
+        if (detents[i].price === mine?.tier_price) {
+          // Toggle: re-click en la misma ancla → desanclar
+          setSelIdx(curIdx)
+          removePledge()
+        } else {
+          // Ancla en un tramo más barato (esperador): persistir pledge a ese precio
+          upsertPledge(detents[i].price, qty)
+        }
+      }
     } else {
       // Vuelta al precio actual: sin ancla (si había pledge en espera, se retira)
       if (mine?.status === 'watching') { setSelIdx(curIdx); removePledge() }
@@ -189,7 +197,7 @@ export default function PulseZone({
       )
     } else if (mine == null && markable && steps.some((s) => !s.reached)) {
       statusLine = (
-        <p className="text-[12px] text-neutral-400">
+        <p className="hidden lg:block text-[12px] text-neutral-400">
           Toca el <b style={{ color: '#6D28D9' }}>precio que esperas</b> — sin tarjeta, sin compromiso.
         </p>
       )
