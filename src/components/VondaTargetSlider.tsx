@@ -33,11 +33,14 @@ interface Props {
   minIdx?: number
   /** Modo lectura: desactiva el arrastre/tap del thumb. */
   disabled?: boolean
+  /** Modo Mi Radar: oculta el tooltip "Máx · X€" y muestra una flecha de ancla
+   *  sobre el tramo elegido (el precio ya se ve en la línea de estado). */
+  anchorMode?: boolean
 }
 
 export default function VondaTargetSlider({
   detents, curIdx, selIdx, onSelIdx, size = 'full', chrome = 'none', udsToNext,
-  pulse, glow = 0, onCommit, minIdx = 0, disabled = false,
+  pulse, glow = 0, onCommit, minIdx = 0, disabled = false, anchorMode = false,
 }: Props) {
   const trackRef = useRef<HTMLDivElement | null>(null)
   const rootRef = useRef<HTMLDivElement | null>(null)
@@ -193,13 +196,22 @@ export default function VondaTargetSlider({
       )}
 
       <div className="relative" style={{ marginTop: ui.trackTop }}>
-        {/* Máx bubble */}
-        <div style={{ position: 'absolute', top: ui.bubbleTop, left: pos(selIdx), transform: bubbleX, transition: 'left .22s cubic-bezier(.34,1.56,.64,1)', zIndex: 5 }}>
-          <div style={{ background: accent, color: '#fff', fontSize: 12, fontWeight: 800, padding: '6px 11px', borderRadius: 9, whiteSpace: 'nowrap', boxShadow: `0 8px 20px -8px ${accentShadow}` }}>
-            Máx · {fmt(selP)}
+        {/* Máx bubble (oculto en modo Mi Radar) */}
+        {!anchorMode && (
+          <div style={{ position: 'absolute', top: ui.bubbleTop, left: pos(selIdx), transform: bubbleX, transition: 'left .22s cubic-bezier(.34,1.56,.64,1)', zIndex: 5 }}>
+            <div style={{ background: accent, color: '#fff', fontSize: 12, fontWeight: 800, padding: '6px 11px', borderRadius: 9, whiteSpace: 'nowrap', boxShadow: `0 8px 20px -8px ${accentShadow}` }}>
+              Máx · {fmt(selP)}
+            </div>
+            <div style={{ width: 9, height: 9, background: accent, position: 'absolute', left: caretX, bottom: -3, transform: 'translateX(-50%) rotate(45deg)' }} />
           </div>
-          <div style={{ width: 9, height: 9, background: accent, position: 'absolute', left: caretX, bottom: -3, transform: 'translateX(-50%) rotate(45deg)' }} />
-        </div>
+        )}
+
+        {/* Flecha de ancla (Mi Radar): marca el tramo donde anclas el precio */}
+        {anchorMode && selIdx > curIdx && (
+          <div style={{ position: 'absolute', top: -11, left: pos(selIdx), transform: 'translateX(-50%)', transition: 'left .22s cubic-bezier(.34,1.56,.64,1)', zIndex: 6, pointerEvents: 'none' }}>
+            <div style={{ width: 0, height: 0, borderLeft: '6px solid transparent', borderRight: '6px solid transparent', borderTop: `7px solid ${accent}` }} />
+          </div>
+        )}
 
         {/* Track */}
         <div ref={trackRef} onPointerDown={startDrag} style={{ position: 'relative', height: 30, cursor: 'pointer', touchAction: 'none' }}>

@@ -201,7 +201,16 @@ export default function PulseZone({
   if (complete) {
     primary = <Cta color={GREEN} soft onClick={(e) => go(e, `/grupo/${groupId}`)}>Entrar al precio mínimo</Cta>
   } else if (mine?.status === 'converted') {
-    primary = <Cta color={GREEN} soft onClick={(e) => go(e, '/mis-grupos')}>Precio activado · Ver en Mis grupos</Cta>
+    // En Mi Radar no enviamos a "Mis grupos": confirmación estática (sin navegación).
+    primary = (
+      <div
+        className="flex items-center justify-center gap-2 w-full rounded-[11px] py-[13px] text-sm font-bold min-h-[46px]"
+        style={{ backgroundColor: `${GREEN}12`, color: GREEN, border: `1px solid ${GREEN}2E` }}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} className="w-4 h-4" aria-hidden="true"><path d="M5 12l5 5 9-11" /></svg>
+        Precio activado
+      </div>
+    )
   } else if (mine?.status === 'holding') {
     primary = <Cta color={PURPLE} disabled>Activando tu precio…</Cta>
   } else if (canAccept && mine) {
@@ -252,6 +261,7 @@ export default function PulseZone({
           disabled={sliderDisabled}
           size="mini"
           chrome="none"
+          anchorMode
           pulse={complete ? undefined : pulse}
           glow={complete ? 0 : glow}
         />
