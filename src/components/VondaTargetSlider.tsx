@@ -165,7 +165,10 @@ export default function VondaTargetSlider({
   const effectiveGlow = pLayers.length > 0 ? 0 : glow
 
   return (
-    <div className="select-none">
+    <div
+      className="select-none"
+      onClick={disabled ? undefined : (e) => { e.preventDefault(); e.stopPropagation() }}
+    >
       {chrome === 'full' && (
         <div className="flex items-center justify-between gap-3">
           <div className="font-extrabold text-neutral-900" style={{ fontSize: mini ? 14 : 16 }}>¿Cuál es el máximo que pagarías?</div>
