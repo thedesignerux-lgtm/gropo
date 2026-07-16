@@ -49,9 +49,9 @@ export default function DesktopNavbar() {
           >
             Crea tu grupo
           </Link>
-          <div className="w-9 h-9 rounded-full bg-brand/10 flex items-center justify-center text-sm font-semibold text-brand cursor-pointer">
+          <Link href="/perfil" className="w-9 h-9 rounded-full bg-brand/10 flex items-center justify-center text-sm font-semibold text-brand hover:bg-brand/20 transition-colors">
             V
-          </div>
+          </Link>
         </div>
       </div>
     </header>
