@@ -19,6 +19,7 @@ import {
 import confetti from 'canvas-confetti';
 import { PROVINCIAS_ES } from '@/lib/provincias';
 import GroupCountdown from '@/components/GroupCountdown';
+import VondaTargetSlider, { type Detent } from '@/components/VondaTargetSlider';
 import { normalizePhone } from '@/lib/phone';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
@@ -145,9 +146,25 @@ export default function JoinFlow({
     [amountCents],
   );
 
-  // Barra de estado por unidades: progreso REAL de la vonda hacia el próximo tramo.
-  const barTarget = nextTier ? nextTier.minUnits : Math.max(group.total_units, 1);
-  const barFrac = barTarget > 0 ? Math.min(1, group.total_units / barTarget) : 1;
+  // ── Detents del slider (réplica de la ficha, modo lectura) ──
+  const detents: Detent[] = useMemo(
+    () => sorted.map(t => ({ price: t.price, uds: t.minUnits })),
+    [sorted],
+  );
+  const curIdx = useMemo(() => {
+    let idx = 0;
+    for (let i = 0; i < detents.length; i++) if (detents[i].price >= pricePerUnit) idx = i;
+    return idx;
+  }, [detents, pricePerUnit]);
+  // selIdx: tier que el usuario eligió en la ficha (viene por URL ?target=X)
+  const selIdx = useMemo(() => {
+    const tp = efectiveTargetPrice;
+    let best = curIdx;
+    for (let i = 0; i < detents.length; i++) {
+      if (Math.abs(detents[i].price - tp) < 0.01) { best = i; break; }
+    }
+    return best;
+  }, [detents, efectiveTargetPrice, curIdx]);
 
   return (
     <div>
@@ -217,25 +234,22 @@ export default function JoinFlow({
         </div>
       </section>
 
-      {/* ── BARRA DE ESTADO POR UNIDADES ── */}
-      <section className="px-4 pt-4">
-        <div className="rounded-2xl border border-neutral-100 bg-neutral-50 p-3.5">
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-sm font-semibold text-neutral-900">
-              {group.total_units} {group.total_units === 1 ? 'unidad confirmada' : 'unidades confirmadas'}
-            </span>
-            <span className="flex flex-col items-end leading-tight">
-              <GroupCountdown closesAt={group.closes_at} minimal />
-            </span>
-          </div>
-          <div className="h-[6px] w-full overflow-hidden rounded-full bg-neutral-200">
-            <div
-              className="h-full rounded-full bg-brand"
-              style={{ width: `${barFrac * 100}%`, transition: 'width 300ms ease' }}
+      {/* ── SLIDER DE PRECIO (réplica de la ficha, modo lectura) ── */}
+      {detents.length > 1 && (
+        <section className="px-4 pt-4">
+          <div className="rounded-2xl border border-neutral-100 bg-white p-3.5">
+            <VondaTargetSlider
+              detents={detents}
+              curIdx={curIdx}
+              selIdx={selIdx}
+              onSelIdx={() => {}}
+              size="mini"
+              chrome="nudge"
+              disabled
             />
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* ── 1. SELECTOR DE CANTIDAD ── */}
       <section className={SECTION}>

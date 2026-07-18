@@ -118,6 +118,18 @@ Next.js 14 App Router (`src/`, alias `@/` → `src/`) · Supabase (PostgreSQL + 
 - Rediseño ficha producto desktop 15 jul: layout 2 columnas (GroupDesktopView, GroupCenterContent, GroupRightSidebar). Sidebar con selector de precio por tiers radio pills, stepper, CTA
 - Rediseño home desktop 15 jul: hero con search bar (card + botón purple circular), category pills, carousels horizontales por categoría (HomeCarousel, HomeProductCard con Unsplash placeholders)
 - DesktopNavbar compartida 15 jul: pill nav (Explorar/Mis grupos/Mi Radar) + logo centrado + "Crea tu grupo". Aplicada a TODAS las páginas (home, favoritos, mis-grupos, como-funciona, perfil, notificaciones, mensajes, ayuda). HomeSidebar ya no se usa en ninguna página
+- Rediseño completo UI 16-17 jul (mockups Vonda Marketplace.dc.html):
+  - Home desktop (1b): header compacto propio (logo+search+countdown+CTA+avatar), grid 4 columnas de GridCard con gradient overlay + VondaTargetSlider mini, category chips, ordenación
+  - Home mobile (8a): editorial serif headline, search bar purple, category chips scroll horizontal, MobileCard full-width con gradient + slider mini
+  - Mi Radar mobile (8c): sticky header "GUARDADOS" monospace + "Mi Radar" serif + badge + filtros, MobileRadarCard compactas (thumbnail + info + PulseZone)
+  - Detalle producto mobile (2d): hero fullscreen (aspect 1/0.78, dark bg, image opacity .88), botones circulares translúcidos (back/share/heart), gradient overlay con GroupCountdownBadge + nombre + spec, heroMode prop en GroupLiveSection
+  - Detalle producto desktop (1c): galería grid 2×2 (main spanning 2 rows + 2 detail), panel compra con CTA outline style (border + bg suave + accent text), wrapper card con sombra profunda rgba(30,20,60,.35)
+  - Componentes nuevos: GroupCountdownBadge.tsx, ImagePlaceholder inline en GroupDesktopView
+  - Fonts: Instrument Serif añadida (var --font-instrument-serif) para headings editoriales mobile
+  - Colores clave: bg mobile #FBFAF8, bg desktop #fff, card border #ECEAF2, brand #6C4BF4
+  - GroupCenterContent.tsx ya no se importa (código muerto)
+  - TODO PUSHEADO a origin/main (1b+8a en commits anteriores, 8c+2d+1c en push del 17 jul)
+  - PRÓXIMA SESIÓN: revisar visualmente todas las pantallas en producción (www.vonda.es) y ajustar lo que no se vea bien
 
 ### Pendiente crítico
 - Cutover Stripe test → live (pk_live, sk_live, webhook live, vars Vercel)
@@ -134,6 +146,6 @@ Next.js 14 App Router (`src/`, alias `@/` → `src/`) · Supabase (PostgreSQL + 
 - Limpieza antes del dom 19: grupos DEMO + usuarios demo_pulse_* + ENSAYO_F1/F2 históricos + restos instructed 28 jun (Cubierta)
 - Centralizar Resend client (duplicado entre resend.ts y webhook)
 - Dedup latente en confirm_join (check por tel OR email, upsert ON CONFLICT email)
-- Código muerto: DesktopTierBar, TierBar, NextTierCallout, funciones mock-data.ts sin uso, HomeSidebar.tsx (ya no se importa en ningún sitio)
+- Código muerto: DesktopTierBar, TierBar, NextTierCallout, funciones mock-data.ts sin uso, HomeSidebar.tsx, GroupCenterContent.tsx (ya no se importan en ningún sitio)
 - Grupos test en producción pendientes de limpieza
 - HomeProductCard usa Unsplash placeholders hardcoded; getProductCategory() devuelve 'deporte' para todo. Cuando exista campo category en BD, mapear ahí

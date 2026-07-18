@@ -81,7 +81,7 @@ export default function GroupLiveSection2c({
     } else if (authed) {
       open({ groupId, productName: name, productSpec: spec, imageUrl: null, quantity: 1, maxPricePerUnit: effectiveSelected })
     } else {
-      router.push(`/grupo/${groupId}/unirme`)
+      router.push(`/grupo/${groupId}/unirme?target=${effectiveSelected}`)
     }
   }
 
