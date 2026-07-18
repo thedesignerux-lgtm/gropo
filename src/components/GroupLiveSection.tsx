@@ -165,22 +165,16 @@ export default function GroupLiveSection({
         </div>
       </div>
 
-      {/* ── BARRA STICKY: Máx. + CTA que cambia de color ── */}
+      {/* ── BARRA STICKY: CTA que cambia de color ── */}
       <div className="sticky bottom-16 z-20 bg-white border-t border-[#EEEEEE] px-4 py-3">
-        <div className="flex items-center gap-3">
-          <div className="flex-shrink-0">
-            <p className="text-[11px] font-extrabold uppercase tracking-wide text-neutral-400">Máx.</p>
-            <p className="text-xl font-extrabold leading-none mt-0.5 tabular-nums" style={{ color: accent }}>{fmt(effectiveSelected)}</p>
-          </div>
-          <button
-            type="button"
-            onClick={handleCheckout}
-            className="flex-1 h-12 rounded-xl font-bold text-[14.5px] active:scale-[0.98] transition-all whitespace-nowrap"
-            style={{ border: `2px solid ${accent}`, background: `${accent}14`, color: accent }}
-          >
-            {isEsperar ? `Reservar plaza · Máx. ${fmt(effectiveSelected)}` : `Bloquear precio · Máx. ${fmt(effectiveSelected)}`}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={handleCheckout}
+          className="w-full h-12 rounded-xl font-bold text-[14.5px] active:scale-[0.98] transition-all whitespace-nowrap"
+          style={{ border: `2px solid ${accent}`, background: `${accent}14`, color: accent }}
+        >
+          {isEsperar ? `Reservar plaza · Máx. ${fmt(effectiveSelected)}` : `Bloquear precio · ${fmt(effectiveSelected)}`}
+        </button>
       </div>
     </>
   )

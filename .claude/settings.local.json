@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(git rm *)",
+      "Bash(echo \"exit: $?\")",
+      "Bash(git config *)",
+      "Bash(git commit *)",
+      "Bash(echo \"--- tsc exit: $? ---\")",
+      "Bash(mv lib/stripe.ts src/lib/stripe.ts)",
+      "Bash(rmdir lib *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:3000)",
+      "Bash(curl -s -o /tmp/u1.html -w \"unirme → HTTP %{http_code}\\\\n\" \"http://localhost:3000/grupo/b1bdab3e-9b23-4700-9869-8ef3537a6b35/unirme\")",
+      "Bash(curl -s -o /tmp/u2.html -w \"unido  → HTTP %{http_code}\\\\n\" \"http://localhost:3000/grupo/b1bdab3e-9b23-4700-9869-8ef3537a6b35/unido\")",
+      "Read(//tmp/**)",
+      "Bash(curl -s -o /tmp/wh.txt -w \"HTTP %{http_code}\\\\n\" -X POST http://localhost:3000/api/stripe/webhook -H \"Content-Type: application/json\" -d '{\"x\":1}')",
+      "Bash(brew install *)",
+      "Bash(bash *)",
+      "Bash(echo \"EXIT=$?\")"
+    ]
+  }
+}
