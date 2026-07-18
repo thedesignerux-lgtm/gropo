@@ -206,30 +206,34 @@ function MobileCard({ product, isFavorited, isAuthed }: { product: GroupProduct;
 
         {/* Faltan badge */}
         <div className="absolute top-3 left-3 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-extrabold text-brand" style={{ background: 'rgba(255,255,255,.94)', boxShadow: '0 4px 14px -6px rgba(30,20,60,.4)' }}>
-          {isComplete ? '✓ Mejor precio' : `↓ Faltan ${missing} uds`}
+          {isComplete ? '✓ Mejor precio' : `↓ ${missing} uds`}
         </div>
 
-        {/* Heart */}
-        <div className="absolute top-2.5 right-2.5">
-          <FavoriteButton
-            groupId={product.id}
-            initialFavorited={isFavorited}
-            size={17}
-            icon="heart"
-            className="w-[34px] h-[34px] rounded-full bg-white/90 hover:bg-white flex items-center justify-center shadow-md"
-          />
+        {/* Share + Heart */}
+        <div className="absolute top-2.5 right-2.5 flex gap-[7px]">
+          <div className="w-[34px] h-[34px] rounded-full grid place-items-center cursor-pointer" style={{ background: 'rgba(255,255,255,.92)', boxShadow: '0 4px 12px -6px rgba(0,0,0,.4)' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1a1a1f" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.6" y1="10.5" x2="15.4" y2="6.5" /><line x1="8.6" y1="13.5" x2="15.4" y2="17.5" /></svg>
+          </div>
+          <div className="w-[34px] h-[34px] rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,.92)', boxShadow: '0 4px 12px -6px rgba(0,0,0,.4)' }}>
+            <FavoriteButton
+              groupId={product.id}
+              initialFavorited={isFavorited}
+              size={17}
+              icon="heart"
+            />
+          </div>
         </div>
 
         {/* Gradient overlay */}
         <div className="absolute bottom-0 left-0 right-0 px-3.5 pb-3.5 pt-12" style={{ background: 'linear-gradient(transparent, rgba(0,0,0,.68))' }}>
           <div className="text-[15px] font-bold text-white tracking-tight leading-tight">{product.name}</div>
-          <div className="flex items-baseline gap-2 mt-1">
-            <span className="text-lg font-bold text-white">{fmt(currentPrice)}</span>
+          <div className="flex items-baseline gap-[7px] mt-1">
+            <span className="text-[18px] font-bold text-white" style={{ fontFamily: 'var(--font-space-grotesk), sans-serif' }}>{fmt(currentPrice)}</span>
             {!isComplete && nextTier && (
               <span className="text-xs text-white/70">→ {fmt(nextTier.price)}</span>
             )}
             {savings > 0 && (
-              <span className="text-[11.5px] font-bold ml-auto" style={{ color: '#A8F0C0' }}>Ahorra {fmt(savings)}</span>
+              <span className="text-[11.5px] font-bold ml-auto" style={{ color: '#A8F0C0' }}>{fmt(savings)}</span>
             )}
           </div>
         </div>
