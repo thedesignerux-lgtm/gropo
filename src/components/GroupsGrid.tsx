@@ -39,10 +39,9 @@ export default function GroupsGrid({ products, favoriteIds = [], isAuthed = fals
 
   return (
     <>
-      {/* ── Sticky header ── */}
-      <div className="sticky top-0 z-10" style={{ background: '#FBFAF8' }}>
-        {/* Logo row */}
-        <div className="flex items-center justify-between px-[18px] pt-2 pb-1">
+      {/* ── Fixed logo bar (outside scroll) ── */}
+      <div className="shrink-0 z-10" style={{ background: '#FBFAF8', borderBottom: '1px solid transparent' }}>
+        <div className="flex items-center justify-between px-[18px] py-2">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-[9px] bg-brand grid place-items-center text-white font-extrabold text-[17px]">v</div>
             <span className="text-[19px] font-extrabold tracking-tight">Vonda</span>
@@ -51,15 +50,18 @@ export default function GroupsGrid({ products, favoriteIds = [], isAuthed = fals
             V
           </Link>
         </div>
+      </div>
 
-        {/* Editorial headline */}
-        <div className="px-[18px] pt-4 pb-1">
-          <h1 className="text-[33px] leading-[1.05] tracking-tight text-[#1a1a1f]" style={{ fontFamily: 'var(--font-instrument-serif), serif', fontWeight: 400 }}>
-            Cuantos más seamos,<br />
-            <em className="text-brand not-italic" style={{ fontFamily: 'var(--font-instrument-serif), serif', fontStyle: 'italic' }}>menos pagamos.</em>
-          </h1>
-        </div>
+      {/* ── Editorial headline (scrolls away) ── */}
+      <div className="px-[18px] pt-4 pb-1">
+        <h1 className="text-[33px] leading-[1.05] tracking-tight text-[#1a1a1f]" style={{ fontFamily: 'var(--font-instrument-serif), serif', fontWeight: 400, margin: '7px 0 0' }}>
+          Cuantos más seamos,<br />
+          <em className="text-brand not-italic" style={{ fontFamily: 'var(--font-instrument-serif), serif', fontStyle: 'italic' }}>menos pagamos.</em>
+        </h1>
+      </div>
 
+      {/* ── Sticky search + chips (sticks when headline scrolls past) ── */}
+      <div className="sticky top-0 z-10" style={{ background: '#FBFAF8' }}>
         {/* Search bar */}
         <div className="px-[18px] pt-3.5 pb-1.5">
           <div className="flex items-center h-[52px] bg-white rounded-full pl-4 pr-1.5" style={{ border: '1px solid #E7E4DD', boxShadow: '0 10px 26px -16px rgba(30,20,60,.35)' }}>
@@ -82,16 +84,16 @@ export default function GroupsGrid({ products, favoriteIds = [], isAuthed = fals
         </div>
 
         {/* Category chips — horizontal scroll */}
-        <div className="flex gap-2 overflow-x-auto px-[18px] pt-3 pb-1.5 no-scrollbar">
+        <div className="flex gap-2.5 overflow-x-auto px-[18px] pt-3 pb-1.5 no-scrollbar">
           {CATEGORIES.map((cat) => (
             <button
               key={cat.key}
               onClick={() => setSelectedCat(cat.key)}
-              className="shrink-0 text-[12.5px] font-semibold rounded-full px-4 py-2 transition-colors"
+              className="shrink-0 text-[12.5px] font-semibold rounded-full transition-colors"
               style={
                 selectedCat === cat.key
-                  ? { background: '#6C4BF4', color: '#fff', border: '1px solid #6C4BF4' }
-                  : { background: 'transparent', color: '#4a4a52', border: '1px solid #ECEAF2' }
+                  ? { background: '#6C4BF4', color: '#fff', border: '1px solid #6C4BF4', padding: '8px 15px' }
+                  : { background: 'transparent', color: '#4a4a52', border: '1px solid #ECEAF2', padding: '8px 15px' }
               }
             >
               {cat.label}
@@ -120,25 +122,6 @@ export default function GroupsGrid({ products, favoriteIds = [], isAuthed = fals
           ))
         )}
       </div>
-
-      {/* CTA — crear petición */}
-      <Link
-        href="/crear-peticion"
-        className="mx-[18px] mb-6 flex items-center gap-3 p-4 rounded-2xl border-2 border-dashed border-gray-200 bg-white"
-      >
-        <div className="w-9 h-9 rounded-full border-2 border-gray-200 flex items-center justify-center shrink-0">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
-            <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-gray-700">¿No encuentras tu producto?</p>
-          <p className="text-xs text-gray-400 mt-0.5">Crea una petición — gratis y sin compromiso</p>
-        </div>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300 shrink-0">
-          <polyline points="9 18 15 12 9 6" />
-        </svg>
-      </Link>
     </>
   )
 }
