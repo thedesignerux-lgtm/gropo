@@ -148,10 +148,6 @@ export default function HomeDesktopView({ products, favoriteIds = [], isAuthed =
               <span className="italic" style={{ color: '#6C4BF4' }}>menos pagamos.</span>
             </h1>
 
-            <p className="mt-6 text-[16.5px] leading-relaxed text-neutral-500 max-w-[440px]">
-              Únete al grupo con el precio que te resulte cómodo. Si antes del cierre se desbloquea un precio mejor, pagarás automáticamente el más bajo alcanzado.
-            </p>
-
             {/* Search bar card */}
             <div className="mt-8 flex items-center gap-2 bg-white rounded-full pl-6 pr-2 py-2 max-w-[540px]" style={{ boxShadow: '0 18px 40px -24px rgba(30,20,60,.28)', border: '1px solid #EFEDE7' }}>
               <div className="flex-1 min-w-0">
@@ -309,9 +305,9 @@ function HowItWorks() {
 
           {/* Step 2 */}
           <div className="rounded-2xl p-6 flex flex-col" style={{ border: '1.5px dashed #D8D2F0', background: '#fff' }}>
-            <div className="relative w-14 h-14 rounded-full grid place-items-center mb-4" style={{ background: '#FFF0E0' }}>
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#E8944A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-              <div className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full grid place-items-center text-white text-[10px] font-bold" style={{ background: '#E8944A' }}>+</div>
+            <div className="relative w-14 h-14 rounded-full grid place-items-center mb-4" style={{ background: '#EDE9FB' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6C4BF4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+              <div className="absolute -top-0.5 -right-0.5 w-5 h-5 rounded-full grid place-items-center text-white text-[10px] font-bold" style={{ background: '#6C4BF4' }}>+</div>
             </div>
             <h3 className="text-[18px] font-extrabold text-neutral-900 tracking-tight">El grupo crece</h3>
             <p className="text-[14px] text-neutral-500 mt-2 leading-relaxed">
@@ -327,15 +323,15 @@ function HowItWorks() {
                 {/* Detent dots */}
                 <div className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border-2 border-white" style={{ left: '0%', background: '#6C4BF4' }} />
                 <div className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border-2 border-white" style={{ left: '33%', background: '#6C4BF4' }} />
-                <div className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 border-white" style={{ left: '60%', background: '#E8944A' }} />
+                <div className="absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 border-white" style={{ left: '60%', background: '#6C4BF4' }} />
                 <div className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border-2 border-white" style={{ left: '100%', transform: 'translate(-100%, -50%)', background: '#D8D2F0' }} />
               </div>
             </div>
             <div className="mt-auto pt-5">
-              <div className="flex items-center gap-2.5 rounded-xl px-4 py-3" style={{ background: '#FFF8F0', border: '1px solid #F5E6D4' }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E8944A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></svg>
-                <span className="text-[13px] font-bold" style={{ color: '#B06D1E' }}>4 personas más</span>
-                <span className="text-[13px] text-neutral-500">y desbloqueamos <strong style={{ color: '#E8944A' }}>27 €</strong></span>
+              <div className="flex items-center gap-2.5 rounded-xl px-4 py-3" style={{ background: '#F9F8FC', border: '1px solid #ECEAF2' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6C4BF4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></svg>
+                <span className="text-[13px] font-bold" style={{ color: '#5A3DC7' }}>4 personas más</span>
+                <span className="text-[13px] text-neutral-500">y desbloqueamos <strong style={{ color: '#6C4BF4' }}>27 €</strong></span>
               </div>
             </div>
           </div>
@@ -344,7 +340,7 @@ function HowItWorks() {
           <div className="rounded-2xl p-6 flex flex-col" style={{ border: '1.5px dashed #D8D2F0', background: '#fff' }}>
             <div className="relative w-14 h-14 rounded-full grid place-items-center mb-4" style={{ background: '#EDE9FB' }}>
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6C4BF4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" /><line x1="7" y1="7" x2="7.01" y2="7" /></svg>
-              <div className="absolute -top-0.5 -right-0.5 w-5 h-5 grid place-items-center text-[10px]" style={{ color: '#E8944A' }}>★</div>
+              <div className="absolute -top-0.5 -right-0.5 w-5 h-5 grid place-items-center text-[10px]" style={{ color: '#6C4BF4' }}>★</div>
             </div>
             <h3 className="text-[18px] font-extrabold text-neutral-900 tracking-tight">Todos pagan menos</h3>
             <p className="text-[14px] text-neutral-500 mt-2 leading-relaxed">
@@ -382,7 +378,7 @@ function HowItWorks() {
             text="Cada nuevo comprador beneficia al resto del grupo."
           />
           <BenefitRow
-            icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#E8944A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" /><line x1="7" y1="7" x2="7.01" y2="7" /></svg>}
+            icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6C4BF4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" /><line x1="7" y1="7" x2="7.01" y2="7" /></svg>}
             title="Siempre pagas el precio final más bajo"
             text="Aunque entraras antes, disfrutarás del mejor precio alcanzado."
           />
