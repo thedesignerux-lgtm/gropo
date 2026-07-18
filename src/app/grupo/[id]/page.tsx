@@ -1,15 +1,12 @@
 import Link from 'next/link'
-import { cookies } from 'next/headers'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import type { Tier } from '@/lib/mock-data'
 import HeroShareButton from '@/components/HeroShareButton'
 import FavoriteButton from '@/components/FavoriteButton'
 import BottomNav from '@/components/BottomNav'
 import GroupLiveSection from '@/components/GroupLiveSection'
-import GroupLiveSection2c from '@/components/GroupLiveSection2c'
 import GroupDesktopView from '@/components/desktop/GroupDesktopView'
 import GroupCountdownBadge from '@/components/GroupCountdownBadge'
-import MobileVariantWrapper from '@/components/MobileVariantWrapper'
 
 export const dynamic = 'force-dynamic'
 
@@ -92,13 +89,6 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
     )
   }
 
-  // ── A/B test: persist variant in cookie ──
-  const cookieStore = cookies()
-  let variant = cookieStore.get('vonda_mobile_variant')?.value as '2d' | '2c' | undefined
-  if (variant !== '2d' && variant !== '2c') {
-    variant = Math.random() < 0.5 ? '2d' : '2c'
-  }
-
   return (
     <>
       {/* ── DESKTOP (≥1024px) ── */}
@@ -119,166 +109,78 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
         />
       </div>
 
-      {/* ── MOBILE (<1024px) — A/B: 2d vs 2c ── */}
-      <MobileVariantWrapper variant={variant}>
-        {variant === '2c' ? (
-          /* ── 2c: Above the fold (compact image + inline CTA) ── */
-          <div className="lg:hidden bg-white">
-            <div className="max-w-md mx-auto bg-white flex flex-col pb-16" style={{ minHeight: '100dvh' }}>
-              {/* Compact hero: 196px fixed height */}
-              <div
-                className="relative w-full overflow-hidden shrink-0"
-                style={{ height: 196, background: '#F1EEFA' }}
+      {/* ── MOBILE (<1024px) — 2d: Hero grande + barra fusionada ── */}
+      <div className="lg:hidden bg-white">
+        <div className="max-w-md mx-auto bg-white pb-16">
+          {/* HERO IMAGE with gradient overlay (2d) */}
+          <div
+            className="relative w-full overflow-hidden shrink-0"
+            style={{ aspectRatio: '1 / 0.78', background: '#1a1a1f' }}
+          >
+            {group.imageUrl ? (
+              <img
+                src={group.imageUrl}
+                alt={group.name}
+                className="absolute inset-0 w-full h-full object-cover opacity-[.88]"
+              />
+            ) : (
+              <div className="absolute inset-0 bg-gradient-to-br from-brand/20 to-brand/5" />
+            )}
+
+            {/* Top bar: back + share/heart */}
+            <div className="absolute left-4 right-4 flex justify-between z-10" style={{ top: 'env(safe-area-inset-top, 12px)', paddingTop: 12 }}>
+              <Link
+                href="/"
+                className="w-[38px] h-[38px] rounded-full flex items-center justify-center text-neutral-800"
+                style={{ background: 'rgba(255,255,255,.94)', boxShadow: '0 4px 12px -6px rgba(0,0,0,.4)' }}
+                aria-label="Volver"
               >
-                {group.imageUrl ? (
-                  <img
-                    src={group.imageUrl}
-                    alt={group.name}
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="absolute inset-0 bg-gradient-to-br from-brand/20 to-brand/5" />
-                )}
-
-                {/* Top bar */}
-                <div className="absolute left-4 right-4 flex justify-between z-10" style={{ top: 'env(safe-area-inset-top, 12px)', paddingTop: 12 }}>
-                  <Link
-                    href="/"
-                    className="w-[38px] h-[38px] rounded-full flex items-center justify-center text-neutral-800"
-                    style={{ background: 'rgba(255,255,255,.94)', boxShadow: '0 4px 12px -6px rgba(0,0,0,.4)' }}
-                    aria-label="Volver"
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="15 18 9 12 15 6" />
-                    </svg>
-                  </Link>
-                  <div className="flex items-center gap-2.5">
-                    <HeroShareButton
-                      productName={group.name}
-                      bestPrice={group.bestPrice}
-                      pvp={group.pvp}
-                      nextPrice={group.nextPrice}
-                      groupId={group.id}
-                    />
-                    <div className="w-[38px] h-[38px] rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,.94)', boxShadow: '0 4px 12px -6px rgba(0,0,0,.4)' }}>
-                      <FavoriteButton groupId={group.id} size={17} icon="heart" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Gradient overlay with countdown + name */}
-                <div className="absolute bottom-0 left-0 right-0 p-4 pt-10" style={{ background: 'linear-gradient(transparent, rgba(0,0,0,.62))' }}>
-                  <span
-                    className="inline-flex items-center gap-1.5 text-[11px] font-bold text-white rounded-full px-2.5 py-1"
-                    style={{ background: 'rgba(255,255,255,.22)' }}
-                  >
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15 15" />
-                    </svg>
-                    Cierra dom 22:00
-                  </span>
-                  <div className="text-[22px] font-extrabold text-white tracking-tight mt-2">{group.name}</div>
-                  {group.spec && (
-                    <div className="text-xs text-white/85 mt-0.5">{group.spec} · Deporte</div>
-                  )}
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="15 18 9 12 15 6" />
+                </svg>
+              </Link>
+              <div className="flex items-center gap-2.5">
+                <HeroShareButton
+                  productName={group.name}
+                  bestPrice={group.bestPrice}
+                  pvp={group.pvp}
+                  nextPrice={group.nextPrice}
+                  groupId={group.id}
+                />
+                <div className="w-[38px] h-[38px] rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,.94)', boxShadow: '0 4px 12px -6px rgba(0,0,0,.4)' }}>
+                  <FavoriteButton groupId={group.id} size={17} icon="heart" />
                 </div>
               </div>
+            </div>
 
-              {/* LIVE CONTENT (2c) — fills remaining space */}
-              <GroupLiveSection2c
-                groupId={group.id}
-                name={group.name}
-                spec={group.spec}
-                pvp={group.pvp}
-                initialBestPrice={group.bestPrice}
-                initialNextPrice={group.nextPrice}
-                initialTotalUnits={group.totalUnits}
-                bidCount={group.bidCount}
-                tiers={group.tiers}
-                maxStock={group.maxStock}
-                minExecution={group.minExecution}
-                closesAt={group.closesAt}
-              />
-
-              {/* Bottom nav */}
-              <BottomNav />
+            {/* Gradient overlay with countdown + name + spec */}
+            <div className="absolute bottom-0 left-0 right-0 px-[18px] pb-4 pt-16" style={{ background: 'linear-gradient(transparent, rgba(0,0,0,.72))' }}>
+              <GroupCountdownBadge closesAt={group.closesAt} />
+              <h1 className="text-[22px] font-extrabold text-white tracking-tight leading-tight mt-2">{group.name}</h1>
+              {group.spec && (
+                <p className="text-xs text-white/70 mt-0.5">{group.spec} · Deporte</p>
+              )}
             </div>
           </div>
-        ) : (
-          /* ── 2d: Hero grande + barra fusionada (current) ── */
-          <div className="lg:hidden bg-white">
-            <div className="max-w-md mx-auto bg-white pb-16">
-              {/* HERO IMAGE with gradient overlay (2d) */}
-              <div
-                className="relative w-full overflow-hidden shrink-0"
-                style={{ aspectRatio: '1 / 0.78', background: '#1a1a1f' }}
-              >
-                {group.imageUrl ? (
-                  <img
-                    src={group.imageUrl}
-                    alt={group.name}
-                    className="absolute inset-0 w-full h-full object-cover opacity-[.88]"
-                  />
-                ) : (
-                  <div className="absolute inset-0 bg-gradient-to-br from-brand/20 to-brand/5" />
-                )}
 
-                {/* Top bar: back + share/heart */}
-                <div className="absolute left-4 right-4 flex justify-between z-10" style={{ top: 'env(safe-area-inset-top, 12px)', paddingTop: 12 }}>
-                  <Link
-                    href="/"
-                    className="w-[38px] h-[38px] rounded-full flex items-center justify-center text-neutral-800"
-                    style={{ background: 'rgba(255,255,255,.94)', boxShadow: '0 4px 12px -6px rgba(0,0,0,.4)' }}
-                    aria-label="Volver"
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="15 18 9 12 15 6" />
-                    </svg>
-                  </Link>
-                  <div className="flex items-center gap-2.5">
-                    <HeroShareButton
-                      productName={group.name}
-                      bestPrice={group.bestPrice}
-                      pvp={group.pvp}
-                      nextPrice={group.nextPrice}
-                      groupId={group.id}
-                    />
-                    <div className="w-[38px] h-[38px] rounded-full flex items-center justify-center" style={{ background: 'rgba(255,255,255,.94)', boxShadow: '0 4px 12px -6px rgba(0,0,0,.4)' }}>
-                      <FavoriteButton groupId={group.id} size={17} icon="heart" />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Gradient overlay with countdown + name + spec */}
-                <div className="absolute bottom-0 left-0 right-0 px-[18px] pb-4 pt-16" style={{ background: 'linear-gradient(transparent, rgba(0,0,0,.72))' }}>
-                  <GroupCountdownBadge closesAt={group.closesAt} />
-                  <h1 className="text-[22px] font-extrabold text-white tracking-tight leading-tight mt-2">{group.name}</h1>
-                  {group.spec && (
-                    <p className="text-xs text-white/70 mt-0.5">{group.spec} · Deporte</p>
-                  )}
-                </div>
-              </div>
-
-              {/* LIVE CONTENT + CTA */}
-              <GroupLiveSection
-                groupId={group.id}
-                name={group.name}
-                spec={group.spec}
-                pvp={group.pvp}
-                initialBestPrice={group.bestPrice}
-                initialTotalUnits={group.totalUnits}
-                bidCount={group.bidCount}
-                tiers={group.tiers}
-                maxStock={group.maxStock}
-                minExecution={group.minExecution}
-                closesAt={group.closesAt}
-                heroMode
-              />
-            </div>
-            <BottomNav />
-          </div>
-        )}
-      </MobileVariantWrapper>
+          {/* LIVE CONTENT + CTA */}
+          <GroupLiveSection
+            groupId={group.id}
+            name={group.name}
+            spec={group.spec}
+            pvp={group.pvp}
+            initialBestPrice={group.bestPrice}
+            initialTotalUnits={group.totalUnits}
+            bidCount={group.bidCount}
+            tiers={group.tiers}
+            maxStock={group.maxStock}
+            minExecution={group.minExecution}
+            closesAt={group.closesAt}
+            heroMode
+          />
+        </div>
+        <BottomNav />
+      </div>
     </>
   )
 }
