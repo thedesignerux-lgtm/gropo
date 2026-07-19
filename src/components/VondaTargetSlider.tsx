@@ -291,17 +291,11 @@ export default function VondaTargetSlider({
         <div style={{ position: 'relative', height: 40, marginTop: 12 }}>
           {detents.map((d, i) => {
             const achieved = i <= curIdx
-            const isFuture = i > curIdx
-            const faltanI = isFuture ? Math.max(0, d.uds - (detents[curIdx]?.uds ?? 0)) : 0
             const priceColor = i === selIdx ? accent : (achieved ? '#6C4BF4' : '#9a97a2')
-            const udsColor = isFuture ? '#E8944A' : '#9a97a2'
-            const udsLabel = isFuture
-              ? `Faltan ${faltanI}`
-              : `${d.uds} ${d.uds === 1 ? 'ud' : 'uds'}`
             return (
               <div key={i} style={{ position: 'absolute', left: pos(i), top: 0, transform: 'translateX(-50%)', textAlign: 'center' }}>
                 <div style={{ fontSize: ui.priceFont, fontWeight: 800, color: priceColor, whiteSpace: 'nowrap' }}>{fmt(d.price)}</div>
-                <div style={{ fontSize: ui.udsFont, fontWeight: isFuture ? 700 : 400, color: udsColor, marginTop: 2, whiteSpace: 'nowrap' }}>{udsLabel}</div>
+                <div style={{ fontSize: ui.udsFont, fontWeight: 400, color: '#9a97a2', marginTop: 2, whiteSpace: 'nowrap' }}>{d.uds} {d.uds === 1 ? 'ud' : 'uds'}</div>
               </div>
             )
           })}
