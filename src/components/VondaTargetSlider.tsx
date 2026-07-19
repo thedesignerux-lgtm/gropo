@@ -226,7 +226,6 @@ export default function VondaTargetSlider({
             <div style={{ background: '#E8944A', color: '#fff', fontSize: mini ? 11 : 12.5, fontWeight: 700, padding: mini ? '4px 10px' : '5px 13px', borderRadius: 20, whiteSpace: 'nowrap', boxShadow: '0 4px 12px -4px rgba(232,148,74,.4)' }}>
               Faltan {faltanSel} uds
             </div>
-            <div style={{ width: 8, height: 8, background: '#E8944A', position: 'absolute', left: tipCaretLeft, bottom: -3, transform: 'translateX(-50%) rotate(45deg)' }} />
           </div>
         )}
 
