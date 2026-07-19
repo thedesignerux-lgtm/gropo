@@ -17,7 +17,7 @@ function ArrowsRing({ color, size }: { color: string; size: number }) {
   const toR = (d: number) => d * Math.PI / 180
   const P = (a: number, r: number): [number, number] => [CX + r * Math.cos(toR(a)), CY + r * Math.sin(toR(a))]
   // Triángulo: punta a r=17 (hacia el centro), base a r=24, mitad de base 6
-  const tris = [270, 0, 90, 180].map(a => {
+  const tris = [315, 45, 135, 225].map(a => {
     const [tpX, tpY] = P(a, 17)
     const [bcX, bcY] = P(a, 24)
     const px = Math.cos(toR(a + 90)), py = Math.sin(toR(a + 90))
