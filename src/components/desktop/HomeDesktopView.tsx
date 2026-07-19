@@ -170,8 +170,13 @@ export default function HomeDesktopView({ products, favoriteIds = [], isAuthed =
               </button>
             </div>
 
+            {/* Section heading */}
+            <h2 className="mt-10 text-[13px] font-bold tracking-tight text-neutral-900">
+              Tú decides el límite. <span style={{ color: '#6C4BF4' }}>Vonda baja el precio.</span>
+            </h2>
+
             {/* Step progress line: 1 → 2 → 3 */}
-            <div className="flex items-center gap-0 mt-8 mb-5">
+            <div className="flex items-center gap-0 mt-5 mb-5">
               <StepCircle n={1} />
               <div className="flex-1 h-[2px] mx-1" style={{ background: '#D8D2F0' }} />
               <StepCircle n={2} />
@@ -186,14 +191,14 @@ export default function HomeDesktopView({ products, favoriteIds = [], isAuthed =
                 <div className="w-10 h-10 rounded-full grid place-items-center mb-3" style={{ background: '#EDE9FB' }}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6C4BF4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
                 </div>
-                <h3 className="text-[14px] font-extrabold text-neutral-900 tracking-tight">Bloquea tu precio</h3>
+                <h3 className="text-[14px] font-extrabold text-neutral-900 tracking-tight">Tú decides el máximo</h3>
                 <p className="text-[12px] text-neutral-500 mt-1.5 leading-relaxed">
-                  Únete sin pagar por adelantado. <span className="font-bold" style={{ color: '#6C4BF4' }}>Solo pagarás cuando el grupo finalice.</span>
+                  Elige hasta cuánto pagarías.
                 </p>
                 <div className="mt-auto pt-3">
                   <div className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ background: '#F9F8FC', border: '1px solid #ECEAF2' }}>
-                    <span className="text-[11px] text-neutral-500">Tu precio máximo</span>
-                    <span className="text-[14px] font-extrabold ml-auto" style={{ color: '#6C4BF4' }}>28 €</span>
+                    <span className="text-[11px] text-neutral-500">Tu límite</span>
+                    <span className="text-[14px] font-extrabold ml-auto" style={{ color: '#6C4BF4' }}>30 €</span>
                   </div>
                 </div>
               </div>
@@ -204,28 +209,15 @@ export default function HomeDesktopView({ products, favoriteIds = [], isAuthed =
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6C4BF4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
                   <div className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full grid place-items-center text-white text-[9px] font-bold" style={{ background: '#6C4BF4' }}>+</div>
                 </div>
-                <h3 className="text-[14px] font-extrabold text-neutral-900 tracking-tight">El grupo crece</h3>
+                <h3 className="text-[14px] font-extrabold text-neutral-900 tracking-tight">Vonda baja el precio</h3>
                 <p className="text-[12px] text-neutral-500 mt-1.5 leading-relaxed">
-                  Cada nuevo comprador acerca el <strong className="text-neutral-700">siguiente descuento.</strong>
+                  Cada nueva persona acerca el siguiente precio.
                 </p>
-                {/* Mini price ladder */}
-                <div className="mt-3">
-                  <div className="flex justify-between text-[10px] font-bold text-neutral-500 px-0.5 mb-1">
-                    <span>30 €</span><span>28 €</span><span>27 €</span><span>25 €</span>
-                  </div>
-                  <div className="relative h-[6px] rounded-full" style={{ background: '#ECEAF2' }}>
-                    <div className="absolute left-0 top-0 h-full rounded-full" style={{ width: '45%', background: '#6C4BF4' }} />
-                    <div className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full border-2 border-white" style={{ left: '0%', background: '#6C4BF4' }} />
-                    <div className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full border-2 border-white" style={{ left: '33%', background: '#6C4BF4' }} />
-                    <div className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border-2 border-white" style={{ left: '60%', background: '#6C4BF4' }} />
-                    <div className="absolute top-1/2 -translate-y-1/2 w-2 h-2 rounded-full border-2 border-white" style={{ left: '100%', transform: 'translate(-100%, -50%)', background: '#D8D2F0' }} />
-                  </div>
-                </div>
                 <div className="mt-auto pt-3">
                   <div className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ background: '#F9F8FC', border: '1px solid #ECEAF2' }}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6C4BF4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /></svg>
-                    <span className="text-[11px] font-bold" style={{ color: '#5A3DC7' }}>4 personas más</span>
-                    <span className="text-[11px] text-neutral-500">y desbloqueamos <strong style={{ color: '#6C4BF4' }}>27 €</strong></span>
+                    <span className="text-[11px] text-neutral-500">Faltan 4 personas</span>
+                    <span className="text-[11px] text-neutral-400 mx-1">↓</span>
+                    <span className="text-[14px] font-extrabold ml-auto" style={{ color: '#6C4BF4' }}>27 €</span>
                   </div>
                 </div>
               </div>
@@ -236,46 +228,21 @@ export default function HomeDesktopView({ products, favoriteIds = [], isAuthed =
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6C4BF4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" /><line x1="7" y1="7" x2="7.01" y2="7" /></svg>
                   <div className="absolute -top-0.5 -right-0.5 w-4 h-4 grid place-items-center text-[9px]" style={{ color: '#6C4BF4' }}>★</div>
                 </div>
-                <h3 className="text-[14px] font-extrabold text-neutral-900 tracking-tight">Todos pagan menos</h3>
+                <h3 className="text-[14px] font-extrabold text-neutral-900 tracking-tight">Pagas el mejor precio</h3>
                 <p className="text-[12px] text-neutral-500 mt-1.5 leading-relaxed">
-                  Cuando el grupo termina, <em className="not-italic font-bold" style={{ color: '#6C4BF4' }}>todos obtienen el mejor precio alcanzado.</em>
+                  Al cerrar la Vonda, todos pagan el mejor precio alcanzado.
                 </p>
                 <div className="mt-auto pt-3">
                   <div className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ background: '#F9F8FC', border: '1px solid #ECEAF2' }}>
-                    <div>
-                      <div className="text-[9px] font-bold uppercase tracking-wider text-neutral-400">Precio inicial</div>
-                      <div className="text-[14px] font-extrabold text-neutral-400 mt-0.5">30 €</div>
-                    </div>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#9a97a2" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
-                    <div>
-                      <div className="text-[9px] font-bold uppercase tracking-wider text-neutral-400">Precio final</div>
-                      <div className="text-[14px] font-extrabold mt-0.5" style={{ color: '#6C4BF4' }}>27 €</div>
-                    </div>
+                    <span className="text-[14px] font-extrabold text-neutral-400">30 €</span>
+                    <span className="text-[11px] text-neutral-400 mx-1">↓</span>
+                    <span className="text-[14px] font-extrabold" style={{ color: '#6C4BF4' }}>27 €</span>
                     <div className="w-5 h-5 rounded-full grid place-items-center ml-auto" style={{ background: '#157F52' }}>
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-
-            {/* Bottom benefits row */}
-            <div className="grid grid-cols-3 gap-3 mt-4">
-              <BenefitRow
-                icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6C4BF4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>}
-                title="Nunca pagas por adelantado"
-                text="Solo autorizamos el pago cuando el grupo se completa."
-              />
-              <BenefitRow
-                icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6C4BF4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>}
-                title="Compráis juntos, ahorráis juntos"
-                text="Cada nuevo comprador beneficia al resto del grupo."
-              />
-              <BenefitRow
-                icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6C4BF4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" /><line x1="7" y1="7" x2="7.01" y2="7" /></svg>}
-                title="Siempre pagas el precio final más bajo"
-                text="Aunque entraras antes, disfrutarás del mejor precio alcanzado."
-              />
             </div>
           </div>
 
@@ -351,19 +318,6 @@ function StepCircle({ n }: { n: number }) {
   )
 }
 
-function BenefitRow({ icon, title, text }: { icon: React.ReactNode; title: string; text: string }) {
-  return (
-    <div className="flex items-start gap-2.5 rounded-lg px-3.5 py-3" style={{ background: '#F4F2F8' }}>
-      <div className="w-8 h-8 rounded-full grid place-items-center shrink-0" style={{ background: '#EDE9FB' }}>
-        {icon}
-      </div>
-      <div>
-        <div className="text-[12px] font-bold text-neutral-900">{title}</div>
-        <div className="text-[11px] text-neutral-500 mt-0.5 leading-relaxed">{text}</div>
-      </div>
-    </div>
-  )
-}
 
 /* ═══════════════════════════════════════════
    Shared card hook — pricing + checkout logic

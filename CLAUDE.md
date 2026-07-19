@@ -129,7 +129,17 @@ Next.js 14 App Router (`src/`, alias `@/` → `src/`) · Supabase (PostgreSQL + 
   - Colores clave: bg mobile #FBFAF8, bg desktop #fff, card border #ECEAF2, brand #6C4BF4
   - GroupCenterContent.tsx ya no se importa (código muerto)
   - TODO PUSHEADO a origin/main (1b+8a en commits anteriores, 8c+2d+1c en push del 17 jul)
-  - PRÓXIMA SESIÓN: revisar visualmente todas las pantallas en producción (www.vonda.es) y ajustar lo que no se vea bien
+- Sesión 19 jul — iteración diseño 1a:
+  - Mobile detalle producto: eliminado A/B test (2c/2d), solo queda variante 2d (hero grande)
+  - Mobile detalle producto: eliminado "Máx. XX€" redundante junto al CTA sticky
+  - Home desktop (1a): HowItWorks 3 pasos integrado en columna izquierda del hero (bajo search bar), NO como sección separada. Heading → search → 1→2→3 step cards → benefit pills, todo en la mitad izquierda con grupo destacado a la derecha
+  - Colores: todo naranja (#E8944A) eliminado de HowItWorks → reemplazado por morado (#6C4BF4). Paso 2 icono/badge, slider dot, caja "4 personas más", estrella paso 3, último benefit icon
+  - Párrafo descriptivo del hero eliminado (heading directo a barra de búsqueda)
+  - Placeholder search bar cambiado a "Busca tu producto"
+  - Componente HowItWorks() eliminado como función standalone — contenido inline en el hero
+  - StepCircle y BenefitRow reducidos de tamaño para caber en la columna izquierda
+  - Código muerto añadido: GroupLiveSection2c.tsx, MobileVariantWrapper.tsx (ya no se importan)
+  - PENDIENTE PUSH: Benjamin debe hacer git add -A && git commit && git push desde terminal
 
 ### Pendiente crítico
 - Cutover Stripe test → live (pk_live, sk_live, webhook live, vars Vercel)
