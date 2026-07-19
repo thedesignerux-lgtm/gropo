@@ -232,7 +232,7 @@ export default function VondaTargetSlider({
 
         {/* Flecha de ancla: marca el tramo elegido cuando selIdx > curIdx (esperar) */}
         {(selIdx > curIdx || anchorFading) && (
-          <div style={{ position: 'absolute', top: -11, left: pos(selIdx), transform: 'translateX(-50%)', transition: 'left .22s cubic-bezier(.34,1.56,.64,1), opacity .3s ease', opacity: anchorFading ? 0 : 1, zIndex: 6, pointerEvents: 'none' }}>
+          <div style={{ position: 'absolute', top: -4, left: pos(selIdx), transform: 'translateX(-50%)', transition: 'left .22s cubic-bezier(.34,1.56,.64,1), opacity .3s ease', opacity: anchorFading ? 0 : 1, zIndex: 6, pointerEvents: 'none' }}>
             <div style={{ width: 0, height: 0, borderLeft: '6px solid transparent', borderRight: '6px solid transparent', borderTop: `7px solid ${accent}` }} />
           </div>
         )}
