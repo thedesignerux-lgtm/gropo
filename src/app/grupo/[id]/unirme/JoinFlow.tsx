@@ -246,6 +246,7 @@ export default function JoinFlow({
               size="mini"
               chrome="nudge"
               disabled
+              locked
             />
           </div>
         </section>

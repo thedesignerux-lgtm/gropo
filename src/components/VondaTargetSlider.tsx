@@ -10,6 +10,35 @@ function fmt(n: number): string {
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
 
+/* ── Icono de candado con flechas circulares ── */
+function LockSvg({ color, size }: { color: string; size: number }) {
+  const R = 20, CX = 24, CY = 24
+  const toR = (d: number) => d * Math.PI / 180
+  const arcs: [number, number][] = [[300, 345], [30, 75], [120, 165], [210, 255]]
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+      <circle cx={CX} cy={CY} r="13" fill="#fff" stroke={color} strokeWidth="2.5" />
+      <rect x="19.5" y="25.5" width="9" height="6.5" rx="1.5" fill={color} />
+      <path d="M21.5 25.5v-2.5a2.5 2.5 0 0 1 5 0v2.5" stroke={color} strokeWidth="1.8" fill="none" strokeLinecap="round" />
+      <circle cx={CX} cy="28" r="1" fill="#fff" />
+      {arcs.map(([a1, a2], i) => {
+        const x1 = CX + R * Math.cos(toR(a1)), y1 = CY + R * Math.sin(toR(a1))
+        const x2 = CX + R * Math.cos(toR(a2)), y2 = CY + R * Math.sin(toR(a2))
+        const t = toR(a2 + 90)
+        const tx = x2 + 4 * Math.cos(t), ty = y2 + 4 * Math.sin(t)
+        const b1x = x2 + 3.5 * Math.cos(t + Math.PI + 0.6), b1y = y2 + 3.5 * Math.sin(t + Math.PI + 0.6)
+        const b2x = x2 + 3.5 * Math.cos(t + Math.PI - 0.6), b2y = y2 + 3.5 * Math.sin(t + Math.PI - 0.6)
+        return (
+          <g key={i}>
+            <path d={`M${x1.toFixed(1)},${y1.toFixed(1)} A${R},${R} 0 0,1 ${x2.toFixed(1)},${y2.toFixed(1)}`} stroke={color} strokeWidth="2.2" strokeLinecap="round" />
+            <polygon points={`${tx.toFixed(1)},${ty.toFixed(1)} ${b1x.toFixed(1)},${b1y.toFixed(1)} ${b2x.toFixed(1)},${b2y.toFixed(1)}`} fill={color} />
+          </g>
+        )
+      })}
+    </svg>
+  )
+}
+
 export interface Detent { price: number; uds: number }
 
 interface Props {
@@ -40,12 +69,14 @@ interface Props {
   /** Oculta el thumb (p. ej. estado deseleccionado en Mi Radar): el tramo actual
    *  queda representado solo por su nodo morado con ✓. El track sigue siendo tappable. */
   hideThumb?: boolean
+  /** Precio bloqueado: reemplaza el thumb por el icono de candado con animación. */
+  locked?: boolean
 }
 
 export default function VondaTargetSlider({
   detents, curIdx, selIdx, onSelIdx, size = 'full', chrome = 'none', udsToNext,
   pulse, glow = 0, onCommit, minIdx = 0, disabled = false, anchorMode = false,
-  anchorFading = false, hideThumb = false,
+  anchorFading = false, hideThumb = false, locked = false,
 }: Props) {
   const trackRef = useRef<HTMLDivElement | null>(null)
   const rootRef = useRef<HTMLDivElement | null>(null)
@@ -280,9 +311,14 @@ export default function VondaTargetSlider({
             )
           })}
 
-          {!hideThumb && (
+          {!hideThumb && !locked && (
             <div onPointerDown={startDrag} style={{ position: 'absolute', top: '50%', left: pos(selIdx), transform: 'translate(-50%,-50%)', width: ui.thumb, height: ui.thumb, borderRadius: '50%', background: '#fff', border: `3px solid ${accent}`, display: 'grid', placeItems: 'center', zIndex: 4, cursor: 'grab', transition: 'left .22s cubic-bezier(.34,1.56,.64,1),border-color .2s', boxShadow: `0 6px 16px -4px ${accentShadow}` }}>
               <span style={{ width: 11, height: 11, borderRadius: '50%', background: accent }} />
+            </div>
+          )}
+          {locked && (
+            <div style={{ position: 'absolute', top: '50%', left: pos(selIdx), transform: 'translate(-50%,-50%)', zIndex: 5, pointerEvents: 'none', animation: 'lockBounce .5s cubic-bezier(.34,1.56,.64,1)' }}>
+              <LockSvg color={accent} size={mini ? 38 : 46} />
             </div>
           )}
         </div>

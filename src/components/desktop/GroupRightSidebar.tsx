@@ -83,14 +83,19 @@ export default function GroupRightSidebar({
   if (quantity > 1) ctaParams.set('qty', String(quantity))
   const ctaHref = `/grupo/${groupId}/unirme${ctaParams.toString() ? `?${ctaParams.toString()}` : ''}`
 
+  const [lockAnimating, setLockAnimating] = useState(false)
   const handleBuy = () => {
-    if (isEsperar) {
-      router.push(ctaHref)
-    } else if (authed) {
-      open({ groupId, productName: name, productSpec: spec, imageUrl, quantity, maxPricePerUnit: selectedPrice })
-    } else {
-      router.push(ctaHref)
-    }
+    if (lockAnimating) return
+    setLockAnimating(true)
+    setTimeout(() => {
+      if (isEsperar) {
+        router.push(ctaHref)
+      } else if (authed) {
+        open({ groupId, productName: name, productSpec: spec, imageUrl, quantity, maxPricePerUnit: selectedPrice })
+      } else {
+        router.push(ctaHref)
+      }
+    }, 1200)
   }
 
   const avatarCount = Math.min(totalParticipants, AVATAR_LETTERS.length)
@@ -152,6 +157,8 @@ export default function GroupRightSidebar({
             udsToNext={missing}
             pulse={pulseData?.steps}
             glow={pulseData?.glow}
+            locked={lockAnimating}
+            disabled={lockAnimating}
           />
         ) : (
           <div className="text-lg font-bold text-neutral-900">{fmt(displayPrice)}</div>
@@ -170,10 +177,13 @@ export default function GroupRightSidebar({
           <button
             type="button"
             onClick={handleBuy}
+            disabled={lockAnimating}
             className="flex-1 h-[46px] rounded-[14px] font-extrabold text-[13.5px] active:scale-[0.98] transition-all whitespace-nowrap"
-            style={{ border: `2px solid ${accent}`, background: `${accent}14`, color: accent, boxShadow: `0 12px 26px -14px ${accentShadow}` }}
+            style={lockAnimating
+              ? { border: '2px solid #157F52', background: '#E8F5E9', color: '#157F52' }
+              : { border: `2px solid ${accent}`, background: `${accent}14`, color: accent, boxShadow: `0 12px 26px -14px ${accentShadow}` }}
           >
-            {confirmed ? `Bloquear precio · Máx. ${fmt(selectedPrice)}` : `Reservar plaza · Máx. ${fmt(selectedPrice)}`}
+            {lockAnimating ? '✓ Precio bloqueado' : (confirmed ? `Bloquear precio · Máx. ${fmt(selectedPrice)}` : `Reservar plaza · Máx. ${fmt(selectedPrice)}`)}
           </button>
         </div>
 

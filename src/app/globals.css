@@ -165,6 +165,9 @@ body {
 .ts-wave { animation: tsWave 1s linear infinite; }
 .ts-pulse { animation: tsPulse 1.4s ease-in-out infinite; }
 
+/* Lock bounce animation (micro-interacción bloqueo de precio) */
+@keyframes lockBounce { 0% { transform: scale(0); opacity: 0; } 50% { transform: scale(1.25); opacity: 1; } 100% { transform: scale(1); opacity: 1; } }
+
 @media (prefers-reduced-motion: reduce) {
   .ts-wave, .ts-pulse { animation: none; }
 }

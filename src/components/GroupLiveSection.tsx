@@ -79,15 +79,20 @@ export default function GroupLiveSection({
   const statusLabel = confirmed ? 'Confirmado' : 'En espera'
   const statusBg = confirmed ? '#EDE9FB' : '#FCEEE0'
 
+  const [lockAnimating, setLockAnimating] = useState(false)
   const handleCheckout = () => {
-    if (isEsperar) {
-      const p = new URLSearchParams({ mode: 'esperar', target: String(effectiveSelected) })
-      router.push(`/grupo/${groupId}/unirme?${p.toString()}`)
-    } else if (authed) {
-      open({ groupId, productName: name, productSpec: spec, imageUrl: null, quantity: 1, maxPricePerUnit: effectiveSelected })
-    } else {
-      router.push(`/grupo/${groupId}/unirme?target=${effectiveSelected}`)
-    }
+    if (lockAnimating) return
+    setLockAnimating(true)
+    setTimeout(() => {
+      if (isEsperar) {
+        const p = new URLSearchParams({ mode: 'esperar', target: String(effectiveSelected) })
+        router.push(`/grupo/${groupId}/unirme?${p.toString()}`)
+      } else if (authed) {
+        open({ groupId, productName: name, productSpec: spec, imageUrl: null, quantity: 1, maxPricePerUnit: effectiveSelected })
+      } else {
+        router.push(`/grupo/${groupId}/unirme?target=${effectiveSelected}`)
+      }
+    }, 1200)
   }
 
   const avatarCount = Math.min(totalParticipants, AVATAR_LETTERS.length)
@@ -144,6 +149,8 @@ export default function GroupLiveSection({
                 udsToNext={missing}
                 pulse={pulseData?.steps}
                 glow={pulseData?.glow}
+                locked={lockAnimating}
+                disabled={lockAnimating}
               />
             </div>
           )}
@@ -170,10 +177,13 @@ export default function GroupLiveSection({
         <button
           type="button"
           onClick={handleCheckout}
+          disabled={lockAnimating}
           className="w-full h-12 rounded-xl font-bold text-[14.5px] active:scale-[0.98] transition-all whitespace-nowrap"
-          style={{ border: `2px solid ${accent}`, background: `${accent}14`, color: accent }}
+          style={lockAnimating
+            ? { border: '2px solid #157F52', background: '#E8F5E9', color: '#157F52' }
+            : { border: `2px solid ${accent}`, background: `${accent}14`, color: accent }}
         >
-          {isEsperar ? `Reservar plaza · Máx. ${fmt(effectiveSelected)}` : `Bloquear precio · ${fmt(effectiveSelected)}`}
+          {lockAnimating ? '✓ Precio bloqueado' : (isEsperar ? `Reservar plaza · Máx. ${fmt(effectiveSelected)}` : `Bloquear precio · ${fmt(effectiveSelected)}`)}
         </button>
       </div>
     </>
