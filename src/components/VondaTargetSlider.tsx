@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef, useEffect } from 'react'
+import { useCallback, useRef, useEffect, useState } from 'react'
 import PulseRings from '@/components/PulseRings'
 import type { TierPulse } from '@/components/TierProgress'
 
@@ -61,7 +61,7 @@ export default function VondaTargetSlider({
     thumb: mini ? 30 : 34,
     priceFont: mini ? 13 : 15,
     udsFont: mini ? 10.5 : 11,
-    trackTop: mini ? 16 : 20,
+    trackTop: mini ? 34 : 40,
   }
 
   const effectiveMin = Math.max(minIdx, curIdx)
@@ -108,6 +108,21 @@ export default function VondaTargetSlider({
   const curP = detents[curIdx]?.price ?? 0
   const nextP = nextIdx != null ? detents[nextIdx].price : null
   const faltan = udsToNext != null ? udsToNext : (nextIdx != null ? Math.max(0, detents[nextIdx].uds - detents[curIdx].uds) : 0)
+
+  // Tooltip naranja "Faltan X uds" sobre el tier SELECCIONADO — aparece 4s tras cada cambio
+  const faltanSel = selIdx > curIdx ? Math.max(0, (detents[selIdx]?.uds ?? 0) - (detents[curIdx]?.uds ?? 0)) : 0
+  const [faltanTipOn, setFaltanTipOn] = useState(false)
+  useEffect(() => {
+    if (selIdx <= curIdx || faltanSel <= 0) { setFaltanTipOn(false); return }
+    setFaltanTipOn(true)
+    const t = setTimeout(() => setFaltanTipOn(false), 4000)
+    return () => clearTimeout(t)
+  }, [selIdx, curIdx, faltanSel])
+  // Posición: si el nodo seleccionado está cerca de los bordes, desplazar hacia el centro
+  const tipPct = posN(selIdx)
+  const tipShift = tipPct < 25 ? 'translateX(-12%)' : tipPct > 75 ? 'translateX(-88%)' : 'translateX(-50%)'
+  const tipCaretLeft = tipPct < 25 ? '12%' : tipPct > 75 ? '88%' : '50%'
+
   let nudgeText: string
   if (confirmed) {
     if (selIdx < curIdx) {
@@ -205,6 +220,16 @@ export default function VondaTargetSlider({
       )}
 
       <div className="relative" style={{ marginTop: ui.trackTop }}>
+        {/* Tooltip naranja "Faltan X uds" sobre el tier seleccionado */}
+        {selIdx > curIdx && faltanSel > 0 && (
+          <div style={{ position: 'absolute', top: -34, left: pos(selIdx), transform: tipShift, transition: 'left .22s cubic-bezier(.34,1.56,.64,1), opacity .5s ease', opacity: faltanTipOn ? 1 : 0, zIndex: 7, pointerEvents: 'none' }}>
+            <div style={{ background: '#E8944A', color: '#fff', fontSize: mini ? 11 : 12.5, fontWeight: 700, padding: mini ? '4px 10px' : '5px 13px', borderRadius: 20, whiteSpace: 'nowrap', boxShadow: '0 4px 12px -4px rgba(232,148,74,.4)' }}>
+              Faltan {faltanSel} uds
+            </div>
+            <div style={{ width: 8, height: 8, background: '#E8944A', position: 'absolute', left: tipCaretLeft, bottom: -3, transform: 'translateX(-50%) rotate(45deg)' }} />
+          </div>
+        )}
+
         {/* Flecha de ancla: marca el tramo elegido cuando selIdx > curIdx (esperar) */}
         {(selIdx > curIdx || anchorFading) && (
           <div style={{ position: 'absolute', top: -11, left: pos(selIdx), transform: 'translateX(-50%)', transition: 'left .22s cubic-bezier(.34,1.56,.64,1), opacity .3s ease', opacity: anchorFading ? 0 : 1, zIndex: 6, pointerEvents: 'none' }}>
