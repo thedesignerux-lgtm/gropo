@@ -379,7 +379,7 @@ function OpportunityCard({ group: g }: { group: RadarGroup; category?: 'hot' | '
   if (complete) {
     badge = 'Meta alcanzada'; badgeIcon = 'check'
   } else if (g.missing > 0) {
-    badge = `Faltan ${g.missing} unidades`; badgeIcon = urgent ? 'fire' : 'down'
+    badge = g.missing === 1 ? 'Falta 1 unidad' : `Faltan ${g.missing} unidades`; badgeIcon = urgent ? 'fire' : 'down'
   } else if (hoursLeft < 24) {
     badge = 'Cierra hoy'; badgeIcon = 'clock'
   }
@@ -467,7 +467,7 @@ function OpportunityCard({ group: g }: { group: RadarGroup; category?: 'hot' | '
             <p className="text-[13px] font-semibold mt-[13px]" style={{ color: t.next }}>¡Rebaja máxima alcanzada!</p>
           ) : showNext && g.missing > 0 ? (
             <p className="text-[13px] font-medium mt-[13px]" style={{ color: '#334155' }}>
-              Faltan <b style={{ color: t.next }}>{g.missing} unidades</b> para bajar a <b style={{ color: t.next }}>{fmt(g.nextPrice!)}</b>.
+              {g.missing === 1 ? 'Falta ' : 'Faltan '}<b style={{ color: t.next }}>{g.missing} {g.missing === 1 ? 'unidad' : 'unidades'}</b> para bajar a <b style={{ color: t.next }}>{fmt(g.nextPrice!)}</b>.
             </p>
           ) : null}
         </PulseZone>

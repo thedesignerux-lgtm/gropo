@@ -286,7 +286,7 @@ export default function PulseZone({
     // Sin ancla: aseguras tu PLAZA al precio vigente (y bajas con el grupo)
     primary = (
       <Cta color={ctaColor} soft onClick={(e) => go(e, `/grupo/${groupId}`)}>
-        Asegurar plaza · {fmt(currentPrice)}
+        Bloquear precio · {fmt(currentPrice)}
       </Cta>
     )
   }
@@ -332,7 +332,7 @@ export default function PulseZone({
         <div className="flex items-start gap-2.5 rounded-2xl mt-3.5" style={{ background: '#FCF3E9', border: '1px solid #F3E1CB', padding: '12px 14px' }}>
           <MedalIcon color="#C77A2E" />
           <p className="text-[13px] leading-snug" style={{ color: '#9A6428' }}>
-            Faltan <b>{missUds} uds</b> para este tramo. Solo te avisaremos si este precio puede hacerse realidad.
+            {missUds === 1 ? 'Falta ' : 'Faltan '}<b>{missUds} {missUds === 1 ? 'ud' : 'uds'}</b> para este tramo. Solo te avisaremos si este precio puede hacerse realidad.
           </p>
         </div>
       )

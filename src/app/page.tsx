@@ -40,18 +40,33 @@ async function fetchGroups(): Promise<GroupProduct[]> {
 
   return rows.flatMap((row: any, i: number) => {
     const ladder = Array.isArray(ladders[i]?.data) ? ladders[i]!.data : []
-    const tiers: Tier[] = (ladder as any[]).map((t: any) => ({
-      minUnits: Number(t.min_units),
-      price: Number(t.price),
-    }))
+    const asc = (ladder as any[])
+      .map((t: any) => ({
+        minUnits: Number(t.min_units),
+        price: Number(t.price),
+        demand: Number(t.effective_demand ?? 0),
+        unlocked: Boolean(t.unlocked),
+      }))
+      .sort((a, b) => a.minUnits - b.minUnits)
+    const tiers: Tier[] = asc.map(t => ({ minUnits: t.minUnits, price: t.price }))
     if (tiers.length === 0) return []
+
+    // Unidades de display derivadas de tier_demand (no de total_units, que solo
+    // cuenta demanda firme y se queda a 0 si todos los miembros son esperadores).
+    // Regla: el precio mostrado debe ser el del tramo desbloqueado más barato,
+    // y el progreso hacia el siguiente tramo usa su demanda efectiva real.
+    const unlockedBase = asc.filter(t => t.unlocked).reduce((m, t) => Math.max(m, t.minUnits), 0)
+    const nextLocked = asc.find(t => !t.unlocked && t.minUnits > unlockedBase) ?? null
+    const currentUnits = nextLocked
+      ? Math.min(nextLocked.minUnits - 1, Math.max(unlockedBase, nextLocked.demand))
+      : Math.max(unlockedBase, Number(row.total_units ?? 0))
 
     return [{
       id: row.id as string,
       name: row.product_name as string,
       variant: (row.product_spec ?? '') as string,
       pvp: row.pvp != null ? Number(row.pvp) : 0,
-      currentUnits: Number(row.total_units ?? 0),
+      currentUnits,
       priceMode: 'stepped' as const,
       tiers,
       minExecution: minExecByGroup.get(row.id) ?? 0,

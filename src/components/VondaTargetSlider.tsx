@@ -10,39 +10,37 @@ function fmt(n: number): string {
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
 
-/* ── Anillo de flechas (gira alrededor del candado) ── */
+/* ── Anillo de 4 triángulos (misma forma que el indicador de tramo del slider),
+      apuntando hacia el candado central. Giran en la transición de bloqueo. ── */
 function ArrowsRing({ color, size }: { color: string; size: number }) {
-  const R = 20, CX = 24, CY = 24
+  const CX = 28, CY = 28
   const toR = (d: number) => d * Math.PI / 180
-  const arcs: [number, number][] = [[300, 345], [30, 75], [120, 165], [210, 255]]
+  const P = (a: number, r: number): [number, number] => [CX + r * Math.cos(toR(a)), CY + r * Math.sin(toR(a))]
+  // Triángulo: punta a r=17 (hacia el centro), base a r=24, mitad de base 6
+  const tris = [270, 0, 90, 180].map(a => {
+    const [tpX, tpY] = P(a, 17)
+    const [bcX, bcY] = P(a, 24)
+    const px = Math.cos(toR(a + 90)), py = Math.sin(toR(a + 90))
+    return `${tpX.toFixed(1)},${tpY.toFixed(1)} ${(bcX + 6 * px).toFixed(1)},${(bcY + 6 * py).toFixed(1)} ${(bcX - 6 * px).toFixed(1)},${(bcY - 6 * py).toFixed(1)}`
+  })
   return (
-    <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
-      {arcs.map(([a1, a2], i) => {
-        const x1 = CX + R * Math.cos(toR(a1)), y1 = CY + R * Math.sin(toR(a1))
-        const x2 = CX + R * Math.cos(toR(a2)), y2 = CY + R * Math.sin(toR(a2))
-        const t = toR(a2 + 90)
-        const tx = x2 + 4 * Math.cos(t), ty = y2 + 4 * Math.sin(t)
-        const b1x = x2 + 3.5 * Math.cos(t + Math.PI + 0.6), b1y = y2 + 3.5 * Math.sin(t + Math.PI + 0.6)
-        const b2x = x2 + 3.5 * Math.cos(t + Math.PI - 0.6), b2y = y2 + 3.5 * Math.sin(t + Math.PI - 0.6)
-        return (
-          <g key={i}>
-            <path d={`M${x1.toFixed(1)},${y1.toFixed(1)} A${R},${R} 0 0,1 ${x2.toFixed(1)},${y2.toFixed(1)}`} stroke={color} strokeWidth="2.2" strokeLinecap="round" />
-            <polygon points={`${tx.toFixed(1)},${ty.toFixed(1)} ${b1x.toFixed(1)},${b1y.toFixed(1)} ${b2x.toFixed(1)},${b2y.toFixed(1)}`} fill={color} />
-          </g>
-        )
-      })}
+    <svg width={size} height={size} viewBox="0 0 56 56" fill="none">
+      {tris.map((pts, i) => <polygon key={i} points={pts} fill={color} />)}
     </svg>
   )
 }
 
-/* ── Centro del candado (círculo + padlock) ── */
+/* ── Centro del candado: disco de color, anillo blanco interior y padlock
+      blanco con keyhole del color de acento (referencia) ── */
 function LockCenter({ color, size }: { color: string; size: number }) {
   return (
-    <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
-      <circle cx="24" cy="24" r="13" fill="#fff" stroke={color} strokeWidth="2.5" />
-      <rect x="19.5" y="25.5" width="9" height="6.5" rx="1.5" fill={color} />
-      <path d="M21.5 25.5v-2.5a2.5 2.5 0 0 1 5 0v2.5" stroke={color} strokeWidth="1.8" fill="none" strokeLinecap="round" />
-      <circle cx="24" cy="28" r="1" fill="#fff" />
+    <svg width={size} height={size} viewBox="0 0 56 56" fill="none">
+      <circle cx="28" cy="28" r="14" fill={color} />
+      <circle cx="28" cy="28" r="11.6" fill="none" stroke="#fff" strokeWidth="1.6" />
+      <path d="M25.2 27v-2.2a2.8 2.8 0 0 1 5.6 0V27" stroke="#fff" strokeWidth="2" fill="none" strokeLinecap="round" />
+      <rect x="23.2" y="27" width="9.6" height="7.4" rx="1.8" fill="#fff" />
+      <circle cx="28" cy="30.2" r="1.2" fill={color} />
+      <rect x="27.4" y="30.8" width="1.2" height="2.2" rx="0.6" fill={color} />
     </svg>
   )
 }
@@ -266,7 +264,7 @@ export default function VondaTargetSlider({
         {selIdx > curIdx && faltanSel > 0 && (
           <div style={{ position: 'absolute', top: -34, left: pos(selIdx), transform: tipShift, transition: 'left .22s cubic-bezier(.34,1.56,.64,1), opacity .5s ease', opacity: faltanTipOn ? 1 : 0, zIndex: 7, pointerEvents: 'none' }}>
             <div style={{ background: '#E8944A', color: '#fff', fontSize: mini ? 11 : 12.5, fontWeight: 700, padding: mini ? '4px 10px' : '5px 13px', borderRadius: 20, whiteSpace: 'nowrap', boxShadow: '0 4px 12px -4px rgba(232,148,74,.4)' }}>
-              Faltan {faltanSel} uds
+              {faltanSel === 1 ? 'Falta 1 ud' : `Faltan ${faltanSel} uds`}
             </div>
           </div>
         )}

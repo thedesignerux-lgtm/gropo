@@ -184,7 +184,7 @@ export default function GroupLiveSection({
             ? { border: '2px solid #157F52', background: '#E8F5E9', color: '#157F52' }
             : { border: `2px solid ${accent}`, background: `${accent}14`, color: accent }}
         >
-          {lockPhase >= 2 ? '✓ Precio bloqueado' : (isEsperar ? `Reservar plaza · Máx. ${fmt(effectiveSelected)}` : `Bloquear precio · ${fmt(effectiveSelected)}`)}
+          {lockPhase >= 2 ? '✓ Precio bloqueado' : (isEsperar ? `Bloquear precio · Máx. ${fmt(effectiveSelected)}` : `Bloquear precio · ${fmt(effectiveSelected)}`)}
         </button>
       </div>
     </>

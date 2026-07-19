@@ -169,7 +169,7 @@ body {
 @keyframes lockSpin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @keyframes lockFadeIn { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
 .lock-arrows-spin { animation: lockSpin 1s ease-in-out forwards; transform-origin: center; }
-.lock-center-in { animation: lockFadeIn .35s ease-out .15s both; }
+.lock-center-in { animation: lockFadeIn .35s ease-out 1s both; }
 
 @media (prefers-reduced-motion: reduce) {
   .ts-wave, .ts-pulse { animation: none; }

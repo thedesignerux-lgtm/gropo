@@ -152,8 +152,8 @@ function MobileCard({ product, isFavorited, isAuthed }: { product: GroupProduct;
   const accent = confirmed ? '#6C4BF4' : '#E8944A'
   const ctaBg = confirmed ? 'rgba(108,75,244,.10)' : 'rgba(232,148,74,.12)'
   const ctaText = confirmed
-    ? `Asegurar plaza · ${fmt(selectedPrice)}`
-    : `Reservar plaza · Máx. ${fmt(selectedPrice)}`
+    ? `Bloquear precio · ${fmt(selectedPrice)}`
+    : `Bloquear precio · Máx. ${fmt(selectedPrice)}`
 
   const handleCheckout = () => {
     if (!confirmed) {
@@ -189,7 +189,7 @@ function MobileCard({ product, isFavorited, isAuthed }: { product: GroupProduct;
 
         {/* Faltan badge */}
         <div className="absolute top-3 left-3 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-extrabold text-brand" style={{ background: 'rgba(255,255,255,.94)', boxShadow: '0 4px 14px -6px rgba(30,20,60,.4)' }}>
-          {isComplete ? '✓ Mejor precio' : `↓ ${missing} uds`}
+          {isComplete ? '✓ Mejor precio' : missing === 1 ? '↓ 1 ud' : `↓ ${missing} uds`}
         </div>
 
         {/* Share + Heart */}

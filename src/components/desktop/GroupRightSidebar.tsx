@@ -184,7 +184,7 @@ export default function GroupRightSidebar({
               ? { border: '2px solid #157F52', background: '#E8F5E9', color: '#157F52' }
               : { border: `2px solid ${accent}`, background: `${accent}14`, color: accent, boxShadow: `0 12px 26px -14px ${accentShadow}` }}
           >
-            {lockPhase >= 2 ? '✓ Precio bloqueado' : (confirmed ? `Bloquear precio · Máx. ${fmt(selectedPrice)}` : `Reservar plaza · Máx. ${fmt(selectedPrice)}`)}
+            {lockPhase >= 2 ? '✓ Precio bloqueado' : (confirmed ? `Bloquear precio · ${fmt(selectedPrice)}` : `Bloquear precio · Máx. ${fmt(selectedPrice)}`)}
           </button>
         </div>
 

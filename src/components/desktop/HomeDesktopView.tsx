@@ -445,7 +445,7 @@ function GridCard({ product, isFavorited, isAuthed }: { product: GroupProduct; i
         )}
 
         <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-extrabold" style={{ background: 'rgba(255,255,255,.94)', color: '#6C4BF4', boxShadow: '0 4px 14px -6px rgba(30,20,60,.4)' }}>
-          {s.isComplete ? '✓ Mejor precio' : `↓ Faltan ${s.missing} uds`}
+          {s.isComplete ? '✓ Mejor precio' : s.missing === 1 ? '↓ Falta 1 ud' : `↓ Faltan ${s.missing} uds`}
         </div>
 
         <div className="absolute top-2 right-2">

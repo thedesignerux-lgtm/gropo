@@ -214,7 +214,7 @@ export function MgCard({ m, ladder, onOpen }: { m: Membership; ladder: LadderRow
       )}
       <div className="flex justify-between text-[12.5px] mt-2 mb-3">
         <span className="text-neutral-500">{isOpen ? `${d.currentUnits} / ${d.target} uds en el grupo` : `${m.quantity} ud${m.quantity > 1 ? 's' : ''}`}</span>
-        <span className="font-bold" style={{ color: d.state === 'noalc' ? '#94A3B8' : t.c }}>{d.state === 'meta' ? 'Objetivo alcanzado' : d.state === 'noalc' ? 'Objetivo no alcanzado' : d.nextObj == null ? 'Precio mínimo' : `Faltan ${d.missing} uds`}</span>
+        <span className="font-bold" style={{ color: d.state === 'noalc' ? '#94A3B8' : t.c }}>{d.state === 'meta' ? 'Objetivo alcanzado' : d.state === 'noalc' ? 'Objetivo no alcanzado' : d.nextObj == null ? 'Precio mínimo' : d.missing === 1 ? 'Falta 1 ud' : `Faltan ${d.missing} uds`}</span>
       </div>
       {/* estado / social */}
       <div className="flex items-center gap-2 mb-3.5 text-[12px] text-neutral-600">
@@ -271,7 +271,7 @@ export function Drawer({ m, ladder, onClose }: { m: Membership; ladder: LadderRo
           <div className="flex justify-between gap-2 mt-[18px]">
             <div><div className="text-[11px] text-neutral-500">Mi compromiso</div><div className="text-[19px] font-extrabold mt-1 whitespace-nowrap">{fmt(d.commit)}</div></div>
             <div className="text-center"><div className="text-[11px] text-neutral-500">Estado actual</div><div className="text-[19px] font-extrabold mt-1 whitespace-nowrap" style={{ color: '#0F9D58' }}>{fmt(d.cur)}</div>{saving > 0.005 && <div className="text-[11.5px] mt-0.5" style={{ color: '#0F9D58' }}>Estás ahorrando {fmt(saving)}</div>}</div>
-            <div className="text-right"><div className="text-[11px] text-neutral-500">Próximo objetivo</div><div className="text-[19px] font-extrabold mt-1 whitespace-nowrap">{d.nextObj != null ? fmt(d.nextObj) : '—'}</div><div className="text-[11.5px] text-neutral-500 mt-0.5">{d.nextObj != null ? `Faltan ${d.missing} uds` : 'Precio mínimo'}</div></div>
+            <div className="text-right"><div className="text-[11px] text-neutral-500">Próximo objetivo</div><div className="text-[19px] font-extrabold mt-1 whitespace-nowrap">{d.nextObj != null ? fmt(d.nextObj) : '—'}</div><div className="text-[11.5px] text-neutral-500 mt-0.5">{d.nextObj != null ? (d.missing === 1 ? 'Falta 1 ud' : `Faltan ${d.missing} uds`) : 'Precio mínimo'}</div></div>
           </div>
           <div className="flex items-center mt-4"><div className="flex-1 h-1.5 rounded-full bg-neutral-200 overflow-hidden mr-1"><div className="h-full rounded-full" style={{ width: `${d.pct}%`, background: t.c }} /></div><span className="w-4 h-4 rounded-full bg-white shrink-0" style={{ border: `2.5px solid ${t.c}` }} /></div>
           <div className="flex justify-between text-xs text-neutral-500 mt-2"><span>{d.currentUnits} / {d.target} uds</span><span>{d.pct}% completado</span></div>
