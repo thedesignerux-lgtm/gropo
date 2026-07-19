@@ -96,14 +96,14 @@ export default function VondaTargetSlider({
   const accentShadow = confirmed ? 'rgba(108,75,244,.28)' : 'rgba(232,148,74,.28)'
   const nextIdx = curIdx < n - 1 ? curIdx + 1 : null
   // Rastro del track:
-  //  · anchorMode + ancla en tramo inferior → rastro NARANJA de curIdx→selIdx
-  //  · fuera de anchorMode → preview morado de curIdx→nextIdx (home cards)
+  //  · selIdx > curIdx (esperar) → rastro NARANJA de curIdx→selIdx (en todo contexto)
+  //  · selIdx <= curIdx, sin anchorMode → preview morado de curIdx→nextIdx
   //  · anchorMode sin ancla → sin rastro (track liso, como el mockup 8c)
-  const anchorTrail = anchorMode && selIdx > curIdx
-  const projEndIdx = anchorTrail ? selIdx : nextIdx
-  const showProj = anchorTrail || (!anchorMode && nextIdx != null)
+  const esperarTrail = selIdx > curIdx
+  const projEndIdx = esperarTrail ? selIdx : nextIdx
+  const showProj = esperarTrail || (!anchorMode && nextIdx != null)
   const projW = showProj && projEndIdx != null && n > 1 ? ((projEndIdx - curIdx) / (n - 1)) * 86 + '%' : '0%'
-  const projColor = anchorTrail ? '#E8944A' : '#C9BEF6'
+  const projColor = esperarTrail ? '#E8944A' : '#C9BEF6'
   const bubbleX = selIdx === 0 ? 'translateX(-16%)' : (selIdx === n - 1 ? 'translateX(-84%)' : 'translateX(-50%)')
   const caretX = selIdx === 0 ? '16%' : (selIdx === n - 1 ? '84%' : '50%')
 
@@ -112,6 +112,8 @@ export default function VondaTargetSlider({
   const curP = detents[curIdx]?.price ?? 0
   const nextP = nextIdx != null ? detents[nextIdx].price : null
   const faltan = udsToNext != null ? udsToNext : (nextIdx != null ? Math.max(0, detents[nextIdx].uds - detents[curIdx].uds) : 0)
+  // Unidades que faltan para el tramo SELECCIONADO (esperar mode)
+  const faltanSel = selIdx > curIdx ? Math.max(0, (detents[selIdx]?.uds ?? 0) - (detents[curIdx]?.uds ?? 0)) : 0
 
   let nudgeText: string
   if (confirmed) {
@@ -220,8 +222,8 @@ export default function VondaTargetSlider({
           </div>
         )}
 
-        {/* Flecha de ancla (Mi Radar): marca el tramo donde anclas el precio */}
-        {anchorMode && (selIdx > curIdx || anchorFading) && (
+        {/* Flecha de ancla: marca el tramo elegido cuando selIdx > curIdx (esperar) */}
+        {(selIdx > curIdx || anchorFading) && (
           <div style={{ position: 'absolute', top: -11, left: pos(selIdx), transform: 'translateX(-50%)', transition: 'left .22s cubic-bezier(.34,1.56,.64,1), opacity .3s ease', opacity: anchorFading ? 0 : 1, zIndex: 6, pointerEvents: 'none' }}>
             <div style={{ width: 0, height: 0, borderLeft: '6px solid transparent', borderRight: '6px solid transparent', borderTop: `7px solid ${accent}` }} />
           </div>
@@ -282,11 +284,16 @@ export default function VondaTargetSlider({
         <div style={{ position: 'relative', height: 40, marginTop: 12 }}>
           {detents.map((d, i) => {
             const achieved = i <= curIdx
+            const isSelEsperar = i === selIdx && selIdx > curIdx
             const priceColor = i === selIdx ? accent : (achieved ? '#6C4BF4' : '#9a97a2')
+            const udsColor = isSelEsperar ? '#E8944A' : '#9a97a2'
+            const udsLabel = isSelEsperar
+              ? `Faltan ${faltanSel}`
+              : `${d.uds} ${d.uds === 1 ? 'ud' : 'uds'}`
             return (
               <div key={i} style={{ position: 'absolute', left: pos(i), top: 0, transform: 'translateX(-50%)', textAlign: 'center' }}>
                 <div style={{ fontSize: ui.priceFont, fontWeight: 800, color: priceColor, whiteSpace: 'nowrap' }}>{fmt(d.price)}</div>
-                <div style={{ fontSize: ui.udsFont, color: '#9a97a2', marginTop: 2, whiteSpace: 'nowrap' }}>{d.uds} {d.uds === 1 ? 'ud' : 'uds'}</div>
+                <div style={{ fontSize: ui.udsFont, fontWeight: isSelEsperar ? 700 : 400, color: udsColor, marginTop: 2, whiteSpace: 'nowrap' }}>{udsLabel}</div>
               </div>
             )
           })}
