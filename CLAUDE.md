@@ -139,6 +139,7 @@ Next.js 14 App Router (`src/`, alias `@/` → `src/`) · Supabase (PostgreSQL + 
   - Componente HowItWorks() eliminado como función standalone — contenido inline en el hero
   - StepCircle y BenefitRow reducidos de tamaño para caber en la columna izquierda
   - Código muerto añadido: GroupLiveSection2c.tsx, MobileVariantWrapper.tsx (ya no se importan)
+  - VondaTargetSlider 19 jul: tooltip "Máx · X€" eliminado (redundante). Todos los tiers no alcanzados muestran "Faltan X" en naranja bold. Thumb bloqueado: no se puede seleccionar por debajo del tier actual (effectiveMin = max(minIdx, curIdx)). trackTop reducido (16/20px) tras eliminar burbuja
   - PENDIENTE PUSH: Benjamin debe hacer git add -A && git commit && git push desde terminal
 
 ### Pendiente crítico

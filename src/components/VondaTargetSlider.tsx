@@ -33,8 +33,7 @@ interface Props {
   minIdx?: number
   /** Modo lectura: desactiva el arrastre/tap del thumb. */
   disabled?: boolean
-  /** Modo Mi Radar: oculta el tooltip "Máx · X€" y muestra una flecha de ancla
-   *  sobre el tramo elegido (el precio ya se ve en la línea de estado). */
+  /** Modo Mi Radar: controla comportamiento del track sin selección (sin rastro preview). */
   anchorMode?: boolean
   /** La flecha de ancla está desvaneciéndose (fade-out antes de desanclar). */
   anchorFading?: boolean
@@ -62,19 +61,19 @@ export default function VondaTargetSlider({
     thumb: mini ? 30 : 34,
     priceFont: mini ? 13 : 15,
     udsFont: mini ? 10.5 : 11,
-    trackTop: mini ? 34 : 46,
-    bubbleTop: mini ? -34 : -40,
+    trackTop: mini ? 16 : 20,
   }
 
+  const effectiveMin = Math.max(minIdx, curIdx)
   const setFromClientX = useCallback((clientX: number) => {
     const el = trackRef.current
     if (!el || n <= 1) return
     const r = el.getBoundingClientRect()
     const ratio = Math.min(1, Math.max(0, (clientX - r.left) / r.width))
-    const i = Math.max(minIdx, Math.min(n - 1, Math.round(ratio * (n - 1))))
+    const i = Math.max(effectiveMin, Math.min(n - 1, Math.round(ratio * (n - 1))))
     lastIdxRef.current = i
     onSelIdx(i)
-  }, [n, onSelIdx, minIdx])
+  }, [n, onSelIdx, effectiveMin])
 
   const startDrag = useCallback((e: React.PointerEvent) => {
     if (disabled) return
@@ -104,17 +103,11 @@ export default function VondaTargetSlider({
   const showProj = esperarTrail || (!anchorMode && nextIdx != null)
   const projW = showProj && projEndIdx != null && n > 1 ? ((projEndIdx - curIdx) / (n - 1)) * 86 + '%' : '0%'
   const projColor = esperarTrail ? '#E8944A' : '#C9BEF6'
-  const bubbleX = selIdx === 0 ? 'translateX(-16%)' : (selIdx === n - 1 ? 'translateX(-84%)' : 'translateX(-50%)')
-  const caretX = selIdx === 0 ? '16%' : (selIdx === n - 1 ? '84%' : '50%')
-
   // Copy (Vonda: elegir por debajo del actual = esperador válido)
   const selP = detents[selIdx]?.price ?? 0
   const curP = detents[curIdx]?.price ?? 0
   const nextP = nextIdx != null ? detents[nextIdx].price : null
   const faltan = udsToNext != null ? udsToNext : (nextIdx != null ? Math.max(0, detents[nextIdx].uds - detents[curIdx].uds) : 0)
-  // Unidades que faltan para el tramo SELECCIONADO (esperar mode)
-  const faltanSel = selIdx > curIdx ? Math.max(0, (detents[selIdx]?.uds ?? 0) - (detents[curIdx]?.uds ?? 0)) : 0
-
   let nudgeText: string
   if (confirmed) {
     if (selIdx < curIdx) {
@@ -212,16 +205,6 @@ export default function VondaTargetSlider({
       )}
 
       <div className="relative" style={{ marginTop: ui.trackTop }}>
-        {/* Máx bubble (oculto en modo Mi Radar) */}
-        {!anchorMode && (
-          <div style={{ position: 'absolute', top: ui.bubbleTop, left: pos(selIdx), transform: bubbleX, transition: 'left .22s cubic-bezier(.34,1.56,.64,1)', zIndex: 5 }}>
-            <div style={{ background: accent, color: '#fff', fontSize: 12, fontWeight: 800, padding: '6px 11px', borderRadius: 9, whiteSpace: 'nowrap', boxShadow: `0 8px 20px -8px ${accentShadow}` }}>
-              Máx · {fmt(selP)}
-            </div>
-            <div style={{ width: 9, height: 9, background: accent, position: 'absolute', left: caretX, bottom: -3, transform: 'translateX(-50%) rotate(45deg)' }} />
-          </div>
-        )}
-
         {/* Flecha de ancla: marca el tramo elegido cuando selIdx > curIdx (esperar) */}
         {(selIdx > curIdx || anchorFading) && (
           <div style={{ position: 'absolute', top: -11, left: pos(selIdx), transform: 'translateX(-50%)', transition: 'left .22s cubic-bezier(.34,1.56,.64,1), opacity .3s ease', opacity: anchorFading ? 0 : 1, zIndex: 6, pointerEvents: 'none' }}>
@@ -284,16 +267,17 @@ export default function VondaTargetSlider({
         <div style={{ position: 'relative', height: 40, marginTop: 12 }}>
           {detents.map((d, i) => {
             const achieved = i <= curIdx
-            const isSelEsperar = i === selIdx && selIdx > curIdx
+            const isFuture = i > curIdx
+            const faltanI = isFuture ? Math.max(0, d.uds - (detents[curIdx]?.uds ?? 0)) : 0
             const priceColor = i === selIdx ? accent : (achieved ? '#6C4BF4' : '#9a97a2')
-            const udsColor = isSelEsperar ? '#E8944A' : '#9a97a2'
-            const udsLabel = isSelEsperar
-              ? `Faltan ${faltanSel}`
+            const udsColor = isFuture ? '#E8944A' : '#9a97a2'
+            const udsLabel = isFuture
+              ? `Faltan ${faltanI}`
               : `${d.uds} ${d.uds === 1 ? 'ud' : 'uds'}`
             return (
               <div key={i} style={{ position: 'absolute', left: pos(i), top: 0, transform: 'translateX(-50%)', textAlign: 'center' }}>
                 <div style={{ fontSize: ui.priceFont, fontWeight: 800, color: priceColor, whiteSpace: 'nowrap' }}>{fmt(d.price)}</div>
-                <div style={{ fontSize: ui.udsFont, fontWeight: isSelEsperar ? 700 : 400, color: udsColor, marginTop: 2, whiteSpace: 'nowrap' }}>{udsLabel}</div>
+                <div style={{ fontSize: ui.udsFont, fontWeight: isFuture ? 700 : 400, color: udsColor, marginTop: 2, whiteSpace: 'nowrap' }}>{udsLabel}</div>
               </div>
             )
           })}
