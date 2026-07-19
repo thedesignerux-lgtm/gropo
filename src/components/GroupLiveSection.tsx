@@ -79,10 +79,11 @@ export default function GroupLiveSection({
   const statusLabel = confirmed ? 'Confirmado' : 'En espera'
   const statusBg = confirmed ? '#EDE9FB' : '#FCEEE0'
 
-  const [lockAnimating, setLockAnimating] = useState(false)
+  const [lockPhase, setLockPhase] = useState(0) // 0=idle, 1=spinning, 2=locked
   const handleCheckout = () => {
-    if (lockAnimating) return
-    setLockAnimating(true)
+    if (lockPhase > 0) return
+    setLockPhase(1) // arrows start spinning
+    setTimeout(() => setLockPhase(2), 1000) // after 1s → CTA changes
     setTimeout(() => {
       if (isEsperar) {
         const p = new URLSearchParams({ mode: 'esperar', target: String(effectiveSelected) })
@@ -92,7 +93,7 @@ export default function GroupLiveSection({
       } else {
         router.push(`/grupo/${groupId}/unirme?target=${effectiveSelected}`)
       }
-    }, 1200)
+    }, 1800)
   }
 
   const avatarCount = Math.min(totalParticipants, AVATAR_LETTERS.length)
@@ -149,8 +150,8 @@ export default function GroupLiveSection({
                 udsToNext={missing}
                 pulse={pulseData?.steps}
                 glow={pulseData?.glow}
-                locked={lockAnimating}
-                disabled={lockAnimating}
+                locked={lockPhase > 0}
+                disabled={lockPhase > 0}
               />
             </div>
           )}
@@ -177,13 +178,13 @@ export default function GroupLiveSection({
         <button
           type="button"
           onClick={handleCheckout}
-          disabled={lockAnimating}
+          disabled={lockPhase > 0}
           className="w-full h-12 rounded-xl font-bold text-[14.5px] active:scale-[0.98] transition-all whitespace-nowrap"
-          style={lockAnimating
+          style={lockPhase >= 2
             ? { border: '2px solid #157F52', background: '#E8F5E9', color: '#157F52' }
             : { border: `2px solid ${accent}`, background: `${accent}14`, color: accent }}
         >
-          {lockAnimating ? '✓ Precio bloqueado' : (isEsperar ? `Reservar plaza · Máx. ${fmt(effectiveSelected)}` : `Bloquear precio · ${fmt(effectiveSelected)}`)}
+          {lockPhase >= 2 ? '✓ Precio bloqueado' : (isEsperar ? `Reservar plaza · Máx. ${fmt(effectiveSelected)}` : `Bloquear precio · ${fmt(effectiveSelected)}`)}
         </button>
       </div>
     </>

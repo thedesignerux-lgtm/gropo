@@ -10,17 +10,13 @@ function fmt(n: number): string {
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
 
-/* ── Icono de candado con flechas circulares ── */
-function LockSvg({ color, size }: { color: string; size: number }) {
+/* ── Anillo de flechas (gira alrededor del candado) ── */
+function ArrowsRing({ color, size }: { color: string; size: number }) {
   const R = 20, CX = 24, CY = 24
   const toR = (d: number) => d * Math.PI / 180
   const arcs: [number, number][] = [[300, 345], [30, 75], [120, 165], [210, 255]]
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
-      <circle cx={CX} cy={CY} r="13" fill="#fff" stroke={color} strokeWidth="2.5" />
-      <rect x="19.5" y="25.5" width="9" height="6.5" rx="1.5" fill={color} />
-      <path d="M21.5 25.5v-2.5a2.5 2.5 0 0 1 5 0v2.5" stroke={color} strokeWidth="1.8" fill="none" strokeLinecap="round" />
-      <circle cx={CX} cy="28" r="1" fill="#fff" />
       {arcs.map(([a1, a2], i) => {
         const x1 = CX + R * Math.cos(toR(a1)), y1 = CY + R * Math.sin(toR(a1))
         const x2 = CX + R * Math.cos(toR(a2)), y2 = CY + R * Math.sin(toR(a2))
@@ -35,6 +31,18 @@ function LockSvg({ color, size }: { color: string; size: number }) {
           </g>
         )
       })}
+    </svg>
+  )
+}
+
+/* ── Centro del candado (círculo + padlock) ── */
+function LockCenter({ color, size }: { color: string; size: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none">
+      <circle cx="24" cy="24" r="13" fill="#fff" stroke={color} strokeWidth="2.5" />
+      <rect x="19.5" y="25.5" width="9" height="6.5" rx="1.5" fill={color} />
+      <path d="M21.5 25.5v-2.5a2.5 2.5 0 0 1 5 0v2.5" stroke={color} strokeWidth="1.8" fill="none" strokeLinecap="round" />
+      <circle cx="24" cy="28" r="1" fill="#fff" />
     </svg>
   )
 }
@@ -121,6 +129,11 @@ export default function VondaTargetSlider({
     window.addEventListener('pointerup', up)
   }, [setFromClientX, disabled, onCommit])
 
+  // Detectar transición locked: false→true para disparar animación de spin
+  const wasLockedRef = useRef(locked)
+  const lockSpin = locked && !wasLockedRef.current
+  useEffect(() => { wasLockedRef.current = locked }, [locked])
+
   const confirmed = selIdx <= curIdx
   const accent = confirmed ? '#6C4BF4' : '#E8944A'
   const accentShadow = confirmed ? 'rgba(108,75,244,.28)' : 'rgba(232,148,74,.28)'
@@ -152,8 +165,6 @@ export default function VondaTargetSlider({
   // Posición: si el nodo seleccionado está cerca de los bordes, desplazar hacia el centro
   const tipPct = posN(selIdx)
   const tipShift = tipPct < 25 ? 'translateX(-12%)' : tipPct > 75 ? 'translateX(-88%)' : 'translateX(-50%)'
-  const tipCaretLeft = tipPct < 25 ? '12%' : tipPct > 75 ? '88%' : '50%'
-
   let nudgeText: string
   if (confirmed) {
     if (selIdx < curIdx) {
@@ -316,11 +327,21 @@ export default function VondaTargetSlider({
               <span style={{ width: 11, height: 11, borderRadius: '50%', background: accent }} />
             </div>
           )}
-          {locked && (
-            <div style={{ position: 'absolute', top: '50%', left: pos(selIdx), transform: 'translate(-50%,-50%)', zIndex: 5, pointerEvents: 'none', animation: 'lockBounce .5s cubic-bezier(.34,1.56,.64,1)' }}>
-              <LockSvg color={accent} size={mini ? 38 : 46} />
-            </div>
-          )}
+          {locked && (() => {
+            const sz = mini ? 40 : 48
+            return (
+              <div style={{ position: 'absolute', top: '50%', left: pos(selIdx), transform: 'translate(-50%,-50%)', width: sz, height: sz, zIndex: 5, pointerEvents: 'none' }}>
+                {/* Flechas — giran 1 vuelta si es transición, estáticas si ya montó locked */}
+                <div className={lockSpin ? 'lock-arrows-spin' : undefined} style={{ position: 'absolute', inset: 0 }}>
+                  <ArrowsRing color={accent} size={sz} />
+                </div>
+                {/* Centro candado — fade in si es transición */}
+                <div className={lockSpin ? 'lock-center-in' : undefined} style={{ position: 'absolute', inset: 0 }}>
+                  <LockCenter color={accent} size={sz} />
+                </div>
+              </div>
+            )
+          })()}
         </div>
 
         {/* Labels */}

@@ -83,10 +83,11 @@ export default function GroupRightSidebar({
   if (quantity > 1) ctaParams.set('qty', String(quantity))
   const ctaHref = `/grupo/${groupId}/unirme${ctaParams.toString() ? `?${ctaParams.toString()}` : ''}`
 
-  const [lockAnimating, setLockAnimating] = useState(false)
+  const [lockPhase, setLockPhase] = useState(0) // 0=idle, 1=spinning, 2=locked
   const handleBuy = () => {
-    if (lockAnimating) return
-    setLockAnimating(true)
+    if (lockPhase > 0) return
+    setLockPhase(1) // arrows start spinning
+    setTimeout(() => setLockPhase(2), 1000) // after 1s → CTA changes
     setTimeout(() => {
       if (isEsperar) {
         router.push(ctaHref)
@@ -95,7 +96,7 @@ export default function GroupRightSidebar({
       } else {
         router.push(ctaHref)
       }
-    }, 1200)
+    }, 1800) // navigate after 1.8s
   }
 
   const avatarCount = Math.min(totalParticipants, AVATAR_LETTERS.length)
@@ -157,8 +158,8 @@ export default function GroupRightSidebar({
             udsToNext={missing}
             pulse={pulseData?.steps}
             glow={pulseData?.glow}
-            locked={lockAnimating}
-            disabled={lockAnimating}
+            locked={lockPhase > 0}
+            disabled={lockPhase > 0}
           />
         ) : (
           <div className="text-lg font-bold text-neutral-900">{fmt(displayPrice)}</div>
@@ -177,13 +178,13 @@ export default function GroupRightSidebar({
           <button
             type="button"
             onClick={handleBuy}
-            disabled={lockAnimating}
+            disabled={lockPhase > 0}
             className="flex-1 h-[46px] rounded-[14px] font-extrabold text-[13.5px] active:scale-[0.98] transition-all whitespace-nowrap"
-            style={lockAnimating
+            style={lockPhase >= 2
               ? { border: '2px solid #157F52', background: '#E8F5E9', color: '#157F52' }
               : { border: `2px solid ${accent}`, background: `${accent}14`, color: accent, boxShadow: `0 12px 26px -14px ${accentShadow}` }}
           >
-            {lockAnimating ? '✓ Precio bloqueado' : (confirmed ? `Bloquear precio · Máx. ${fmt(selectedPrice)}` : `Reservar plaza · Máx. ${fmt(selectedPrice)}`)}
+            {lockPhase >= 2 ? '✓ Precio bloqueado' : (confirmed ? `Bloquear precio · Máx. ${fmt(selectedPrice)}` : `Reservar plaza · Máx. ${fmt(selectedPrice)}`)}
           </button>
         </div>
 

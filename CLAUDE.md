@@ -140,7 +140,41 @@ Next.js 14 App Router (`src/`, alias `@/` → `src/`) · Supabase (PostgreSQL + 
   - StepCircle y BenefitRow reducidos de tamaño para caber en la columna izquierda
   - Código muerto añadido: GroupLiveSection2c.tsx, MobileVariantWrapper.tsx (ya no se importan)
   - VondaTargetSlider 19 jul: tooltip "Máx · X€" eliminado (redundante). Todos los tiers no alcanzados muestran "Faltan X" en naranja bold. Thumb bloqueado: no se puede seleccionar por debajo del tier actual (effectiveMin = max(minIdx, curIdx)). trackTop reducido (16/20px) tras eliminar burbuja
-  - PENDIENTE PUSH: Benjamin debe hacer git add -A && git commit && git push desde terminal
+- Sesión 20 jul — micro-interacción lock (INCOMPLETA, requiere corrección):
+  - VondaTargetSlider: tooltip naranja "Faltan X uds" sobre tier seleccionado (4s, edge-aware). Caret eliminado. Labels = unidades absolutas, tooltip = relativas. Triángulo indicador a 2px del thumb.
+  - LockSvg dividido en ArrowsRing (4 arcos con flechas, giran) + LockCenter (círculo + candado, aparece después).
+  - `lockSpin` detección via `wasLockedRef` (useRef) para diferenciar transición animada vs mount estático en JoinFlow.
+  - lockPhase (0/1/2) en GroupRightSidebar y GroupLiveSection: phase 1 = spin, phase 2 = CTA verde, navigate a 1.8s.
+  - CSS en globals.css: .lock-arrows-spin (lockSpin 1s) y .lock-center-in (lockFadeIn .35s delay .15s).
+
+### ⚠️ HANDOFF — Lock micro-interacción NO FUNCIONA COMO SE PIDE
+
+**Lo que Benjamin quiere (descripción exacta del usuario):**
+"I want the four triangles around the circle for 1 second after stop with the locker as the image while the cta changes to the image after that one second and go to the cart page where we see the progress bar tier locked."
+
+**Secuencia correcta que el usuario pide:**
+1. Click en CTA → las 4 flechas (ArrowsRing) empiezan a GIRAR alrededor del círculo
+2. Después de 1 segundo → las flechas PARAN de girar
+3. Al parar las flechas → el candado (LockCenter) aparece como imagen final dentro del círculo
+4. SIMULTÁNEAMENTE al candado apareciendo → el CTA cambia a "✓ Precio bloqueado" (verde)
+5. Breve pausa → navegar a la página de pago (/grupo/[id]/unirme)
+6. En la página de pago (JoinFlow) → el slider muestra el candado ya estático (sin animación), con el color correspondiente (morado si tier actual, naranja si esperar)
+
+**Qué está mal ahora (bugs conocidos):**
+1. **`lock-center-in` tiene delay de 0.15s** — el candado aparece DURANTE el spin, no DESPUÉS. Debería tener delay de ~1s (esperar a que el spin termine).
+2. **Las flechas no desaparecen tras el spin** — después de parar, las flechas deberían quedarse quietas o desvanecerse para dar protagonismo al candado. Actualmente se quedan visibles en su posición final (rotadas 360° = misma posición).
+3. **Verificar visualmente** que la secuencia se ve fluida y coherente. Benjamin es diseñador UX y notará cualquier timing incorrecto.
+
+**Archivos a modificar:**
+- `src/app/globals.css` — Ajustar delay de `.lock-center-in` a ~1s. Posiblemente añadir fade-out de flechas tras el spin.
+- `src/components/VondaTargetSlider.tsx` — Componentes ArrowsRing y LockCenter ya están separados. lockSpin detection funciona. Revisar si hace falta lógica adicional para ocultar flechas tras spin.
+- `src/components/desktop/GroupRightSidebar.tsx` — lockPhase timing: phase 2 debería ser a ~1.3s (tras spin + fade del candado), navigate a ~2s.
+- `src/components/GroupLiveSection.tsx` — mismos cambios de timing que GroupRightSidebar.
+- `src/app/grupo/[id]/unirme/JoinFlow.tsx` — Ya tiene `locked` prop estático. Verificar que se ve bien.
+
+**Referencia visual:** Benjamin compartió 2 imágenes de referencia:
+1. Un botón verde "✓ Precio bloqueado" — el estado final del CTA
+2. Un icono de candado rodeado de 4 flechas curvas con puntas triangulares dentro de un círculo — el estado final del lock icon en el slider
 
 ### Pendiente crítico
 - Cutover Stripe test → live (pk_live, sk_live, webhook live, vars Vercel)
