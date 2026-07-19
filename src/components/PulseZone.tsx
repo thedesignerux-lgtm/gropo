@@ -70,6 +70,19 @@ export default function PulseZone({
   const stop = (e: React.MouseEvent) => { e.preventDefault(); e.stopPropagation() }
   const go = (e: React.MouseEvent, href: string) => { stop(e); router.push(href) }
 
+  // ── Micro-interacción de bloqueo (misma que la ficha): 0=idle, 1=giro, 2=bloqueado ──
+  const [lockPhase, setLockPhase] = useState(0)
+  const lockTimers = useRef<ReturnType<typeof setTimeout>[]>([])
+  useEffect(() => () => { lockTimers.current.forEach(clearTimeout) }, [])
+  function startLock(e: React.MouseEvent, action: () => void) {
+    stop(e)
+    if (lockPhase > 0) return
+    setLockPhase(1)
+    lockTimers.current.push(setTimeout(() => setLockPhase(2), 1000))
+    lockTimers.current.push(setTimeout(action, 1800))
+  }
+  const lockedCtaStyle = { border: '2px solid #157F52', background: '#E8F5E9', color: '#157F52' }
+
   async function upsertPledge(price: number, quantity: number) {
     setBusy(true); setError(null)
     try {
@@ -318,11 +331,12 @@ export default function PulseZone({
             </p>
           </div>
           <button
-            onClick={(e) => { stop(e); setModal(true) }}
-            className="w-full mt-3 rounded-[12px] py-3.5 text-sm font-bold text-white transition-[filter] hover:brightness-95 active:scale-[0.99]"
-            style={{ background: '#6C4BF4' }}
+            onClick={(e) => startLock(e, () => setModal(true))}
+            disabled={lockPhase === 1}
+            className="w-full mt-3 rounded-[12px] py-3.5 text-sm font-bold transition-[filter] hover:brightness-95 active:scale-[0.99]"
+            style={lockPhase >= 2 ? lockedCtaStyle : { background: '#6C4BF4', color: '#fff' }}
           >
-            Ya sois suficientes → Aceptar {fmt(mine.tier_price)}
+            {lockPhase >= 2 ? '✓ Precio bloqueado' : <>Ya sois suficientes → Aceptar {fmt(mine.tier_price)}</>}
           </button>
         </>
       )
@@ -346,11 +360,12 @@ export default function PulseZone({
             </p>
           </div>
           <button
-            onClick={(e) => go(e, `/grupo/${groupId}/unirme`)}
-            className="w-full mt-3 rounded-[12px] py-3.5 text-sm font-bold text-white transition-[filter] hover:brightness-95 active:scale-[0.99]"
-            style={{ background: '#6C4BF4' }}
+            onClick={(e) => startLock(e, () => router.push(`/grupo/${groupId}/unirme`))}
+            disabled={lockPhase === 1}
+            className="w-full mt-3 rounded-[12px] py-3.5 text-sm font-bold transition-[filter] hover:brightness-95 active:scale-[0.99]"
+            style={lockPhase >= 2 ? lockedCtaStyle : { background: '#6C4BF4', color: '#fff' }}
           >
-            Desbloquear precio a {fmt(currentPrice)}
+            {lockPhase >= 2 ? '✓ Precio bloqueado' : <>Desbloquear precio a {fmt(currentPrice)}</>}
           </button>
         </>
       )
@@ -374,11 +389,12 @@ export default function PulseZone({
           onSelIdx={setSelIdx}
           onCommit={onCommitAnchor}
           minIdx={curIdx}
-          disabled={sliderDisabled}
+          disabled={sliderDisabled || lockPhase > 0}
+          locked={lockPhase > 0}
           size="mini"
           chrome="none"
           anchorMode
-          hideThumb={noSelection}
+          hideThumb={noSelection && lockPhase === 0}
           pulse={complete ? undefined : pulse}
           glow={complete ? 0 : glow}
         />
@@ -400,7 +416,7 @@ export default function PulseZone({
           productName={productName}
           tierPrice={mine.tier_price}
           quantity={mine.quantity}
-          onClose={() => { setModal(false); refresh() }}
+          onClose={() => { setModal(false); setLockPhase(0); refresh() }}
         />
       )}
     </div>
