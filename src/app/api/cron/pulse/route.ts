@@ -7,6 +7,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { runPulseTrigger, expireDeadPledges } from '@/lib/pulse';
+import { notifyReachableWatchers } from '@/lib/pulse-notify';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -40,5 +41,17 @@ export async function GET(req: Request) {
 
   const expired = await expireDeadPledges();
 
-  return NextResponse.json({ checked: groupIds.length, expired, results });
+  // Red de seguridad del aviso "ya sois suficientes": re-evalúa los grupos con
+  // esperas vivas (dedup en BD → jamás avisa dos veces del mismo tramo).
+  let notified = 0;
+  const { data: watchers } = await supabaseAdmin
+    .from('pulse_pledges')
+    .select('group_id')
+    .eq('status', 'watching');
+  const watchIds = Array.from(new Set((watchers ?? []).map((w) => w.group_id)));
+  for (const gid of watchIds) {
+    notified += await notifyReachableWatchers(gid);
+  }
+
+  return NextResponse.json({ checked: groupIds.length, expired, notified, results });
 }

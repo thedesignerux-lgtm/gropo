@@ -6,6 +6,7 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { createClient } from '@/lib/supabase-server';
+import { notifyReachableWatchers } from '@/lib/pulse-notify';
 
 export const runtime = 'nodejs';
 
@@ -37,6 +38,11 @@ export async function POST(req: Request) {
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
+
+    // Aviso "ya sois suficientes" (no-fatal, best-effort): esta espera puede
+    // completar la masa de su tramo — para ella misma y para otros watchers.
+    await notifyReachableWatchers(group_id);
+
     return NextResponse.json(data);
   } catch (err: unknown) {
     console.error('[pulse/pledge] error', err);

@@ -15,6 +15,7 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 import { Resend } from 'resend';
 import { joinConfirmationEmail } from '@/lib/emails/joinConfirmation';
 import { runPulseTrigger } from '@/lib/pulse';
+import { notifyReachableWatchers } from '@/lib/pulse-notify';
 
 // Instanciación perezosa: NO crear el cliente al importar el módulo (rompe `next build`
 // en "collecting page data" si falta la key). Se crea en runtime, al enviar el email.
@@ -171,6 +172,14 @@ export async function POST(req: Request) {
         } catch (pulseErr: any) {
           console.error('[webhook] pulse trigger falló (no-fatal):', pulseErr?.message);
         }
+      }
+
+      // Aviso "ya sois suficientes" (no-fatal): la compra confirmada puede hacer
+      // alcanzable un tramo que alguien espera en su Radar.
+      try {
+        await notifyReachableWatchers(m.group_id);
+      } catch (nErr: any) {
+        console.error('[webhook] pulse notify falló (no-fatal):', nErr?.message);
       }
     } else {
       console.log(`[webhook] ${data?.status} PI ${pi.id}`);
