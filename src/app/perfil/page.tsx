@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase-browser'
+import AuthPanel from '@/components/AuthPanel'
 import DesktopNavbar from '@/components/desktop/DesktopNavbar'
 import BottomNav from '@/components/BottomNav'
 
@@ -42,11 +44,28 @@ export default function PerfilPage() {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
+  // Sesión real (Supabase Auth). undefined = comprobando · null = sin sesión.
+  const [sessionEmail, setSessionEmail] = useState<string | null | undefined>(undefined)
+  useEffect(() => {
+    const sb = createClient()
+    sb.auth.getUser().then(({ data }) => setSessionEmail(data.user?.email ?? null))
+  }, [])
+
+  async function handleSignOut() {
+    // Cierre de sesión DE VERDAD: antes solo se borraba localStorage, así que
+    // no había forma de volver a entrar (nunca hubo sesión que reabrir).
+    try { await createClient().auth.signOut() } catch { /* best-effort */ }
+    try { localStorage.removeItem('vonda_user') } catch { /* ignorar */ }
+    window.location.href = '/'
+  }
+
   // Cargar identidad y traer el perfil (direcciones + preferencias) del servidor
   useEffect(() => {
     let u: VUser
     try { const raw = localStorage.getItem('vonda_user'); u = raw ? JSON.parse(raw) : { name: '', email: '', phone: '' } }
     catch { u = { name: '', email: '', phone: '' } }
+    // El email de la sesión manda sobre el de localStorage
+    if (sessionEmail) u = { ...u, email: sessionEmail }
     setUser(u)
     if (u.phone && u.email) {
       supabase.rpc('get_profile', { p_phone: u.phone, p_email: u.email }).then(({ data }) => {
@@ -56,7 +75,7 @@ export default function PerfilPage() {
         }
       })
     }
-  }, [])
+  }, [sessionEmail])
 
   // Cerrar menú con ESC / clic fuera
   useEffect(() => {
@@ -132,6 +151,41 @@ export default function PerfilPage() {
   const menuAddr = addrs.find(a => a.id === openMenu) || null
   const initials = (user?.name || 'V').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase() || 'V'
   const inputCls = 'w-full text-sm border border-neutral-200 rounded-lg px-3 py-2 outline-none focus:border-brand focus:ring-2 focus:ring-brand/15'
+
+  // Comprobando sesión
+  if (sessionEmail === undefined) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F7F9FC' }}>
+        <p className="text-sm text-neutral-400">···</p>
+      </div>
+    )
+  }
+
+  // PUERTA DE ACCESO: el perfil es privado. Tras cerrar sesión se vuelve aquí,
+  // y desde aquí se puede volver a entrar con Google o email.
+  if (sessionEmail === null) {
+    return (
+      <div className="min-h-screen" style={{ backgroundColor: '#F7F9FC' }}>
+        <div className="hidden lg:block"><DesktopNavbar /></div>
+        <div className="max-w-md mx-auto px-4 pt-10 pb-28">
+          <div className="bg-white border border-neutral-200 rounded-2xl p-6">
+            <AuthPanel
+              title="Entra en tu perfil"
+              subtitle="Tus datos, direcciones y preferencias del Radar"
+              ctaLabel="Entrar con el email"
+              icon={
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className="text-brand">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+              }
+            />
+          </div>
+        </div>
+        <div className="lg:hidden"><BottomNav /></div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F7F9FC' }}>
@@ -258,7 +312,7 @@ export default function PerfilPage() {
                 <h3 className="text-sm font-bold mb-2.5">Sesión</h3>
                 <p className="text-[12.5px] text-neutral-500 leading-relaxed mb-3">Tu Radar seguirá buscando ofertas por ti mientras no estás.</p>
                 <button
-                  onClick={() => { try { localStorage.removeItem('vonda_user') } catch {}; window.location.href = '/' }}
+                  onClick={handleSignOut}
                   className="w-full border border-neutral-200 hover:border-neutral-300 rounded-xl py-2.5 text-[13.5px] font-bold text-neutral-700"
                 >Cerrar sesión</button>
               </div>

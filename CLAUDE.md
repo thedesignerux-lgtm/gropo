@@ -140,41 +140,28 @@ Next.js 14 App Router (`src/`, alias `@/` → `src/`) · Supabase (PostgreSQL + 
   - StepCircle y BenefitRow reducidos de tamaño para caber en la columna izquierda
   - Código muerto añadido: GroupLiveSection2c.tsx, MobileVariantWrapper.tsx (ya no se importan)
   - VondaTargetSlider 19 jul: tooltip "Máx · X€" eliminado (redundante). Todos los tiers no alcanzados muestran "Faltan X" en naranja bold. Thumb bloqueado: no se puede seleccionar por debajo del tier actual (effectiveMin = max(minIdx, curIdx)). trackTop reducido (16/20px) tras eliminar burbuja
-- Sesión 20 jul — micro-interacción lock (INCOMPLETA, requiere corrección):
-  - VondaTargetSlider: tooltip naranja "Faltan X uds" sobre tier seleccionado (4s, edge-aware). Caret eliminado. Labels = unidades absolutas, tooltip = relativas. Triángulo indicador a 2px del thumb.
-  - LockSvg dividido en ArrowsRing (4 arcos con flechas, giran) + LockCenter (círculo + candado, aparece después).
-  - `lockSpin` detección via `wasLockedRef` (useRef) para diferenciar transición animada vs mount estático en JoinFlow.
-  - lockPhase (0/1/2) en GroupRightSidebar y GroupLiveSection: phase 1 = spin, phase 2 = CTA verde, navigate a 1.8s.
-  - CSS en globals.css: .lock-arrows-spin (lockSpin 1s) y .lock-center-in (lockFadeIn .35s delay .15s).
+- Sesión 20 jul (madrugada) — micro-interacción lock COMPLETADA (commits 450c777, b9aa3db, dc14180):
+  - VondaTargetSlider: tooltip naranja "Faltan X uds" sobre tier seleccionado (4s, edge-aware). Labels = unidades absolutas, tooltip = relativas.
+  - ArrowsRing (4 triángulos en diagonales, giran 1 vuelta) + LockCenter (disco + candado, aparece al parar). `.lock-center-in` con delay 1s. Detección de transición via `wasLockedRef`.
+  - lockPhase (0/1/2) en GroupRightSidebar y GroupLiveSection: spin 1s → CTA verde "✓ Precio bloqueado" → navigate a 1.8s. JoinFlow muestra el candado estático con `locked`.
+  - Las flechas quedan quietas tras el giro (coincide con la imagen de referencia: candado rodeado de 4 flechas). NO se desvanecen.
+- Sesión 20 jul — Pulse "ya sois suficientes" + PulseZone canAccept + puerta de acceso auth:
+  - **pulse-notify** (`src/lib/pulse-notify.ts` + `src/lib/emails/pulseReachable.ts`): aviso por email a watchers cuando su tramo pasa a alcanzable (committed + accepted + watching >= min_units, con recorte price < mejor desbloqueado — mismo criterio que el endpoint público). Dedup atómico por `reachable_notified_price` en `pulse_pledges` (columnas ya en BD). Claim DESPUÉS de resolver email (sin email → queda pendiente para reintento del cron). Envíos en paralelo (Promise.allSettled). Si el envío falla se revierte el claim. Enganchado en: webhook Stripe (compra confirmada), POST /api/pulse/pledge (ancla nueva), cron pulse (red de seguridad diaria).
+  - **PulseZone canAccept simplificado**: UNA sola CTA ("Ya sois suficientes → Aceptar X"), slider oculto (el precio ya está elegido; en canAccept no se puede re-anclar desde la card — decisión de producto), sin micro-interacción de candado (abriría el modal con 1.8s de espera y el "bloqueado" sería falso: aún no hay tarjeta). Leyenda morada con explicación del proceso: hoy 0 €, retención si se activa, cobro al cierre dominical. Eliminada CTA secundaria "Asegurar precio" también del camino no-boxed.
+  - **AuthPanel.tsx** (nuevo): panel de login reutilizable (Google OAuth + magic link, prop `next` para volver a la página). Única fuente de la lógica auth de cliente. RadarAuthSheet ahora lo envuelve (hoja+portal sin lógica propia).
+  - **Mis grupos**: puerta de acceso con AuthPanel si no hay sesión Supabase. El email sale SIEMPRE de la sesión (ya no se teclea; se muestra en gris). Solo se pide teléfono (una vez). Las RPC siguen siendo por teléfono+email por debajo.
+  - **Mi perfil**: puerta de acceso con AuthPanel. "Cerrar sesión" ahora hace `auth.signOut()` real (antes solo borraba localStorage y era imposible volver a entrar). Email de sesión manda sobre localStorage.
+  - PENDIENTE (decisión aplazada): unificación real de identidad — vincular `group_members` a `auth.users` (columna auth_id + backfill) y reescribir get_my_groups/get_profile/address_* con auth.uid(). Eliminaría el teléfono como credencial y cerraría el acceso por teléfono+email adivinados. ⚡ Money-critical + RLS → sesión propia con gates y Fable 5.
 
-### ⚠️ HANDOFF — Lock micro-interacción NO FUNCIONA COMO SE PIDE
+### Datos DEMO activos (borrar antes del cierre dom 26 jul)
 
-**Lo que Benjamin quiere (descripción exacta del usuario):**
-"I want the four triangles around the circle for 1 second after stop with the locker as the image while the cta changes to the image after that one second and go to the cart page where we see the progress bar tier locked."
-
-**Secuencia correcta que el usuario pide:**
-1. Click en CTA → las 4 flechas (ArrowsRing) empiezan a GIRAR alrededor del círculo
-2. Después de 1 segundo → las flechas PARAN de girar
-3. Al parar las flechas → el candado (LockCenter) aparece como imagen final dentro del círculo
-4. SIMULTÁNEAMENTE al candado apareciendo → el CTA cambia a "✓ Precio bloqueado" (verde)
-5. Breve pausa → navegar a la página de pago (/grupo/[id]/unirme)
-6. En la página de pago (JoinFlow) → el slider muestra el candado ya estático (sin animación), con el color correspondiente (morado si tier actual, naranja si esperar)
-
-**Qué está mal ahora (bugs conocidos):**
-1. **`lock-center-in` tiene delay de 0.15s** — el candado aparece DURANTE el spin, no DESPUÉS. Debería tener delay de ~1s (esperar a que el spin termine).
-2. **Las flechas no desaparecen tras el spin** — después de parar, las flechas deberían quedarse quietas o desvanecerse para dar protagonismo al candado. Actualmente se quedan visibles en su posición final (rotadas 360° = misma posición).
-3. **Verificar visualmente** que la secuencia se ve fluida y coherente. Benjamin es diseñador UX y notará cualquier timing incorrecto.
-
-**Archivos a modificar:**
-- `src/app/globals.css` — Ajustar delay de `.lock-center-in` a ~1s. Posiblemente añadir fade-out de flechas tras el spin.
-- `src/components/VondaTargetSlider.tsx` — Componentes ArrowsRing y LockCenter ya están separados. lockSpin detection funciona. Revisar si hace falta lógica adicional para ocultar flechas tras spin.
-- `src/components/desktop/GroupRightSidebar.tsx` — lockPhase timing: phase 2 debería ser a ~1.3s (tras spin + fade del candado), navigate a ~2s.
-- `src/components/GroupLiveSection.tsx` — mismos cambios de timing que GroupRightSidebar.
-- `src/app/grupo/[id]/unirme/JoinFlow.tsx` — Ya tiene `locked` prop estático. Verificar que se ve bien.
-
-**Referencia visual:** Benjamin compartió 2 imágenes de referencia:
-1. Un botón verde "✓ Precio bloqueado" — el estado final del CTA
-2. Un icono de candado rodeado de 4 flechas curvas con puntas triangulares dentro de un círculo — el estado final del lock icon en el slider
+Grupo `aaaaaaaa-1111-4111-8111-111111111111` (`DEMO · Radar canAccept`): abierto, tramos 30/28/25, SIN miembros ni holds (riesgo económico nulo, pero visible en producción). 9 pledges watching a 25 € (Benjamin sin pre-marcar → recibirá el email real del cron ~08:30 UTC; 8 demo_pulse_* pre-marcados para no enviar a @vonda.test). Borrado:
+```sql
+delete from pulse_pledges where group_id = 'aaaaaaaa-1111-4111-8111-111111111111';
+delete from favorites    where group_id = 'aaaaaaaa-1111-4111-8111-111111111111';
+delete from bids         where group_id = 'aaaaaaaa-1111-4111-8111-111111111111';
+delete from groups       where id       = 'aaaaaaaa-1111-4111-8111-111111111111';
+```
 
 ### Pendiente crítico
 - Cutover Stripe test → live (pk_live, sk_live, webhook live, vars Vercel)
@@ -188,7 +175,7 @@ Next.js 14 App Router (`src/`, alias `@/` → `src/`) · Supabase (PostgreSQL + 
 - Guard de group_id en webhook route
 - Página "unido" basada en webhook confirmado (no solo Payment Element)
 - Pulse UX: quitar favorito no cancela pledge (decisión de producto) · selector de cantidad en PulseAcceptModal
-- Limpieza antes del dom 19: grupos DEMO + usuarios demo_pulse_* + ENSAYO_F1/F2 históricos + restos instructed 28 jun (Cubierta)
+- Limpieza pendiente: grupos DEMO + usuarios demo_pulse_* + ENSAYO_F1/F2 históricos + restos instructed 28 jun (Cubierta) + grupo DEMO Radar canAccept (ver sección Datos DEMO)
 - Centralizar Resend client (duplicado entre resend.ts y webhook)
 - Dedup latente en confirm_join (check por tel OR email, upsert ON CONFLICT email)
 - Código muerto: DesktopTierBar, TierBar, NextTierCallout, funciones mock-data.ts sin uso, HomeSidebar.tsx, GroupCenterContent.tsx (ya no se importan en ningún sitio)

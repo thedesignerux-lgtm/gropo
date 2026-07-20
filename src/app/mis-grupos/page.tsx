@@ -3,7 +3,9 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { createClient } from '@/lib/supabase-browser'
 import { normalizePhone } from '@/lib/phone'
+import AuthPanel from '@/components/AuthPanel'
 import BottomNav from '@/components/BottomNav'
 import MisGruposDesktop from '@/components/desktop/MisGruposDesktop'
 import MisGruposMobile from '@/components/MisGruposMobile'
@@ -43,11 +45,18 @@ export default function MisGruposPage() {
   // Formulario fallback (teléfono + email)
   const [showForm, setShowForm] = useState(false)
   const [formPhone, setFormPhone] = useState('')
-  const [formEmail, setFormEmail] = useState('')
   const [formError, setFormError] = useState<string | null>(null)
   const [notFound, setNotFound] = useState(false)
   const [searching, setSearching] = useState(false)
   const skipAutoRef = useRef(false)
+
+  // Sesión real (Supabase Auth). undefined = comprobando · null = sin sesión.
+  // El email SIEMPRE sale de aquí: ya no se pide ni se teclea.
+  const [sessionEmail, setSessionEmail] = useState<string | null | undefined>(undefined)
+  useEffect(() => {
+    const sb = createClient()
+    sb.auth.getUser().then(({ data }) => setSessionEmail(data.user?.email ?? null))
+  }, [])
 
   // Leer identidad de localStorage (solo en cliente)
   useEffect(() => {
@@ -62,15 +71,15 @@ export default function MisGruposPage() {
   // AUTO-CARGA: solo si localStorage tiene teléfono Y email guardados.
   // Si falta cualquiera de los dos, o la RPC devuelve vacío, caemos al formulario.
   useEffect(() => {
-    if (user === undefined) return
+    if (user === undefined || sessionEmail === undefined) return
+    if (!sessionEmail) return // sin sesión: manda la puerta de acceso
     if (skipAutoRef.current) { skipAutoRef.current = false; return }
 
     const phone = normalizePhone(user?.phone || '')
-    const email = (user?.email || '').trim()
+    const email = sessionEmail.trim()
 
-    if (!phone || !email) {
+    if (!phone) {
       setFormPhone(user?.phone || '')
-      setFormEmail(user?.email || '')
       setShowForm(true)
       return
     }
@@ -88,7 +97,6 @@ export default function MisGruposPage() {
       const groups = ((data as any)?.groups ?? []) as Membership[]
       if (groups.length === 0) {
         setFormPhone(user?.phone || '')
-        setFormEmail(user?.email || '')
         setShowForm(true)
         return
       }
@@ -96,16 +104,15 @@ export default function MisGruposPage() {
     }
 
     load()
-  }, [user])
+  }, [user, sessionEmail])
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault()
     setFormError(null)
     setNotFound(false)
 
-    const email = formEmail.trim()
-    if (!email) { setFormError('El email es obligatorio'); return }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setFormError('Email no válido'); return }
+    const email = (sessionEmail ?? '').trim()
+    if (!email) { setFormError('Sesión caducada. Vuelve a iniciar sesión.'); return }
     const phone = normalizePhone(formPhone)
     if (!/^[679][0-9]{8}$/.test(phone)) { setFormError('Teléfono no válido (9 dígitos, empieza por 6, 7 o 9)'); return }
 
@@ -127,6 +134,43 @@ export default function MisGruposPage() {
   }
 
 
+  // Comprobando sesión
+  if (sessionEmail === undefined) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <p className="text-sm text-gray-400">···</p>
+      </div>
+    )
+  }
+
+  // PUERTA DE ACCESO: sin sesión no se ven pedidos de nadie.
+  if (sessionEmail === null) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="max-w-md mx-auto min-h-screen pb-28 px-4 pt-10">
+          <div className="bg-white rounded-2xl border border-gray-200 p-6">
+            <AuthPanel
+              title="Entra para ver tus grupos"
+              subtitle="Tus pedidos y su estado, en un sitio"
+              ctaLabel="Entrar con el email"
+              icon={
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className="text-brand">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                  <circle cx="9" cy="7" r="4" />
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+                </svg>
+              }
+            />
+          </div>
+          <Link href="/" className="block text-center text-sm font-semibold text-brand mt-6">
+            Ver grupos abiertos
+          </Link>
+        </div>
+        <BottomNav />
+      </div>
+    )
+  }
+
   // Hidratación: esperando localStorage (o esperando a que el efecto decida)
   if (user === undefined || (user === null && !showForm)) {
     return (
@@ -142,7 +186,7 @@ export default function MisGruposPage() {
       <div className="min-h-screen bg-gray-50">
         <div className="max-w-md mx-auto min-h-screen pb-28 px-4 pt-5">
           <h1 className="text-2xl font-bold tracking-tight text-gray-900">Mis grupos</h1>
-          <p className="text-sm text-gray-500 mt-0.5 mb-6">Dinos tu teléfono y tu email y buscamos tus pedidos.</p>
+          <p className="text-sm text-gray-500 mt-0.5 mb-6">Dinos el teléfono con el que compraste y buscamos tus pedidos.</p>
 
           <form onSubmit={handleSearch} className="bg-white rounded-2xl border border-gray-200 p-4 space-y-4" noValidate>
             <div>
@@ -160,17 +204,10 @@ export default function MisGruposPage() {
               />
             </div>
             <div>
-              <label htmlFor="mg-email" className={labelCls}>Email</label>
-              <input
-                id="mg-email"
-                type="email"
-                required
-                placeholder="el email con el que compraste"
-                className={inputCls}
-                value={formEmail}
-                onChange={e => { setFormEmail(e.target.value); setFormError(null); setNotFound(false) }}
-                disabled={searching}
-              />
+              <label className={labelCls}>Email</label>
+              <p className="px-3.5 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-base text-gray-500 truncate">
+                {sessionEmail}
+              </p>
             </div>
 
             {formError && (

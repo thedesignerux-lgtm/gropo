@@ -270,19 +270,12 @@ export default function PulseZone({
   } else if (mine?.status === 'holding') {
     primary = <Cta color={PURPLE} disabled>Activando tu precio…</Cta>
   } else if (canAccept && mine) {
+    // UNA sola CTA: el foco es activar el precio anclado. La secundaria
+    // "Asegurar precio" competía con ella y desviaba a otro flujo.
     primary = (
-      <>
-        <Cta color={PURPLE} onClick={(e) => { stop(e); setModal(true) }}>
-          Ya sois suficientes → Aceptar {fmt(mine.tier_price)}
-        </Cta>
-        <button
-          onClick={(e) => go(e, `/grupo/${groupId}`)}
-          className="w-full mt-1.5 rounded-[11px] py-2 text-[12.5px] font-bold bg-white border"
-          style={{ color: ctaColor, borderColor: `${ctaColor}44` }}
-        >
-          Asegurar precio · {fmt(currentPrice)}
-        </button>
-      </>
+      <Cta color={PURPLE} onClick={(e) => { stop(e); setModal(true) }}>
+        Ya sois suficientes → Aceptar {fmt(mine.tier_price)}
+      </Cta>
     )
   } else if (mine?.status === 'watching') {
     // Con ancla marcada: asegurar AL PRECIO DEL NODO (flujo esperar con ese target)
@@ -326,17 +319,27 @@ export default function PulseZone({
         <>
           <div className="flex items-start gap-2.5 rounded-2xl mt-3.5" style={{ background: '#EEEAFB', border: '1px solid #E0D8FA', padding: '12px 14px' }}>
             <MedalIcon color="#6C4BF4" />
-            <p className="text-[13px] leading-snug" style={{ color: '#5B3BD1' }}>
-              ¡Ya sois suficientes! Puedes fijar tu precio de <b>{fmt(mine.tier_price)}</b> ahora.
-            </p>
+            <div>
+              <p className="text-[13px] leading-snug" style={{ color: '#5B3BD1' }}>
+                ¡Ya sois suficientes! Tu precio de <b>{fmt(mine.tier_price)}</b> puede hacerse realidad.
+              </p>
+              <p className="text-[12px] leading-snug mt-1.5" style={{ color: '#7A64C4' }}>
+                Solo añades tu tarjeta: <b>hoy no se te cobra ni se retiene nada</b>. Si el resto
+                también fija su precio y este se activa, se retiene el importe y se cobra al cerrar
+                el grupo el domingo.
+              </p>
+            </div>
           </div>
+          {/* Sin micro-interacción de candado: aquí el slider está oculto (el foco
+              es activar el precio, no elegirlo), así que la animación no tendría
+              dónde ocurrir — y "✓ Precio bloqueado" sería falso: aún no hay
+              tarjeta. Abre el modal directamente. */}
           <button
-            onClick={(e) => startLock(e, () => setModal(true))}
-            disabled={lockPhase === 1}
+            onClick={(e) => { stop(e); setModal(true) }}
             className="w-full mt-3 rounded-[12px] py-3.5 text-sm font-bold transition-[filter] hover:brightness-95 active:scale-[0.99]"
-            style={lockPhase >= 2 ? lockedCtaStyle : { background: '#6C4BF4', color: '#fff' }}
+            style={{ background: '#6C4BF4', color: '#fff' }}
           >
-            {lockPhase >= 2 ? '✓ Precio bloqueado' : <>Ya sois suficientes → Aceptar {fmt(mine.tier_price)}</>}
+            Ya sois suficientes → Aceptar {fmt(mine.tier_price)}
           </button>
         </>
       )
@@ -381,7 +384,9 @@ export default function PulseZone({
 
   return (
     <div onClick={(e) => e.stopPropagation()}>
-      {detents.length > 0 && (
+      {/* En canAccept el slider sobra: el precio ya está elegido y lo único que
+          toca es activarlo. Mostrarlo invita a re-anclar y compite con la CTA. */}
+      {detents.length > 0 && !canAccept && (
         <VondaTargetSlider
           detents={detents}
           curIdx={curIdx}
