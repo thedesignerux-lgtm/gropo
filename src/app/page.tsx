@@ -12,6 +12,7 @@ async function fetchGroups(): Promise<GroupProduct[]> {
     .from('groups')
     .select('id, product_name, product_spec, total_units, pvp, image_url, closes_at')
     .eq('status', 'open')
+    .eq('is_demo', false) // los grupos DEMO solo son accesibles por URL directa
     .order('created_at', { ascending: false })
 
   if (error) {

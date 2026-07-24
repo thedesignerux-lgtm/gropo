@@ -289,9 +289,16 @@ export default function PulseZone({
       </Cta>
     )
   } else {
-    // Sin ancla: aseguras tu PLAZA al precio vigente (y bajas con el grupo)
+    // Sin ancla: aseguras tu PLAZA al precio vigente (y bajas con el grupo).
+    // Va al flujo de unirse en modo 'comprar', igual que la rama con ancla va al
+    // suyo: la CTA hace lo que dice. Antes llevaba a la ficha (/grupo/[id]) y
+    // desde Mi Radar parecía que el botón te devolvía a la página del producto.
     primary = (
-      <Cta color={ctaColor} soft onClick={(e) => go(e, `/grupo/${groupId}`)}>
+      <Cta
+        color={ctaColor}
+        soft
+        onClick={(e) => go(e, `/grupo/${groupId}/unirme${qty > 1 ? `?qty=${qty}` : ''}`)}
+      >
         Bloquear precio · {fmt(currentPrice)}
       </Cta>
     )

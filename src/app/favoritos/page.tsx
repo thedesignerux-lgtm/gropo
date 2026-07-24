@@ -66,6 +66,7 @@ async function fetchRadar(): Promise<{ groups: RadarGroup[]; suggestions: Sugges
         .from('groups')
         .select('id, product_name, product_spec, image_url')
         .eq('status', 'open')
+        .eq('is_demo', false) // nunca sugerir grupos DEMO
         .limit(3)
       if (exclude.length > 0) q = q.not('id', 'in', `(${exclude.join(',')})`)
       const { data } = await q
@@ -86,7 +87,7 @@ async function fetchRadar(): Promise<{ groups: RadarGroup[]; suggestions: Sugges
 
   const { data: groups } = await supabaseAdmin
     .from('groups')
-    .select('id, product_name, product_spec, pvp, image_url, total_units, status, closes_at')
+    .select('id, product_name, product_spec, pvp, image_url, total_units, status, closes_at, current_price, final_price')
     .in('id', groupIds)
 
   if (!groups || groups.length === 0) {
@@ -116,11 +117,15 @@ async function fetchRadar(): Promise<{ groups: RadarGroup[]; suggestions: Sugges
   const enriched: RadarGroup[] = groups.map((g: any, i: number) => {
     const ladder = Array.isArray(ladders[i]?.data) ? ladders[i]!.data : []
     const unlocked = (ladder as any[]).filter((t: any) => t.unlocked)
+    // Sin escalera (grupos cerrados/cancelados: no se pide tier_demand) el precio
+    // sale de la BD. En un grupo cerrado el precio "bloqueado" es el de
+    // liquidación (final_price), no el último current_price en vivo.
+    const storedPrice = Number(g.final_price ?? g.current_price ?? 0)
     const currentPrice = unlocked.length > 0
       ? Math.min(...unlocked.map((t: any) => Number(t.price)))
       : (ladder as any[]).length > 0
         ? Math.max(...(ladder as any[]).map((t: any) => Number(t.price)))
-        : Number(g.current_price ?? 0)
+        : storedPrice
     const nextTier = (ladder as any[])
       .filter((t: any) => !t.unlocked && Number(t.price) < currentPrice)
       .sort((a: any, b: any) => Number(b.price) - Number(a.price))[0] ?? null

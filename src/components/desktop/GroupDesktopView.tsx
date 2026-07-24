@@ -68,10 +68,13 @@ export default function GroupDesktopView({
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.6" y1="10.5" x2="15.4" y2="6.5" /><line x1="8.6" y1="13.5" x2="15.4" y2="17.5" /></svg>
               Compartir
             </button>
-            <button className="flex items-center gap-[7px] text-[13.5px] font-bold text-[#1a1a1f] hover:text-brand px-2.5 py-2 rounded-[9px] transition-colors">
-              <FavoriteButton groupId={groupId} size={16} icon="heart" />
-              Guardar
-            </button>
+            <FavoriteButton
+              groupId={groupId}
+              size={16}
+              icon="heart"
+              label="Guardar"
+              className="gap-[7px] text-[13.5px] font-bold text-[#1a1a1f] hover:text-brand px-2.5 py-2 rounded-[9px]"
+            />
           </div>
         </div>
 

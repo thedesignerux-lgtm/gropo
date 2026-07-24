@@ -93,6 +93,7 @@ Next.js 14 App Router (`src/`, alias `@/` → `src/`) · Supabase (PostgreSQL + 
 4. **Git paths con brackets** (`src/app/admin/grupos/[id]/`) deben ir entre comillas en shell.
 5. **Potencia de modelo:** money-critical (compute_price, close_group, confirm_join, RLS) → Opus 4.8 o Fable 5. UI/display → Opus 4.6.
 6. **Sendcloud v3:** errores llegan con HTTP 200 (verificar `data.errors[]` en body). El sandbox de Claude Code no alcanza `panel.sendcloud.sc` — las llamadas Sendcloud las ejecuta Benjamin desde terminal.
+7. **Stripe vía MCP (desde 21 jul):** Claude puede LEER la API de Stripe directamente (cuenta `Vonda sandbox`, `acct_1TieNuA114rXo3Ka`, modo test). Úsalo para verificar el estado real de un PaymentIntent ANTES de tocar `payment_status` en BD — Stripe manda sobre lo que diga la tabla. Las escrituras en Stripe (capturas, cancelaciones, reembolsos) siguen requiriendo confirmación explícita de Benjamin.
 
 ## Estado actual (actualizar tras cada sesión)
 
@@ -153,14 +154,50 @@ Next.js 14 App Router (`src/`, alias `@/` → `src/`) · Supabase (PostgreSQL + 
   - **Mi perfil**: puerta de acceso con AuthPanel. "Cerrar sesión" ahora hace `auth.signOut()` real (antes solo borraba localStorage y era imposible volver a entrar). Email de sesión manda sobre localStorage.
   - PENDIENTE (decisión aplazada): unificación real de identidad — vincular `group_members` a `auth.users` (columna auth_id + backfill) y reescribir get_my_groups/get_profile/address_* con auth.uid(). Eliminaría el teléfono como credencial y cerraría el acceso por teléfono+email adivinados. ⚡ Money-critical + RLS → sesión propia con gates y Fable 5.
 
-### Datos DEMO activos (borrar antes del cierre dom 26 jul)
+- Sesión 21 jul — galería DEMO, `is_demo` y dos bugs de display:
+  - **Bug botón anidado (hidratación)**: `GroupDesktopView` envolvía `<FavoriteButton>` en otro `<button>` → HTML inválido y error de hidratación en la ficha desktop. `FavoriteButton` acepta ahora prop opcional `label` (el texto va DENTRO de su propio botón, y quita el `aria-label` redundante); el envoltorio desaparece. Efecto lateral bueno: clicar "Guardar" ya activa el favorito (antes el texto estaba en un botón padre inerte). Las otras 7 llamadas a `FavoriteButton` envuelven en `<div>`/`<span>`, no se tocan.
+  - **Bug "Precio bloqueado 0 €" en Mi Radar**: la query de `/favoritos` no pedía `current_price` ni `final_price`. Los grupos cerrados no piden `tier_demand` (solo los `open`), caían al fallback `Number(g.current_price ?? 0)` con `current_price` = undefined → **0 €**, y el "Ahorras" salía inflado al PVP entero. Afectaba a CUALQUIER grupo cerrado de cualquier usuario. Añadidos ambos campos al select; en cerrados manda `final_price` (precio de liquidación), que es lo que semánticamente significa "bloqueado".
+  - **`groups.is_demo`** + filtro en home y sugerencias del Radar (ver sección siguiente).
+  - **Limpieza**: borrados los grupos `DEMO · Casco Aero` y `DEMO · Zapatillas Carbon` (todos sus miembros eran sintéticos, `pi_demo_*`), los 3 miembros sintéticos de `DEMO · GPS` (el grupo se queda: tiene un hold REAL) y el grupo `aaaaaaaa` de canAccept (0 miembros; además su `closes_at` era el 26 y el cron lo habría cerrado).
+  - Verificado el email "ya sois suficientes": salió el 20 jul a las 09:50 UTC por el camino inmediato del `POST /api/pulse/pledge`, NO por el cron. El dedup atómico funcionó (el cron del 21 no reenvió nada).
 
-Grupo `aaaaaaaa-1111-4111-8111-111111111111` (`DEMO · Radar canAccept`): abierto, tramos 30/28/25, SIN miembros ni holds (riesgo económico nulo, pero visible en producción). 9 pledges watching a 25 € (Benjamin sin pre-marcar → recibirá el email real del cron ~08:30 UTC; 8 demo_pulse_* pre-marcados para no enviar a @vonda.test). Borrado:
+### Datos DEMO activos — galería de casos de uso (sesión 21 jul)
+
+`groups.is_demo` (boolean, default false) marca los grupos de demostración. Excluidos de los
+listados públicos (`src/app/page.tsx` y las sugerencias de `src/app/favoritos/page.tsx`);
+accesibles por URL directa y visibles en el admin.
+
+10 grupos `d0d0d0d0-0000-4000-8000-0000000000{01..10}`, cada uno con imagen, una puja activa
+y una combinación distinta de demanda comprometida (`group_members`) y potencial (`pulse_pledges`):
+
+| # | Caso | Cómo está montado |
+|---|---|---|
+| 01 | Solo interés del Radar | 0 comprometida · 9 uds watching + 2 favoritos |
+| 02 | A punto de completarse | 9 uds firmes, tramo de 105 € pide 10 → falta 1 |
+| 03 | Comprometida + interés en un tramo | 65 € desbloqueado · 8 uds marcadas en 55 € |
+| 04 | Ya sois suficientes (canAccept) | 5 firmes + 9 del Radar = 14/14 → `reachable` |
+| 05 | Potencial llenándose con tarjetas | 3 firmes + 4 `accepted` + 3 watching |
+| 06 | Radar convertido en compromiso | 6 de 10 uds llegaron del Radar (esperadores 185 €) |
+| 07 | Mejor precio desbloqueado | 14 uds → 32 €, estado celebración |
+| 08 | Grupo recién abierto | vacío total |
+| 09 | Pulse disparado y consolidado | 7 uds convertidas + 8 compradores = 15/15 |
+| 10 | Falta 1 ud, tarjeta caída | 17/18 · una pledge `failed` que no suma |
+
+**Tres salvaguardas, verificadas en BD viva:**
+1. `fireable = false` en TODAS las filas de `pulse_state` → el cron del Pulse nunca intentará
+   crear PaymentIntents. Además las pledges `accepted` van SIN tarjeta guardada: si algo
+   disparase, el código las marca `failed` sin llamar a Stripe.
+2. `closes_at = 2026-12-31` → el cron de cierre (`status='open' AND closes_at<=now()`) los ignora.
+3. Pledges pre-marcadas con `reachable_notified_price` → el cron diario no manda emails a
+   direcciones `@vonda.test` (rebotarían en Resend y dañarían la reputación del dominio).
+
+⚠️ **Los miembros DEMO tienen `payment_status='authorized'` SIN PaymentIntent real.**
+NUNCA pulsar "cerrar grupo" en el admin sobre un grupo `is_demo`.
+
+Borrado completo (el cascade se lleva pujas, miembros, pledges y favoritos):
 ```sql
-delete from pulse_pledges where group_id = 'aaaaaaaa-1111-4111-8111-111111111111';
-delete from favorites    where group_id = 'aaaaaaaa-1111-4111-8111-111111111111';
-delete from bids         where group_id = 'aaaaaaaa-1111-4111-8111-111111111111';
-delete from groups       where id       = 'aaaaaaaa-1111-4111-8111-111111111111';
+delete from groups where is_demo = true;
+delete from users  where email like 'demo_b%' or email = 'demo_seller@vonda.test';
 ```
 
 ### Pendiente crítico
@@ -175,7 +212,10 @@ delete from groups       where id       = 'aaaaaaaa-1111-4111-8111-111111111111'
 - Guard de group_id en webhook route
 - Página "unido" basada en webhook confirmado (no solo Payment Element)
 - Pulse UX: quitar favorito no cancela pledge (decisión de producto) · selector de cantidad en PulseAcceptModal
-- Limpieza pendiente: grupos DEMO + usuarios demo_pulse_* + ENSAYO_F1/F2 históricos + restos instructed 28 jun (Cubierta) + grupo DEMO Radar canAccept (ver sección Datos DEMO)
+- Limpieza pendiente: usuarios demo_pulse_* + ENSAYO_F1/F2 históricos + grupos test en producción
+- ~~4 miembros en `instructed` sobre grupos cerrados~~ **RESUELTO 21 jul**: verificados uno a uno contra la API de Stripe (los 4 `canceled`, `amount_capturable`=0, `amount_received`=0) y cerrados a `released`. Los 3 de la Cubierta caducaron solos (`cancellation_reason: expired`); el del GPS se canceló a mano ~4 h después de crearse durante el ensayo del 13 jul. **Ya no queda ninguna fila en limbo**: todo `group_members` no-demo está en `paid` (29) o `released` (8).
+- ~~⚡ Semántica de `next_price`~~ **RESUELTO 21 jul (Fable 5, gates)**: `compute_price` v3.1 — `next_price` ahora es el siguiente tramo REAL de la escalera (`MAX(price) WHERE price < precio_vigente`), NULL cuando el mejor precio ya está desbloqueado. `best_price`/`best_bid_id` intactos (regresión byte a byte contra baseline de 10 grupos). CREATE OR REPLACE con la misma firma → permisos conservados (verificados: 1 overload, anon/auth/svc true). `groups.next_price` refrescado.
+- **Copy de compartir desactualizado por next_price v2**: ShareButton/HeroShareButton/GroupSidebar dicen "Si entra 1 más baja a X€" — con la semántica nueva pueden faltar N uds para ese salto. Ajustar a algo tipo "El grupo puede bajar a X€". Display puro.
 - Centralizar Resend client (duplicado entre resend.ts y webhook)
 - Dedup latente en confirm_join (check por tel OR email, upsert ON CONFLICT email)
 - Código muerto: DesktopTierBar, TierBar, NextTierCallout, funciones mock-data.ts sin uso, HomeSidebar.tsx, GroupCenterContent.tsx (ya no se importan en ningún sitio)

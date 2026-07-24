@@ -11,9 +11,12 @@ interface Props {
   className?: string
   showToast?: boolean
   icon?: 'bookmark' | 'heart'
+  /** Texto visible junto al icono. Permite usar el componente como botón
+   *  con etiqueta sin envolverlo en otro <button> (HTML inválido). */
+  label?: string
 }
 
-export default function FavoriteButton({ groupId, initialFavorited = false, size = 24, className = '', showToast = true, icon = 'bookmark' }: Props) {
+export default function FavoriteButton({ groupId, initialFavorited = false, size = 24, className = '', showToast = true, icon = 'bookmark', label }: Props) {
   const [favorited, setFavorited] = useState(initialFavorited)
   const [isPending, startTransition] = useTransition()
   const [toast, setToast] = useState<string | null>(null)
@@ -69,7 +72,7 @@ export default function FavoriteButton({ groupId, initialFavorited = false, size
           onClick={handleClick}
           disabled={isPending}
           className={`flex items-center justify-center transition-all active:scale-90 disabled:opacity-50 ${className}`}
-          aria-label={favorited ? 'Quitar del radar' : 'Guardar en mi radar'}
+          aria-label={label ? undefined : (favorited ? 'Quitar del radar' : 'Guardar en mi radar')}
         >
           <svg
             width={size}
@@ -86,6 +89,7 @@ export default function FavoriteButton({ groupId, initialFavorited = false, size
               ? <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
               : <path d="M19 21l-7-5-7 5V5a2 2 0 012-2h10a2 2 0 012 2z" />}
           </svg>
+          {label && <span>{label}</span>}
         </button>
 
         {/* Mini toast */}
