@@ -77,12 +77,18 @@ interface Props {
   hideThumb?: boolean
   /** Precio bloqueado: reemplaza el thumb por el icono de candado con animación. */
   locked?: boolean
+  /** Muestra rectángulos discretos en el tramo curIdx→siguiente: uno por unidad,
+   *  rellenos los ya conseguidos y en blanco los que faltan. */
+  shortfallTicks?: boolean
+  /** Unidades firmes actuales (para calcular los ticks de "faltan"). */
+  currentUnits?: number
 }
 
 export default function VondaTargetSlider({
   detents, curIdx, selIdx, onSelIdx, size = 'full', chrome = 'none', udsToNext,
   pulse, glow = 0, onCommit, minIdx = 0, disabled = false, anchorMode = false,
   anchorFading = false, hideThumb = false, locked = false,
+  shortfallTicks = false, currentUnits,
 }: Props) {
   const trackRef = useRef<HTMLDivElement | null>(null)
   const rootRef = useRef<HTMLDivElement | null>(null)
@@ -142,7 +148,15 @@ export default function VondaTargetSlider({
   //  · anchorMode sin ancla → sin rastro (track liso, como el mockup 8c)
   const esperarTrail = selIdx > curIdx
   const projEndIdx = esperarTrail ? selIdx : nextIdx
-  const showProj = esperarTrail || (!anchorMode && nextIdx != null)
+  const showProj = esperarTrail || (!anchorMode && nextIdx != null && !shortfallTicks)
+
+  // Rectángulos discretos del tramo curIdx→siguiente: uno por unidad que falta
+  // para el próximo precio. Rellenos = ya conseguidos; en blanco = los que faltan.
+  const tickGap = shortfallTicks && nextIdx != null ? (detents[nextIdx].uds - detents[curIdx].uds) : 0
+  const showTicks = shortfallTicks && nextIdx != null && tickGap >= 1 && tickGap <= 12
+  const tickFilled = showTicks
+    ? Math.max(0, Math.min(tickGap, (currentUnits ?? detents[curIdx].uds) - detents[curIdx].uds))
+    : 0
   const projW = showProj && projEndIdx != null && n > 1 ? ((projEndIdx - curIdx) / (n - 1)) * 86 + '%' : '0%'
   const projColor = esperarTrail ? '#E8944A' : '#C9BEF6'
   // Copy (Vonda: elegir por debajo del actual = esperador válido)
@@ -305,6 +319,24 @@ export default function VondaTargetSlider({
           )}
 
           <div className="ts-wave" style={{ position: 'absolute', left: 0, width: pos(curIdx), top: '50%', transform: 'translateY(-50%)', height: 8, borderRadius: 999, backgroundImage: 'repeating-linear-gradient(115deg,#8A6BF7 0 8px,#6C4BF4 8px 15px)', backgroundSize: '26px 100%', zIndex: 1 }} />
+
+          {/* Ticks "los que faltan" — tramo curIdx→siguiente */}
+          {showTicks && nextIdx != null && (() => {
+            const segStart = posN(curIdx), segEnd = posN(nextIdx)
+            const slice = (segEnd - segStart) / tickGap
+            const w = slice * 0.52
+            return (
+              <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', zIndex: 3 }}>
+                {Array.from({ length: tickGap }).map((_, k) => {
+                  const center = segStart + (k + 0.5) * slice
+                  const isFilled = k < tickFilled
+                  return (
+                    <span key={k} style={{ position: 'absolute', left: `${center}%`, top: '50%', transform: 'translate(-50%,-50%)', width: `${w}%`, height: 10, borderRadius: 2.5, background: isFilled ? '#6C4BF4' : '#fff', border: isFilled ? 'none' : '1.5px solid #CFCADE', boxSizing: 'border-box', boxShadow: isFilled ? '0 1px 3px -1px rgba(108,75,244,.5)' : 'none' }} />
+                  )
+                })}
+              </div>
+            )
+          })()}
 
           {detents.map((d, i) => {
             const achieved = i <= curIdx
