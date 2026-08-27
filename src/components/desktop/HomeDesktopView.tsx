@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation'
 import type { GroupProduct } from '@/lib/mock-data'
 import { getStepPricing } from '@/lib/mock-data'
 import { useCheckout } from '@/components/checkout/CheckoutProvider'
-import { usePulse } from '@/hooks/usePulse'
 import FavoriteButton from '@/components/FavoriteButton'
 import VondaTargetSlider, { type Detent } from '@/components/VondaTargetSlider'
 import DesktopNavbar from '@/components/desktop/DesktopNavbar'
@@ -286,7 +285,6 @@ function useCardState(product: GroupProduct, isAuthed: boolean) {
   for (let i = 0; i < detents.length; i++) if (detents[i].uds <= product.currentUnits) curIdx = i
 
   const [selIdx, setSelIdx] = useState(curIdx)
-  const { data: pulseData } = usePulse(isComplete ? null : product.id)
   const selectedPrice = detents.length > 0 ? detents[selIdx].price : currentPrice
   const confirmed = selIdx <= curIdx
   const accent = confirmed ? '#6C4BF4' : '#E8944A'
@@ -312,7 +310,7 @@ function useCardState(product: GroupProduct, isAuthed: boolean) {
     }
   }
 
-  return { currentPrice, nextTier, isComplete, missing, savings, href, detents, curIdx, selIdx, setSelIdx, pulseData, accent, ctaBg, ctaText, handleCheckout }
+  return { currentPrice, nextTier, isComplete, missing, savings, href, detents, curIdx, selIdx, setSelIdx, accent, ctaBg, ctaText, handleCheckout }
 }
 
 /* ═══════════════════════════════════════════
@@ -359,7 +357,7 @@ function FeaturedCard({ product, isFavorited, isAuthed, countdown }: { product: 
       {/* Slider + CTA */}
       <div className="px-1 pt-5">
         {s.detents.length > 1 ? (
-          <VondaTargetSlider detents={s.detents} curIdx={s.curIdx} selIdx={s.selIdx} onSelIdx={s.setSelIdx} size="mini" pulse={s.pulseData?.steps} glow={s.pulseData?.glow} />
+          <VondaTargetSlider detents={s.detents} curIdx={s.curIdx} selIdx={s.selIdx} onSelIdx={s.setSelIdx} size="mini" />
         ) : (
           <div className="h-3" />
         )}
@@ -415,7 +413,7 @@ function GridCard({ product, isFavorited, isAuthed }: { product: GroupProduct; i
       {/* Slider + CTA */}
       <div className="px-3.5 pt-2.5 pb-3.5">
         {s.detents.length > 1 ? (
-          <VondaTargetSlider detents={s.detents} curIdx={s.curIdx} selIdx={s.selIdx} onSelIdx={s.setSelIdx} size="mini" pulse={s.pulseData?.steps} glow={s.pulseData?.glow} />
+          <VondaTargetSlider detents={s.detents} curIdx={s.curIdx} selIdx={s.selIdx} onSelIdx={s.setSelIdx} size="mini" />
         ) : (
           <div className="h-3" />
         )}
