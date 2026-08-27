@@ -3,6 +3,7 @@
 import GroupRightSidebar from './GroupRightSidebar'
 import GroupCountdown from '@/components/GroupCountdown'
 import FavoriteButton from '@/components/FavoriteButton'
+import DesktopNavbar from '@/components/desktop/DesktopNavbar'
 
 interface Tier { minUnits: number; price: number }
 
@@ -55,7 +56,9 @@ export default function GroupDesktopView({
   }
 
   return (
-    <div className="min-h-screen bg-white py-8 px-6">
+    <div className="min-h-screen" style={{ background: '#FBFAF8' }}>
+      <DesktopNavbar />
+      <div className="py-8 px-6">
       <div className="max-w-[1080px] mx-auto bg-white rounded-[30px] border border-[#ECEAF2] overflow-hidden px-[38px] py-[34px]" style={{ boxShadow: '0 40px 90px -50px rgba(30,20,60,.35)' }}>
 
         {/* ── Header: breadcrumb + share/save ── */}
@@ -164,6 +167,7 @@ export default function GroupDesktopView({
             </div>
           ))}
         </div>
+      </div>
       </div>
     </div>
   )
