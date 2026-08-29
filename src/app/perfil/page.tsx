@@ -77,14 +77,25 @@ export default function PerfilPage() {
     }
   }, [sessionEmail])
 
-  // Cerrar menú con ESC / clic fuera
+  // Cerrar menú con ESC / clic fuera. El listener de clic se registra en el
+  // SIGUIENTE tick y SOLO mientras hay un menú abierto: así el mismo clic que
+  // abre el menú no lo cierra al instante (en React 18 el evento nativo llega
+  // a document aunque el botón llame a stopPropagation → antes se abría y se
+  // cerraba en el mismo clic, y no aparecía nada).
   useEffect(() => {
     function onKey(e: KeyboardEvent) { if (e.key === 'Escape') setOpenMenu(null) }
-    function onClick() { setOpenMenu(null) }
     document.addEventListener('keydown', onKey)
-    document.addEventListener('click', onClick)
-    return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('click', onClick) }
-  }, [])
+    if (openMenu === null) {
+      return () => document.removeEventListener('keydown', onKey)
+    }
+    function onClick() { setOpenMenu(null) }
+    const t = setTimeout(() => document.addEventListener('click', onClick), 0)
+    return () => {
+      clearTimeout(t)
+      document.removeEventListener('keydown', onKey)
+      document.removeEventListener('click', onClick)
+    }
+  }, [openMenu])
 
   function showToast(kind: 'ok' | 'warn', msg: string) {
     setToast({ kind, msg })
