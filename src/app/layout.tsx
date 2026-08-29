@@ -27,7 +27,7 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "Vonda — Compra en grupo",
+  title: "Gropo — Compra en grupo",
   description: "Únete a grupos de compra y consigue el mejor precio juntos.",
 };
 

@@ -55,11 +55,9 @@ export default function HomeSidebar({
   return (
     <aside className="hidden lg:flex w-[236px] flex-shrink-0 flex-col sticky top-0 h-screen px-4 py-5 bg-[#0E1220] text-slate-300">
       {/* Logo */}
-      <Link href="/" className="flex items-center gap-2.5 px-2 pb-6" aria-label="Vonda - inicio">
-        <span className="w-[34px] h-[34px] rounded-[9px] bg-[#4F7CF7] flex items-center justify-center text-white">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h4l2 6 4-14 2 8h6" /></svg>
-        </span>
-        <span className="text-[19px] font-bold text-white tracking-tight">Vonda</span>
+      <Link href="/" className="flex items-center gap-2.5 px-2 pb-6" aria-label="Gropo - inicio">
+        <img src="/logo-mark.png" alt="Gropo" className="w-[34px] h-[34px] object-contain" />
+        <span className="text-[19px] font-bold text-white tracking-tight">Gropo</span>
       </Link>
 
       <nav className="flex flex-col gap-0.5">

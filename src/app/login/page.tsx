@@ -79,7 +79,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="bg-white rounded-2xl border border-neutral-100 p-8">
           <Link href="/" className="block text-center mb-6">
-            <img src="/logo.png" alt="Vonda" className="h-8 mx-auto" />
+            <img src="/logo.png" alt="Gropo" className="h-8 mx-auto" />
           </Link>
           <h1 className="text-xl font-bold text-neutral-900 text-center mb-2">Entra en Vonda</h1>
           <p className="text-sm text-neutral-500 text-center mb-6">

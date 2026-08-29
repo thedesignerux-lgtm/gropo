@@ -81,8 +81,8 @@ export default function GroupsGrid({ products, favoriteIds = [], isAuthed = fals
       <header className="shrink-0 z-10" style={{ background: '#FBFAF8' }}>
         <div className="flex items-center justify-between px-[16px] py-1.5">
           <div className="flex items-center gap-[7px]">
-            <div className="w-7 h-7 rounded-[8px] bg-brand grid place-items-center text-white font-extrabold text-[15px]">v</div>
-            <span className="text-[17px] font-extrabold text-[#1a1a1f]" style={{ letterSpacing: '-0.5px' }}>Vonda</span>
+            <img src="/logo-mark.png" alt="Gropo" className="w-7 h-7 object-contain" />
+            <span className="text-[17px] font-extrabold text-[#1a1a1f]" style={{ letterSpacing: '-0.5px' }}>Gropo</span>
           </div>
           <div className="flex items-center gap-2.5">
             <span className="text-[12px] font-semibold" style={{ color: '#6B6B76' }}>

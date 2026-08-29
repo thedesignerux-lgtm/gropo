@@ -17,8 +17,8 @@ export default function DesktopNavbar() {
     <header className="sticky top-0 z-30 border-b" style={{ background: 'rgba(251,250,248,0.9)', backdropFilter: 'blur(12px)', borderColor: '#EFEDE7' }}>
       <div className="max-w-[1240px] mx-auto flex items-center gap-8 px-8 h-[72px]">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 shrink-0" aria-label="Vonda">
-          <img src="/logo.png" alt="Vonda" className="h-9 w-auto" />
+        <Link href="/" className="flex items-center gap-2 shrink-0" aria-label="Gropo">
+          <img src="/logo.png" alt="Gropo" className="h-9 w-auto" />
         </Link>
 
         <nav className="hidden lg:flex items-center gap-7 ml-4">

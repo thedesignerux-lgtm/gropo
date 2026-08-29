@@ -99,7 +99,7 @@ export default async function UnirmePage({
           </Link>
           <img
             src="/logo.png"
-            alt="Vonda"
+            alt="Gropo"
             className="h-7 w-auto"
           />
           <span className="inline-flex items-center gap-1 text-xs font-medium text-neutral-500">
