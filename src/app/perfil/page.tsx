@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { supabase } from '@/lib/supabase'
 import { createClient } from '@/lib/supabase-browser'
 import AuthPanel from '@/components/AuthPanel'
 import DesktopNavbar from '@/components/desktop/DesktopNavbar'
@@ -29,6 +28,7 @@ const kebab = <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor
 const pin = <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} aria-hidden="true"><path d="M12 21s-7-6-7-11a7 7 0 0114 0c0 5-7 11-7 11z" /><circle cx="12" cy="10" r="2.5" /></svg>
 
 export default function PerfilPage() {
+  const [sb] = useState(() => createClient())
   const [user, setUser] = useState<VUser | null>(null)
   const [addrs, setAddrs] = useState<Addr[]>([])
   const [openMenu, setOpenMenu] = useState<string | null>(null)
@@ -47,14 +47,13 @@ export default function PerfilPage() {
   // Sesión real (Supabase Auth). undefined = comprobando · null = sin sesión.
   const [sessionEmail, setSessionEmail] = useState<string | null | undefined>(undefined)
   useEffect(() => {
-    const sb = createClient()
     sb.auth.getUser().then(({ data }) => setSessionEmail(data.user?.email ?? null))
   }, [])
 
   async function handleSignOut() {
     // Cierre de sesión DE VERDAD: antes solo se borraba localStorage, así que
     // no había forma de volver a entrar (nunca hubo sesión que reabrir).
-    try { await createClient().auth.signOut() } catch { /* best-effort */ }
+    try { await sb.auth.signOut() } catch { /* best-effort */ }
     try { localStorage.removeItem('vonda_user') } catch { /* ignorar */ }
     window.location.href = '/'
   }
@@ -67,8 +66,8 @@ export default function PerfilPage() {
     // El email de la sesión manda sobre el de localStorage
     if (sessionEmail) u = { ...u, email: sessionEmail }
     setUser(u)
-    if (u.phone && u.email) {
-      supabase.rpc('get_profile', { p_phone: u.phone, p_email: u.email }).then(({ data }) => {
+    if (u.email) {
+      sb.rpc('get_profile', { p_phone: u.phone, p_email: u.email }).then(({ data }) => {
         if (data) {
           if (Array.isArray(data.addresses)) setAddrs(data.addresses)
           if (data.radar) { if (Array.isArray(data.radar.categories)) setActive(data.radar.categories); if (data.radar.max_price != null) setBudget(Number(data.radar.max_price)) }
@@ -95,8 +94,8 @@ export default function PerfilPage() {
   function saveRadar(nextActive: string[], nextBudget: number) {
     setSaving('saving')
     const done = () => { if (saveTimer.current) clearTimeout(saveTimer.current); saveTimer.current = setTimeout(() => setSaving('saved'), 400) }
-    if (user?.phone && user?.email) {
-      supabase.rpc('radar_prefs_save', { p_phone: user.phone, p_email: user.email, p_categories: nextActive, p_max_price: nextBudget }).then(done)
+    if (user?.email) {
+      sb.rpc('radar_prefs_save', { p_phone: user?.phone ?? '', p_email: user?.email ?? sessionEmail ?? '', p_categories: nextActive, p_max_price: nextBudget }).then(done)
     } else done()
   }
   function toggleCat(c: string) { const next = active.includes(c) ? active.filter(x => x !== c) : [...active, c]; setActive(next); saveRadar(next, budget) }
@@ -110,28 +109,28 @@ export default function PerfilPage() {
   }
 
   async function makeDefault(id: string) {
-    if (!user?.phone) return
-    const { data } = await supabase.rpc('address_set_default', { p_phone: user.phone, p_email: user.email, p_id: id })
+    if (!sessionEmail) return
+    const { data } = await sb.rpc('address_set_default', { p_phone: user?.phone ?? '', p_email: user?.email ?? sessionEmail ?? '', p_id: id })
     setOpenMenu(null)
     if (data?.ok) { setAddrs(data.addresses); showToast('ok', 'Dirección predeterminada actualizada') }
   }
   async function removeAddr(id: string) {
-    if (!user?.phone) return
-    const { data } = await supabase.rpc('address_delete', { p_phone: user.phone, p_email: user.email, p_id: id })
+    if (!sessionEmail) return
+    const { data } = await sb.rpc('address_delete', { p_phone: user?.phone ?? '', p_email: user?.email ?? sessionEmail ?? '', p_id: id })
     setOpenMenu(null)
     if (data?.ok) { setAddrs(data.addresses); showToast('ok', 'Dirección eliminada') }
     else if (data?.reason === 'default') showToast('warn', 'Debes asignar otra dirección como predeterminada antes de eliminar esta')
   }
   async function submitAddr() {
-    if (!user?.phone) { showToast('warn', 'Necesitas identificarte primero'); return }
+    if (!sessionEmail) { showToast('warn', 'Necesitas identificarte primero'); return }
     if (!form.line1.trim()) { showToast('warn', 'La calle es obligatoria'); return }
     const args = {
-      p_phone: user.phone, p_email: user.email,
+      p_phone: user?.phone ?? '', p_email: user?.email ?? sessionEmail ?? '',
       p_line1: form.line1, p_line2: form.line2, p_city: form.city, p_province: form.province, p_postal: form.postal_code, p_label: form.label,
     }
     const { data } = editingId
-      ? await supabase.rpc('address_update', { ...args, p_id: editingId })
-      : await supabase.rpc('address_add', args)
+      ? await sb.rpc('address_update', { ...args, p_id: editingId })
+      : await sb.rpc('address_add', args)
     if (data?.ok) { setAddrs(data.addresses); setAdding(false); setEditingId(null); setForm(EMPTY_FORM); showToast('ok', editingId ? 'Dirección actualizada' : 'Dirección añadida') }
     else showToast('warn', 'No se pudo guardar la dirección')
   }
