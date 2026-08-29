@@ -24,6 +24,7 @@ import {
 import confetti from 'canvas-confetti';
 import { PROVINCIAS_ES } from '@/lib/provincias';
 import { normalizePhone } from '@/lib/phone';
+import { supabase } from '@/lib/supabase';
 import VondaTargetSlider, { type Detent } from '@/components/VondaTargetSlider';
 import HowVondaSheet from '@/components/HowVondaSheet';
 
@@ -503,6 +504,52 @@ function InnerForm({
   const [billingSame, setBillingSame] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Precarga: si el usuario ya compró antes, no debe volver a teclear sus datos
+  // ni su dirección. La identidad vive en localStorage (la guarda este mismo
+  // checkout al confirmar) y la dirección predeterminada en el perfil.
+  const [prefilled, setPrefilled] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      let u: { name?: string; email?: string; phone?: string } | null = null;
+      try {
+        const raw = localStorage.getItem('vonda_user');
+        u = raw ? JSON.parse(raw) : null;
+      } catch { u = null; }
+      if (!u?.email && !u?.phone) return;
+
+      const full = (u.name ?? '').trim();
+      const sp = full.indexOf(' ');
+      if (!cancelled) {
+        setC((prev) => ({
+          nombre: prev.nombre || (sp === -1 ? full : full.slice(0, sp)),
+          apellidos: prev.apellidos || (sp === -1 ? '' : full.slice(sp + 1)),
+          email: prev.email || (u?.email ?? ''),
+          phone: prev.phone || (u?.phone ?? ''),
+        }));
+      }
+
+      if (!u.email || !u.phone) return;
+      try {
+        const { data } = await supabase.rpc('get_profile', { p_phone: u.phone, p_email: u.email });
+        const list = Array.isArray(data?.addresses) ? data.addresses : [];
+        const def = list.find((a: { is_default?: boolean }) => a.is_default) ?? list[0];
+        if (!def || cancelled) return;
+        setS((prev) => {
+          if (prev.line1) return prev; // no pisar lo que ya haya escrito
+          return {
+            line1: def.line1 ?? '',
+            postal_code: def.postal_code ?? '',
+            city: def.city ?? '',
+            province: PROVINCIAS_ES.includes(def.province) ? def.province : '',
+          };
+        });
+        setPrefilled(true);
+      } catch { /* sin perfil: el formulario se queda vacío */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   async function handleSubmit() {
     setError(null);
@@ -622,6 +669,12 @@ function InnerForm({
       {/* ── 2. DIRECCIÓN DE ENVÍO ── */}
       <section className={SECTION}>
         <h2 className={H}>2. Dirección de envío</h2>
+        {prefilled && (
+          <p className="-mt-1 mb-3 flex items-center gap-1.5 text-[12.5px] font-medium text-brand">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.6} aria-hidden="true"><path d="M5 12l5 5 9-11" /></svg>
+            Tu dirección guardada · puedes editarla
+          </p>
+        )}
         <input className={INPUT} placeholder="Dirección (calle y número)"
           value={s.line1} onChange={(e) => setS({ ...s, line1: e.target.value })} />
         <div className="mt-3 grid grid-cols-2 gap-3">
