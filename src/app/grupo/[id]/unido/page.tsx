@@ -1,35 +1,49 @@
-import Link from 'next/link'
+import { supabaseAdmin } from '@/lib/supabase-admin'
+import PostCheckoutView, { type PostCheckoutGroup } from './PostCheckoutView'
 
 export const dynamic = 'force-dynamic'
 
-// return_url del 3D Secure. De momento, página mínima de espera: el miembro se
-// crea de verdad en el webhook (Bloque 2.4), que confirmará el hold. Aquí solo
-// tranquilizamos al comprador mientras eso cuaja.
-export default function UnidoPage({ params }: { params: { id: string } }) {
-  return (
-    <div className="min-h-screen bg-neutral-50">
-      <div className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center bg-white px-8 text-center">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-brand/10 text-brand">
-          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M20 6 9 17l-5-5" />
-          </svg>
-        </div>
+// Carga datos del grupo para la pantalla post-checkout.
+// El precio viene de compute_price (única fuente de verdad).
+async function fetchGroup(id: string): Promise<PostCheckoutGroup | null> {
+  const { data: g, error } = await supabaseAdmin
+    .from('groups')
+    .select('id, product_name, product_spec, pvp, image_url, total_units, current_price, closes_at')
+    .eq('id', id)
+    .single()
+  if (error || !g) return null
 
-        <h1 className="mt-6 text-xl font-bold text-neutral-900">
-          Tu reserva está confirmándose…
-        </h1>
-        <p className="mt-2 text-sm leading-relaxed text-neutral-500">
-          Hemos retenido el precio garantizado en tu tarjeta. En cuanto se confirme, te avisamos
-          por email. Pagarás el precio final del gropo al cierre — siempre igual o menor.
-        </p>
+  // Precio real desde compute_price
+  const { data: cp } = await supabaseAdmin.rpc('compute_price', { p_group_id: id })
+  const row = (Array.isArray(cp) ? cp[0] : cp) as
+    | { best_price?: number; next_price?: number }
+    | null
+  const currentPrice = row?.best_price != null ? Number(row.best_price) : Number(g.current_price)
+  const nextPrice = row?.next_price != null ? Number(row.next_price) : currentPrice
 
-        <Link
-          href={`/grupo/${params.id}`}
-          className="mt-8 inline-flex h-12 items-center justify-center rounded-xl bg-brand px-6 text-[15px] font-semibold text-white transition-colors hover:bg-brand-dark"
-        >
-          Volver al gropo
-        </Link>
+  return {
+    id: g.id as string,
+    product_name: g.product_name as string,
+    product_spec: ((g as any).product_spec ?? '') as string,
+    image_url: ((g as any).image_url as string | null) ?? null,
+    current_price: currentPrice,
+    total_units: Number(g.total_units ?? 0),
+    closes_at: g.closes_at as string,
+    pvp: Number((g as any).pvp ?? 0),
+    next_price: nextPrice,
+  }
+}
+
+export default async function UnidoPage({ params }: { params: { id: string } }) {
+  const group = await fetchGroup(params.id)
+
+  if (!group) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <p className="text-base text-neutral-400">Grupo no encontrado</p>
       </div>
-    </div>
-  )
+    )
+  }
+
+  return <PostCheckoutView group={group} />
 }
