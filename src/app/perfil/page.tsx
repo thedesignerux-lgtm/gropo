@@ -41,6 +41,7 @@ export default function PerfilPage() {
   const [adding, setAdding] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<AddrForm>(EMPTY_FORM)
+  const [formDefault, setFormDefault] = useState(false)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -121,23 +122,35 @@ export default function PerfilPage() {
     if (data?.ok) { setAddrs(data.addresses); showToast('ok', 'Dirección eliminada') }
     else if (data?.reason === 'default') showToast('warn', 'Debes asignar otra dirección como predeterminada antes de eliminar esta')
   }
+  function closeForm() { setAdding(false); setEditingId(null); setForm(EMPTY_FORM); setFormDefault(false) }
   async function submitAddr() {
     if (!sessionEmail) { showToast('warn', 'Necesitas identificarte primero'); return }
     if (!form.line1.trim()) { showToast('warn', 'La calle es obligatoria'); return }
+    const idParams = { p_phone: user?.phone ?? '', p_email: user?.email ?? sessionEmail ?? '' }
     const args = {
-      p_phone: user?.phone ?? '', p_email: user?.email ?? sessionEmail ?? '',
+      ...idParams,
       p_line1: form.line1, p_line2: form.line2, p_city: form.city, p_province: form.province, p_postal: form.postal_code, p_label: form.label,
     }
+    const prevIds = new Set(addrs.map(a => a.id))
     const { data } = editingId
       ? await sb.rpc('address_update', { ...args, p_id: editingId })
       : await sb.rpc('address_add', args)
-    if (data?.ok) { setAddrs(data.addresses); setAdding(false); setEditingId(null); setForm(EMPTY_FORM); showToast('ok', editingId ? 'Dirección actualizada' : 'Dirección añadida') }
-    else showToast('warn', 'No se pudo guardar la dirección')
+    if (!data?.ok) { showToast('warn', 'No se pudo guardar la dirección'); return }
+    let list = data.addresses as Addr[]
+    // Marcar como predeterminada si el toggle está activo y aún no lo es.
+    const targetId = editingId ?? list.find(a => !prevIds.has(a.id))?.id ?? null
+    if (formDefault && targetId && !list.find(a => a.id === targetId)?.is_default) {
+      const { data: d2 } = await sb.rpc('address_set_default', { ...idParams, p_id: targetId })
+      if (d2?.ok) list = d2.addresses as Addr[]
+    }
+    setAddrs(list)
+    closeForm()
+    showToast('ok', editingId ? 'Dirección actualizada' : 'Dirección añadida')
   }
   function openEdit(a: Addr) {
     setOpenMenu(null)
     setForm({ line1: a.line1, line2: a.line2 || '', postal_code: a.postal_code || '', city: a.city || '', province: a.province || '', label: a.label || '' })
-    setEditingId(a.id); setAdding(true)
+    setEditingId(a.id); setFormDefault(a.is_default); setAdding(true)
   }
 
   const menuItems = (a: Addr) => (
@@ -247,26 +260,10 @@ export default function PerfilPage() {
                   </div>
                 ))}
 
-                {adding ? (
-                  <div className="border border-neutral-200 rounded-xl p-3.5 space-y-2.5">
-                    <input className={inputCls} placeholder="Calle y número" value={form.line1} onChange={e => setForm({ ...form, line1: e.target.value })} />
-                    <input className={inputCls} placeholder="Piso, puerta (opcional)" value={form.line2} onChange={e => setForm({ ...form, line2: e.target.value })} />
-                    <div className="flex gap-2.5">
-                      <input className={inputCls} placeholder="C.P." value={form.postal_code} onChange={e => setForm({ ...form, postal_code: e.target.value })} />
-                      <input className={inputCls} placeholder="Ciudad" value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} />
-                    </div>
-                    <input className={inputCls} placeholder="Etiqueta (Casa, Trabajo…)" value={form.label} onChange={e => setForm({ ...form, label: e.target.value })} />
-                    <div className="flex gap-2.5 pt-1">
-                      <button onClick={submitAddr} className="flex-1 bg-brand text-white rounded-lg py-2.5 text-[13.5px] font-bold">{editingId ? 'Guardar cambios' : 'Guardar dirección'}</button>
-                      <button onClick={() => { setAdding(false); setEditingId(null); setForm(EMPTY_FORM) }} className="px-4 rounded-lg border border-neutral-200 text-[13.5px] font-semibold text-neutral-600">Cancelar</button>
-                    </div>
-                  </div>
-                ) : (
-                  <button onClick={() => { setEditingId(null); setForm(EMPTY_FORM); setAdding(true) }} className="flex items-center justify-center gap-2 w-full border-[1.5px] border-dashed border-brand/30 text-brand rounded-xl py-3 text-[13.5px] font-bold">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4}><path d="M12 5v14M5 12h14" /></svg>
-                    Añadir dirección
-                  </button>
-                )}
+                <button onClick={() => { setEditingId(null); setForm(EMPTY_FORM); setFormDefault(addrs.length === 0); setAdding(true) }} className="flex items-center justify-center gap-2 w-full border-[1.5px] border-dashed border-brand/30 text-brand rounded-xl py-3 text-[13.5px] font-bold">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4}><path d="M12 5v14M5 12h14" /></svg>
+                  Añadir dirección
+                </button>
               </Card>
 
               <Card num="4" title="Preferencias del Radar" right={
@@ -332,6 +329,59 @@ export default function PerfilPage() {
         </div>
       </div>
 
+      {/* Modal (desktop) / hoja inferior (móvil): añadir o editar dirección */}
+      <div onClick={closeForm} className={`fixed inset-0 z-[55] bg-black/40 transition-opacity ${adding ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} />
+      <div
+        role="dialog" aria-modal="true" aria-label={editingId ? 'Editar dirección' : 'Añadir dirección'}
+        onClick={e => e.stopPropagation()}
+        className={`fixed z-[56] inset-x-0 bottom-0 lg:inset-0 lg:m-auto lg:h-fit lg:max-w-[440px] bg-white rounded-t-2xl lg:rounded-2xl p-5 lg:p-6 pb-8 lg:pb-6 max-h-[92vh] overflow-y-auto transition-all duration-300 ${adding ? 'translate-y-0 opacity-100' : 'translate-y-full lg:translate-y-3 opacity-0 pointer-events-none'}`}
+        style={{ boxShadow: '0 -8px 40px rgba(15,23,42,.18)' }}
+      >
+        <div className="w-10 h-1 rounded-full bg-neutral-200 mx-auto mb-4 lg:hidden" />
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-extrabold">{editingId ? 'Editar dirección' : 'Añadir dirección'}</h3>
+          <button onClick={closeForm} aria-label="Cerrar" className="w-8 h-8 rounded-lg text-neutral-400 hover:bg-neutral-100 flex items-center justify-center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2}><path d="M6 6l12 12M18 6L6 18" /></svg>
+          </button>
+        </div>
+        <div className="space-y-3">
+          <Field label="Calle y número" required>
+            <input className={inputCls} placeholder="Rúa do Ensino 14" value={form.line1} onChange={e => setForm({ ...form, line1: e.target.value })} />
+          </Field>
+          <Field label="Piso, puerta">
+            <input className={inputCls} placeholder="3ºB (opcional)" value={form.line2} onChange={e => setForm({ ...form, line2: e.target.value })} />
+          </Field>
+          <div className="flex gap-3">
+            <div className="w-[38%]">
+              <Field label="C.P." required>
+                <input className={inputCls} inputMode="numeric" placeholder="15686" value={form.postal_code} onChange={e => setForm({ ...form, postal_code: e.target.value })} />
+              </Field>
+            </div>
+            <div className="flex-1">
+              <Field label="Ciudad" required>
+                <input className={inputCls} placeholder="Ponte Carreira" value={form.city} onChange={e => setForm({ ...form, city: e.target.value })} />
+              </Field>
+            </div>
+          </div>
+          <Field label="Provincia">
+            <input className={inputCls} placeholder="A Coruña" value={form.province} onChange={e => setForm({ ...form, province: e.target.value })} />
+          </Field>
+          <Field label="Etiqueta">
+            <input className={inputCls} placeholder="Casa, Trabajo… (opcional)" value={form.label} onChange={e => setForm({ ...form, label: e.target.value })} />
+          </Field>
+          <button type="button" role="switch" aria-checked={formDefault} onClick={() => setFormDefault(v => !v)} className="flex items-center justify-between w-full pt-1">
+            <span className="text-[13.5px] font-semibold text-neutral-700">Marcar como predeterminada</span>
+            <span className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${formDefault ? 'bg-brand' : 'bg-neutral-300'}`}>
+              <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform ${formDefault ? 'translate-x-5' : ''}`} />
+            </span>
+          </button>
+        </div>
+        <div className="flex gap-3 pt-5">
+          <button onClick={closeForm} className="px-5 py-3 rounded-xl border border-neutral-200 text-[13.5px] font-semibold text-neutral-600">Cancelar</button>
+          <button onClick={submitAddr} className="flex-1 bg-brand text-white rounded-xl py-3 text-[13.5px] font-bold">{editingId ? 'Guardar cambios' : 'Guardar dirección'}</button>
+        </div>
+      </div>
+
       {/* Toast */}
       <div className={`fixed bottom-24 lg:bottom-6 left-1/2 z-[60] flex items-center gap-2.5 rounded-xl px-4 py-3 text-[13.5px] text-white transition-all ${toast ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-3 pointer-events-none'}`} style={{ transform: 'translateX(-50%)', backgroundColor: '#0E1220', boxShadow: '0 12px 30px rgba(15,23,42,.25)', maxWidth: '90vw' }}>
         {toast?.kind === 'warn'
@@ -344,6 +394,15 @@ export default function PerfilPage() {
 }
 
 // ── Subcomponentes ─────────────────────────────────────
+function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="block text-[12px] font-semibold text-neutral-600 mb-1">{label}{required && <span className="text-brand"> *</span>}</span>
+      {children}
+    </label>
+  )
+}
+
 function Card({ num, title, right, children }: { num: string; title: string; right?: React.ReactNode; children: React.ReactNode }) {
   return (
     <div className="bg-white border border-neutral-200 rounded-2xl p-5 lg:px-[22px]">
