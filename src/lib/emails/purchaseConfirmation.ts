@@ -1,6 +1,6 @@
 // Plantilla del email de confirmación de compra al cierre.
 // Se envía SOLO a miembros cuyo pago fue capturado con éxito (payment_status='paid').
-// Remitente visible: Vonda.
+// Remitente visible: Gropo.
 
 export interface PurchaseEmailData {
   nombre?: string
@@ -38,7 +38,7 @@ Hemos realizado el cobro en tu tarjeta. Si tu banco muestra una retención por u
 Prepararemos tu envío y te avisaremos con los datos de seguimiento.
 
 Gracias por comprar en grupo.
-— Vonda`
+— Gropo`
 
   const html = `<!DOCTYPE html>
 <html lang="es">
@@ -48,7 +48,7 @@ Gracias por comprar en grupo.
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #eaeaea;">
         <tr><td style="padding:28px 28px 0 28px;">
-          <p style="margin:0;font-size:18px;font-weight:700;color:#111111;">Vonda</p>
+          <p style="margin:0;font-size:18px;font-weight:700;color:#111111;">Gropo</p>
         </td></tr>
         <tr><td style="padding:20px 28px 8px 28px;">
           <p style="margin:0 0 16px 0;font-size:15px;color:#333333;line-height:1.5;">${saludo}</p>
@@ -80,7 +80,7 @@ Gracias por comprar en grupo.
           <p style="margin:0;font-size:14px;color:#555555;line-height:1.5;">
             Prepararemos tu envío y te avisaremos con los datos de seguimiento.
           </p>
-          <p style="margin:20px 0 0 0;font-size:14px;color:#999999;">— Vonda</p>
+          <p style="margin:20px 0 0 0;font-size:14px;color:#999999;">— Gropo</p>
         </td></tr>
       </table>
     </td></tr>

@@ -8,7 +8,7 @@ import { getStepPricing, getActivationState } from '@/lib/mock-data'
 import { useCheckout } from '@/components/checkout/CheckoutProvider'
 import { usePulse } from '@/hooks/usePulse'
 import FavoriteButton from '@/components/FavoriteButton'
-import VondaTargetSlider, { type Detent } from '@/components/VondaTargetSlider'
+import GropoTargetSlider, { type Detent } from '@/components/GropoTargetSlider'
 
 function fmt(price: number): string {
   return (price % 1 === 0 ? String(price) : price.toFixed(2).replace('.', ',')) + ' €'
@@ -132,10 +132,10 @@ export default function DesktopProductCard({ product, isFavorited = false, isAut
         </div>
       </div>
 
-      {/* VONDA target slider (arrastrable) */}
+      {/* GROPO target slider (arrastrable) */}
       {detents.length > 1 ? (
         <div className="mt-2">
-          <VondaTargetSlider detents={detents} curIdx={curIdx} selIdx={selIdx} onSelIdx={setSelIdx} size="mini" pulse={pulseData?.steps} glow={pulseData?.glow} />
+          <GropoTargetSlider detents={detents} curIdx={curIdx} selIdx={selIdx} onSelIdx={setSelIdx} size="mini" pulse={pulseData?.steps} glow={pulseData?.glow} />
         </div>
       ) : (
         <div className="mt-2" />

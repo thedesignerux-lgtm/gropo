@@ -1,6 +1,6 @@
 // Plantilla del email "tu petición ya tiene grupo".
 // Se envía al peticionario cuando el admin asigna el primer vendedor
-// (primera puja) a la petición. Remitente visible: Vonda.
+// (primera puja) a la petición. Remitente visible: Gropo.
 
 export interface PetitionMatchedData {
   nombre?: string
@@ -16,7 +16,7 @@ export function petitionMatchedEmail(data: PetitionMatchedData): {
   const { nombre, productName, groupUrl } = data
   const saludo = nombre ? `Hola ${nombre},` : 'Hola,'
 
-  const subject = 'Tu producto ya tiene grupo en Vonda'
+  const subject = 'Tu producto ya tiene grupo en Gropo'
 
   const text = `${saludo}
 
@@ -26,7 +26,7 @@ Entra a unirte: ${groupUrl}
 
 Cuantos más seáis, mejor precio para todos.
 
-— Vonda`
+— Gropo`
 
   const html = `<!DOCTYPE html>
 <html lang="es">
@@ -36,7 +36,7 @@ Cuantos más seáis, mejor precio para todos.
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #eaeaea;">
         <tr><td style="padding:28px 28px 0 28px;">
-          <p style="margin:0;font-size:18px;font-weight:700;color:#111111;">Vonda</p>
+          <p style="margin:0;font-size:18px;font-weight:700;color:#111111;">Gropo</p>
         </td></tr>
         <tr><td style="padding:20px 28px 8px 28px;">
           <p style="margin:0 0 16px 0;font-size:15px;color:#333333;line-height:1.5;">${saludo}</p>
@@ -53,7 +53,7 @@ Cuantos más seáis, mejor precio para todos.
           <p style="margin:0;font-size:14px;color:#555555;line-height:1.5;">
             Cuantos más seáis, mejor precio para todos.
           </p>
-          <p style="margin:20px 0 0 0;font-size:14px;color:#999999;">— Vonda</p>
+          <p style="margin:20px 0 0 0;font-size:14px;color:#999999;">— Gropo</p>
         </td></tr>
       </table>
     </td></tr>

@@ -455,7 +455,7 @@ function OpportunityCard({ group: g }: { group: RadarGroup; category?: 'hot' | '
           ) : null}
         </div>
 
-        {/* VONDA PULSE: barra (anatomía v3) + UNA línea de estado + UNA CTA primaria */}
+        {/* GROPO PULSE: barra (anatomía v3) + UNA línea de estado + UNA CTA primaria */}
         <PulseZone
           groupId={g.id}
           productName={g.name}

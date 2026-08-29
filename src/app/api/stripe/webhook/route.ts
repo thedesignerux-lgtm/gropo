@@ -24,7 +24,7 @@ function getResend(): Resend {
   if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY);
   return _resend;
 }
-const FROM = process.env.RESEND_FROM ?? 'Vonda <no-reply@vonda.es>';
+const FROM = process.env.RESEND_FROM ?? 'Gropo <no-reply@vonda.es>';
 
 // El SDK de Stripe necesita Node, no Edge.
 export const runtime = 'nodejs';
@@ -118,7 +118,7 @@ export async function POST(req: Request) {
           );
         }
       }
-      // VONDA PULSE (no-fatal): si el hold liberado nació de un pledge,
+      // GROPO PULSE (no-fatal): si el hold liberado nació de un pledge,
       // reflejar la realidad — el compromiso NO se convirtió.
       if (m.pulse_pledge_id) {
         try {
@@ -163,7 +163,7 @@ export async function POST(req: Request) {
         console.error('[webhook] email de confirmación falló (no-fatal):', emailErr?.message);
       }
 
-      // VONDA PULSE (no-fatal): una compra confirmada acerca la masa crítica.
+      // GROPO PULSE (no-fatal): una compra confirmada acerca la masa crítica.
       // Solo re-evalúa si NO es una conversión del propio Pulse (esas ya pasaron
       // por el disparador) — evita recursión webhook→trigger→PI→webhook.
       if (!m.pulse_pledge_id) {

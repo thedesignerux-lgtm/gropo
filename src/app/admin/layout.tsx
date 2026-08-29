@@ -12,7 +12,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-        <span className="font-bold text-gray-900 text-base">Vonda Admin</span>
+        <span className="font-bold text-gray-900 text-base">Gropo Admin</span>
         <form action={adminLogout}>
           <button
             type="submit"

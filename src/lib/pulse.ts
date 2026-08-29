@@ -1,4 +1,4 @@
-// src/lib/pulse.ts — VONDA PULSE · motor de disparo (G2)
+// src/lib/pulse.ts — GROPO PULSE · motor de disparo (G2)
 //
 // runPulseTrigger(groupId):
 //  1. pulse_check_and_lock (SQL, advisory lock) decide si hay masa y marca
@@ -102,7 +102,7 @@ export async function runPulseTrigger(groupId: string): Promise<PulseTriggerResu
         off_session: true,
         confirm: true,
         payment_method_types: ['card'],
-        description: `Vonda · ${group?.product_name ?? 'Grupo'}${group?.product_spec ? ` (${group.product_spec})` : ''} x${p.quantity} (Pulse)`,
+        description: `Gropo · ${group?.product_name ?? 'Grupo'}${group?.product_spec ? ` (${group.product_spec})` : ''} x${p.quantity} (Pulse)`,
         shipping: ship.line1
           ? {
               name: ship.name ?? p.buyer_name ?? '',

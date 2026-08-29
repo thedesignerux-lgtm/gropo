@@ -23,7 +23,7 @@ const STEPS = [
 const GUARANTEES = [
   { t: 'Tu dinero está protegido', d: 'Solo se realiza el cargo si el grupo alcanza su objetivo. Hasta entonces es una retención, no un cobro.' },
   { t: 'Sin compromiso', d: 'Puedes salir de un grupo antes del cierre y se libera tu retención al instante.' },
-  { t: 'Vonda responde', d: 'Vonda es el vendedor oficial (merchant of record): factura, envío y devoluciones pasan por nosotros.' },
+  { t: 'Gropo responde', d: 'Gropo es el vendedor oficial (merchant of record): factura, envío y devoluciones pasan por nosotros.' },
 ]
 
 export default function ComoFuncionaPage() {
@@ -36,7 +36,7 @@ export default function ComoFuncionaPage() {
           <span className="inline-block text-xs font-bold uppercase tracking-wide text-brand bg-brand/10 rounded-full px-3 py-1 mb-4">Cómo funciona</span>
           <h1 className="text-[28px] lg:text-4xl font-extrabold tracking-tight text-neutral-900">Compra en grupo. Paga menos.</h1>
           <p className="text-[15px] lg:text-base text-neutral-500 mt-3 leading-relaxed max-w-[620px]">
-            Vonda junta a gente que quiere el mismo producto de ciclismo. Cuantos más sois, más baja el precio para todos — y solo se cobra si el grupo llega a su objetivo.
+            Gropo junta a gente que quiere el mismo producto de ciclismo. Cuantos más sois, más baja el precio para todos — y solo se cobra si el grupo llega a su objetivo.
           </p>
 
           <div className="mt-10 flex flex-col gap-4">

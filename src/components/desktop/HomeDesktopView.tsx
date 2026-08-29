@@ -7,7 +7,7 @@ import type { GroupProduct } from '@/lib/mock-data'
 import { getStepPricing } from '@/lib/mock-data'
 import { useCheckout } from '@/components/checkout/CheckoutProvider'
 import FavoriteButton from '@/components/FavoriteButton'
-import VondaTargetSlider, { type Detent } from '@/components/VondaTargetSlider'
+import GropoTargetSlider, { type Detent } from '@/components/GropoTargetSlider'
 import DesktopNavbar from '@/components/desktop/DesktopNavbar'
 
 const fmt = (n: number) => (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
@@ -119,7 +119,7 @@ export default function HomeDesktopView({ products, favoriteIds = [], isAuthed =
 
             {/* Section heading */}
             <h2 className="mt-10 text-[13px] font-bold tracking-tight text-neutral-900">
-              Tú decides el límite. <span style={{ color: '#6C4BF4' }}>Vonda baja el precio.</span>
+              Tú decides el límite. <span style={{ color: '#6C4BF4' }}>Gropo baja el precio.</span>
             </h2>
 
             {/* Step progress line: 1 → 2 → 3 */}
@@ -156,7 +156,7 @@ export default function HomeDesktopView({ products, favoriteIds = [], isAuthed =
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6C4BF4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
                   <div className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full grid place-items-center text-white text-[9px] font-bold" style={{ background: '#6C4BF4' }}>+</div>
                 </div>
-                <h3 className="text-[14px] font-extrabold text-neutral-900 tracking-tight">Vonda baja el precio</h3>
+                <h3 className="text-[14px] font-extrabold text-neutral-900 tracking-tight">Gropo baja el precio</h3>
                 <p className="text-[12px] text-neutral-500 mt-1.5 leading-relaxed">
                   Cada nueva persona acerca el siguiente precio.
                 </p>
@@ -177,7 +177,7 @@ export default function HomeDesktopView({ products, favoriteIds = [], isAuthed =
                 </div>
                 <h3 className="text-[14px] font-extrabold text-neutral-900 tracking-tight">Pagas el mejor precio</h3>
                 <p className="text-[12px] text-neutral-500 mt-1.5 leading-relaxed">
-                  Al cerrar la Vonda, todos pagan el mejor precio alcanzado.
+                  Al cerrar el gropo, todos pagan el mejor precio alcanzado.
                 </p>
                 <div className="mt-auto pt-3">
                   <div className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ background: '#F9F8FC', border: '1px solid #ECEAF2' }}>
@@ -357,7 +357,7 @@ function FeaturedCard({ product, isFavorited, isAuthed, countdown }: { product: 
       {/* Slider + CTA */}
       <div className="px-1 pt-5">
         {s.detents.length > 1 ? (
-          <VondaTargetSlider detents={s.detents} curIdx={s.curIdx} selIdx={s.selIdx} onSelIdx={s.setSelIdx} size="mini" />
+          <GropoTargetSlider detents={s.detents} curIdx={s.curIdx} selIdx={s.selIdx} onSelIdx={s.setSelIdx} size="mini" />
         ) : (
           <div className="h-3" />
         )}
@@ -413,7 +413,7 @@ function GridCard({ product, isFavorited, isAuthed }: { product: GroupProduct; i
       {/* Slider + CTA */}
       <div className="px-3.5 pt-2.5 pb-3.5">
         {s.detents.length > 1 ? (
-          <VondaTargetSlider detents={s.detents} curIdx={s.curIdx} selIdx={s.selIdx} onSelIdx={s.setSelIdx} size="mini" />
+          <GropoTargetSlider detents={s.detents} curIdx={s.curIdx} selIdx={s.selIdx} onSelIdx={s.setSelIdx} size="mini" />
         ) : (
           <div className="h-3" />
         )}

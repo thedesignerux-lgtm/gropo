@@ -1,4 +1,4 @@
-// src/components/PulseBar.tsx — VONDA PULSE · barra completa de solo lectura
+// src/components/PulseBar.tsx — GROPO PULSE · barra completa de solo lectura
 // La misma anatomía (nodos + precios + glow + parpadeos + conversión) para las
 // superficies NO interactivas: Grupos Abiertos (Home) y Mis Grupos.
 // Se autoalimenta del endpoint agregado; sin pulse, es una barra de tramos normal.

@@ -26,36 +26,36 @@ body {
   }
 }
 
-/* ── VONDA PULSE ─────────────────────────────────────────────
+/* ── GROPO PULSE ─────────────────────────────────────────────
    Onda naranja  = energía latente (observadores en Mi Radar)
    Impulso morado = compromisos con tarjeta empujando el precio
    Con prefers-reduced-motion se sustituye por un glow estático. */
 
-@keyframes vonda-pulse-ring {
+@keyframes gropo-pulse-ring {
   0%   { transform: scale(1);   opacity: 0.55; }
   70%  { opacity: 0.18; }
   100% { transform: scale(2.7); opacity: 0; }
 }
 
-@keyframes vonda-pulse-impulse {
+@keyframes gropo-pulse-impulse {
   0%   { left: 0%;                opacity: 0; }
   15%  { opacity: 0.9; }
   85%  { opacity: 0.9; }
   100% { left: var(--impulse-to, 90%); opacity: 0; }
 }
 
-.vonda-pulse-ring {
+.gropo-pulse-ring {
   position: absolute;
   inset: 0;
   border-radius: 9999px;
   pointer-events: none;
-  animation: vonda-pulse-ring var(--pulse-speed, 2.2s) cubic-bezier(0.2, 0.6, 0.4, 1) infinite;
+  animation: gropo-pulse-ring var(--pulse-speed, 2.2s) cubic-bezier(0.2, 0.6, 0.4, 1) infinite;
 }
-.vonda-pulse-ring--delayed {
+.gropo-pulse-ring--delayed {
   animation-delay: calc(var(--pulse-speed, 2.2s) / 2);
 }
 
-.vonda-pulse-impulse {
+.gropo-pulse-impulse {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
@@ -64,15 +64,15 @@ body {
   border-radius: 9999px;
   pointer-events: none;
   background: linear-gradient(90deg, transparent, #6C3CE1);
-  animation: vonda-pulse-impulse 1.8s ease-in-out infinite;
+  animation: gropo-pulse-impulse 1.8s ease-in-out infinite;
 }
 
 /* Glow naranja: estela latente de observadores sobre el tramo sin demanda */
-@keyframes vonda-glow-breathe {
+@keyframes gropo-glow-breathe {
   0%, 100% { opacity: var(--glow-min, 0.25); }
   50%      { opacity: var(--glow-max, 0.55); }
 }
-.vonda-glow {
+.gropo-glow {
   position: absolute;
   top: 0;
   height: 100%;
@@ -80,11 +80,11 @@ body {
   border-radius: 9999px;
   /* Bruma morada muy sutil: observadores (sin compromiso) */
   background: linear-gradient(90deg, rgba(108, 60, 225, 0), rgba(108, 60, 225, 0.35));
-  animation: vonda-glow-breathe 2.6s ease-in-out infinite;
+  animation: gropo-glow-breathe 2.6s ease-in-out infinite;
 }
 
 /* Difuminado morado: intención marcada (sin tarjeta), proporcional */
-.vonda-marked {
+.gropo-marked {
   position: absolute;
   top: 0;
   height: 100%;
@@ -98,11 +98,11 @@ body {
 }
 
 /* Relleno inverso morado: la demanda potencial avanza desde el tier hacia atrás */
-@keyframes vonda-reverse-shimmer {
+@keyframes gropo-reverse-shimmer {
   0%, 100% { filter: brightness(1); }
   50%      { filter: brightness(1.35); }
 }
-.vonda-reverse-fill {
+.gropo-reverse-fill {
   position: absolute;
   top: 0;
   height: 100%;
@@ -111,12 +111,12 @@ body {
   /* SÓLIDO continuo: comprometidos con tarjeta (hold o guardada) desde el tier hacia atrás */
   background: #6C3CE1;
   border-radius: 9999px 0 0 9999px;
-  animation: vonda-reverse-shimmer 2.2s ease-in-out infinite;
+  animation: gropo-reverse-shimmer 2.2s ease-in-out infinite;
   transition: left 0.6s ease, width 0.6s ease;
 }
 
 /* Ancla del usuario (PMA) elevada sobre la barra, con conector punteado */
-.vonda-anchor {
+.gropo-anchor {
   position: absolute;
   top: 0;
   transform: translateX(-50%);
@@ -126,14 +126,14 @@ body {
   align-items: center;
   z-index: 4;
 }
-.vonda-anchor__ring {
+.gropo-anchor__ring {
   width: 11px;
   height: 11px;
   border-radius: 9999px;
   border: 2.5px solid #6C3CE1;
   background: #fff;
 }
-.vonda-anchor__line {
+.gropo-anchor__line {
   width: 0;
   height: 7px;
   border-left: 1.5px dashed #6C3CE1;
@@ -141,15 +141,15 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .vonda-pulse-ring {
+  .gropo-pulse-ring {
     animation: none;
     transform: scale(1.55);
     opacity: 0.25;
   }
-  .vonda-pulse-ring--delayed { display: none; }
-  .vonda-pulse-impulse { animation: none; opacity: 0; }
-  .vonda-glow { animation: none; opacity: 0.35; }
-  .vonda-reverse-fill { animation: none; }
+  .gropo-pulse-ring--delayed { display: none; }
+  .gropo-pulse-impulse { animation: none; opacity: 0; }
+  .gropo-glow { animation: none; opacity: 0.35; }
+  .gropo-reverse-fill { animation: none; }
 }
 
 /* Target slider (home cards board 1b) */

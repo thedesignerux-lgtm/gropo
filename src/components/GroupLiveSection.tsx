@@ -6,7 +6,7 @@ import { useTierDemand } from '@/hooks/useTierDemand'
 import { usePulse } from '@/hooks/usePulse'
 import { useCheckout } from '@/components/checkout/CheckoutProvider'
 import GroupCountdown from './GroupCountdown'
-import VondaTargetSlider, { type Detent } from '@/components/VondaTargetSlider'
+import GropoTargetSlider, { type Detent } from '@/components/GropoTargetSlider'
 import { createClient } from '@/lib/supabase-browser'
 
 function fmt(n: number | undefined | null): string {
@@ -140,7 +140,7 @@ export default function GroupLiveSection({
           {/* Target slider (con nudge, sin encabezado — estado va arriba) */}
           {detents.length > 1 && (
             <div className="mt-2">
-              <VondaTargetSlider
+              <GropoTargetSlider
                 detents={detents}
                 curIdx={curIdx}
                 selIdx={selIdx}

@@ -1,4 +1,4 @@
-// src/lib/pulse-notify.ts — VONDA PULSE · aviso "ya sois suficientes"
+// src/lib/pulse-notify.ts — GROPO PULSE · aviso "ya sois suficientes"
 //
 // notifyReachableWatchers(groupId):
 //  1. Lee pulse_state y calcula los tramos ALCANZABLES (no desbloqueados donde
@@ -18,7 +18,7 @@ import { Resend } from 'resend'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { pulseReachableEmail } from '@/lib/emails/pulseReachable'
 
-const FROM = process.env.RESEND_FROM ?? 'Vonda <no-reply@vonda.es>'
+const FROM = process.env.RESEND_FROM ?? 'Gropo <no-reply@vonda.es>'
 const BASE_URL = 'https://www.vonda.es'
 
 interface PulseStateRow {

@@ -29,7 +29,7 @@ export interface CreateGroupInput {
 
 function sellerEmail(name: string): string {
   const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-  return `seller-${slug}@vonda.local`
+  return `seller-${slug}@gropo.local`
 }
 
 /** Validaciones compartidas entre createGroup y addBidToGroup */

@@ -28,7 +28,7 @@ export default function RadarCardMenu({ groupId }: Props) {
     setOpen(false)
     const url = `https://www.vonda.es/grupo/${groupId}`
     if (navigator.share) {
-      navigator.share({ title: 'Vonda', url })
+      navigator.share({ title: 'Gropo', url })
     } else {
       navigator.clipboard.writeText(url)
     }

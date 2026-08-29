@@ -1,4 +1,4 @@
-// src/hooks/usePulse.ts — VONDA PULSE · estado agregado del pulso (cliente)
+// src/hooks/usePulse.ts — GROPO PULSE · estado agregado del pulso (cliente)
 // Consume /api/group/[id]/pulse (agregado servidor, sin cifras — P3) y
 // refresca cada 20 s. Nunca expone datos sensibles: el endpoint ya viene filtrado.
 'use client'

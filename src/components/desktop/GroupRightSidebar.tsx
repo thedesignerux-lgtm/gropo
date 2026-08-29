@@ -6,7 +6,7 @@ import { useTierDemand } from '@/hooks/useTierDemand'
 import { usePulse } from '@/hooks/usePulse'
 import { useCheckout } from '@/components/checkout/CheckoutProvider'
 import { createClient } from '@/lib/supabase-browser'
-import VondaTargetSlider, { type Detent } from '@/components/VondaTargetSlider'
+import GropoTargetSlider, { type Detent } from '@/components/GropoTargetSlider'
 
 function fmt(n: number): string {
   return (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
@@ -148,7 +148,7 @@ export default function GroupRightSidebar({
 
         {/* ── Target slider (reemplaza stepper + selector) ── */}
         {detents.length > 1 ? (
-          <VondaTargetSlider
+          <GropoTargetSlider
             detents={detents}
             curIdx={curIdx}
             selIdx={selIdx}

@@ -1,2 +1,2 @@
-// Deprecado: usar '@/components/VondaTargetSlider'. Se mantiene como re-export.
-export { default, type Detent } from '@/components/VondaTargetSlider'
+// Deprecado: usar '@/components/GropoTargetSlider'. Se mantiene como re-export.
+export { default, type Detent } from '@/components/GropoTargetSlider'

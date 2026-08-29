@@ -1,4 +1,4 @@
-// Plantilla del email "¡Ya sois suficientes!" — VONDA PULSE.
+// Plantilla del email "¡Ya sois suficientes!" — GROPO PULSE.
 // Se envía a un usuario con ancla 'watching' cuando su tramo pasa a ser
 // alcanzable (compradores + tarjetas aceptadas + esperas >= unidades del tramo).
 
@@ -34,7 +34,7 @@ Bloquea tu precio aquí: ${groupUrl}
 
 Si ya no te interesa, no tienes que hacer nada.
 
-— Vonda`
+— Gropo`
 
   const saludoHtml = nombre
     ? `Hola <span style="color:#6C4BF4;font-weight:600;">${nombre}</span>,`
@@ -61,7 +61,7 @@ Si ya no te interesa, no tienes que hacer nada.
     <p style="font-size:13px;color:#8A8780;line-height:1.5;margin:0;">
       Si ya no te interesa, no tienes que hacer nada.
     </p>
-    <p style="font-size:13px;color:#8A8780;margin:22px 0 0;">— Vonda</p>
+    <p style="font-size:13px;color:#8A8780;margin:22px 0 0;">— Gropo</p>
   </div>
 </body>
 </html>`

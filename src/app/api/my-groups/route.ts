@@ -13,20 +13,20 @@ export async function GET() {
   }
 
   // 2. Look up phone by email in users table
-  const { data: vondaUser } = await supabaseAdmin
+  const { data: gropoUser } = await supabaseAdmin
     .from('users')
     .select('phone')
     .eq('email', user.email)
     .maybeSingle()
 
-  if (!vondaUser?.phone) {
+  if (!gropoUser?.phone) {
     // User authenticated but never purchased → no groups
     return NextResponse.json({ groups: [] })
   }
 
   // 3. Reuse existing SECURITY DEFINER RPC
   const { data, error } = await supabaseAdmin
-    .rpc('get_my_groups', { p_phone: vondaUser.phone })
+    .rpc('get_my_groups', { p_phone: gropoUser.phone })
 
   if (error) {
     console.error('[api/my-groups]', error.message)

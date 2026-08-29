@@ -1,4 +1,4 @@
-// src/app/api/cron/pulse/route.ts — VONDA PULSE (G2)
+// src/app/api/cron/pulse/route.ts — GROPO PULSE (G2)
 // Cron de respaldo: re-evalúa la masa crítica de todos los grupos abiertos
 // (por si un disparo quedó a medias por un fallo transitorio) y expira los
 // pledges de grupos ya cerrados. El disparo real casi siempre ocurre inline

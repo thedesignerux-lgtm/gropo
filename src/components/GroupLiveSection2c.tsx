@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useTierDemand } from '@/hooks/useTierDemand'
 import { usePulse } from '@/hooks/usePulse'
 import { useCheckout } from '@/components/checkout/CheckoutProvider'
-import VondaTargetSlider, { type Detent } from '@/components/VondaTargetSlider'
+import GropoTargetSlider, { type Detent } from '@/components/GropoTargetSlider'
 import { createClient } from '@/lib/supabase-browser'
 
 function fmt(n: number | undefined | null): string {
@@ -107,7 +107,7 @@ export default function GroupLiveSection2c({
       {/* Target slider with PMA bubble */}
       {detents.length > 1 && (
         <div style={{ marginTop: 6 }}>
-          <VondaTargetSlider
+          <GropoTargetSlider
             detents={detents}
             curIdx={curIdx}
             selIdx={selIdx}

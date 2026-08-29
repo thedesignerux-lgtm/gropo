@@ -10,7 +10,7 @@ export default function MensajesPage() {
       <div className="flex-1 min-w-0 flex flex-col pb-24 lg:pb-0">
         <main className="w-full max-w-[720px] mx-auto px-4 lg:px-10 pt-6 lg:pt-10 pb-14">
           <h1 className="text-2xl lg:text-[28px] font-extrabold tracking-tight text-neutral-900">Mensajes</h1>
-          <p className="text-sm text-neutral-500 mt-1">Tu comunicación con Vonda.</p>
+          <p className="text-sm text-neutral-500 mt-1">Tu comunicación con Gropo.</p>
 
           <div className="mt-8 bg-white border border-neutral-200 rounded-2xl px-6 py-16 text-center">
             <div className="w-14 h-14 rounded-full bg-brand/10 text-brand flex items-center justify-center mx-auto mb-4">

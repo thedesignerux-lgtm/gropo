@@ -1,7 +1,7 @@
 'use client';
 
 // src/app/grupo/[id]/unirme/JoinFlow.tsx
-// Checkout "Unirme a la vonda". Modelo de PROYECCIÓN: el precio del resumen, el
+// Checkout "Unirme al gropo". Modelo de PROYECCIÓN: el precio del resumen, el
 // banner, el subtotal y el botón reaccionan a [unidades actuales] + [qty]. El
 // precio por unidad proyectado sale del quote (compute_price en el servidor); los
 // tramos solo se usan client-side para el display del siguiente umbral (la curva
@@ -25,8 +25,8 @@ import confetti from 'canvas-confetti';
 import { PROVINCIAS_ES } from '@/lib/provincias';
 import { normalizePhone } from '@/lib/phone';
 import { supabase } from '@/lib/supabase';
-import VondaTargetSlider, { type Detent } from '@/components/VondaTargetSlider';
-import HowVondaSheet from '@/components/HowVondaSheet';
+import GropoTargetSlider, { type Detent } from '@/components/GropoTargetSlider';
+import HowGropoSheet from '@/components/HowGropoSheet';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -37,7 +37,7 @@ export type JoinGroup = {
   product_name: string;
   product_spec: string;
   pvp: number;
-  current_price: number; // precio de la vonda con las unidades actuales (fallback hasta el quote)
+  current_price: number; // precio del gropo con las unidades actuales (fallback hasta el quote)
   image_url?: string | null;
   total_units: number;
   closes_at: string;
@@ -227,7 +227,7 @@ export default function JoinFlow({
               <div>
                 <p className="text-sm font-semibold text-neutral-900">Compra automática a {eur(efectiveTargetPrice)}</p>
                 <p className="text-xs text-neutral-500 mt-1">
-                  Se retendrán {eur(efectiveTargetPrice * quantity)} en tu tarjeta ({eur(efectiveTargetPrice)}/ud × {quantity}). Si la vonda alcanza ese precio antes del cierre, se confirma automáticamente. Si no se alcanza, se libera sin cargo.
+                  Se retendrán {eur(efectiveTargetPrice * quantity)} en tu tarjeta ({eur(efectiveTargetPrice)}/ud × {quantity}). Si el gropo alcanza ese precio antes del cierre, se confirma automáticamente. Si no se alcanza, se libera sin cargo.
                 </p>
               </div>
             </div>
@@ -353,7 +353,7 @@ export default function JoinFlow({
           {/* Slider de tramos — fija visualmente el tier elegido (modo lectura) */}
           {detents.length > 1 && (
             <div className="mt-1">
-              <VondaTargetSlider
+              <GropoTargetSlider
                 detents={detents}
                 curIdx={curIdx}
                 selIdx={selIdx}
@@ -379,7 +379,7 @@ export default function JoinFlow({
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-bold text-neutral-900">Tu reserva garantiza el descuento</p>
                   <p className="mt-1 text-[13px] leading-snug text-neutral-500">
-                    La marca solo concede este precio cuando existe suficiente demanda confirmada. Por eso verificamos el importe en tu tarjeta antes del cierre de la Vonda.
+                    La marca solo concede este precio cuando existe suficiente demanda confirmada. Por eso verificamos el importe en tu tarjeta antes del cierre del gropo.
                   </p>
                 </div>
                 {/* Ilustración candado + tarjeta */}
@@ -433,7 +433,7 @@ export default function JoinFlow({
       </Elements>
 
       {/* ── Bottom sheet compartido con la home ── */}
-      <HowVondaSheet open={payInfoOpen} onClose={() => setPayInfoOpen(false)} />
+      <HowGropoSheet open={payInfoOpen} onClose={() => setPayInfoOpen(false)} />
     </div>
   );
 }
@@ -460,14 +460,14 @@ function PayLogos() {
   );
 }
 
-/* Fila "¿Cómo funciona Vonda?" — abre el bottom sheet compartido. */
-function HowVondaRow({ onOpen }: { onOpen: () => void }) {
+/* Fila "¿Cómo funciona Gropo?" — abre el bottom sheet compartido. */
+function HowGropoRow({ onOpen }: { onOpen: () => void }) {
   return (
     <section className="px-4 pt-4">
       <button type="button" onClick={onOpen} className="flex w-full items-center justify-between rounded-2xl border border-neutral-200 px-4 py-3.5">
         <span className="inline-flex items-center gap-2 text-sm font-semibold text-neutral-900">
           <span className="grid h-4 w-4 place-items-center rounded-full bg-brand/10 text-[10px] font-black text-brand">i</span>
-          ¿Cómo funciona Vonda?
+          ¿Cómo funciona Gropo?
         </span>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9a97a2" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9" /></svg>
       </button>
@@ -717,8 +717,8 @@ function InnerForm({
         </p>
       )}
 
-      {/* ── ¿CÓMO FUNCIONA VONDA? ── */}
-      <HowVondaRow onOpen={onOpenHow} />
+      {/* ── ¿CÓMO FUNCIONA GROPO? ── */}
+      <HowGropoRow onOpen={onOpenHow} />
 
       {/* ── FOOTER FIJO: Hoy 0 € (retención, no cobro) ── */}
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-neutral-100 bg-white/95 backdrop-blur">
@@ -740,12 +740,12 @@ function InnerForm({
           </button>
           {showAdjust && visualMode !== 'esperar' && (
             <p className="mt-2 text-center text-xs text-neutral-500">
-              Hoy 0 €. Pagas el precio final al cierre; se ajustará a la baja si la vonda crece.
+              Hoy 0 €. Pagas el precio final al cierre; se ajustará a la baja si el gropo crece.
             </p>
           )}
           {visualMode === 'esperar' && (
             <p className="mt-2 text-center text-xs text-neutral-500">
-              Solo pagas si la vonda baja a tu precio objetivo. Si no, se libera sin cargo.
+              Solo pagas si el gropo baja a tu precio objetivo. Si no, se libera sin cargo.
             </p>
           )}
 

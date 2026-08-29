@@ -8,8 +8,8 @@ import { getStepPricing } from '@/lib/mock-data'
 import { useCheckout } from '@/components/checkout/CheckoutProvider'
 import { usePulse } from '@/hooks/usePulse'
 import FavoriteButton from '@/components/FavoriteButton'
-import VondaTargetSlider, { type Detent } from '@/components/VondaTargetSlider'
-import HowVondaSheet from '@/components/HowVondaSheet'
+import GropoTargetSlider, { type Detent } from '@/components/GropoTargetSlider'
+import HowGropoSheet from '@/components/HowGropoSheet'
 
 const fmt = (n: number) => (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
 
@@ -160,12 +160,12 @@ export default function GroupsGrid({ products, favoriteIds = [], isAuthed = fals
       ) : featured ? (
         <>
           {/* ── Card destacada ── */}
-          <FeaturedVondaCard x={featured} isFavorited={favSet.has(featured.p.id)} isAuthed={isAuthed} onOpenSheet={() => setSheetOpen(true)} />
+          <FeaturedGropoCard x={featured} isFavorited={favSet.has(featured.p.id)} isAuthed={isAuthed} onOpenSheet={() => setSheetOpen(true)} />
 
           {/* ── Carruseles ── */}
           {nearNext.length > 0 && <CarouselRow title="Cerca del siguiente precio" items={nearNext} favSet={favSet} first />}
           {droppedMost.length > 0 && <CarouselRow title="Más han bajado hoy" items={droppedMost} favSet={favSet} />}
-          {popular.length > 0 && <CarouselRow title="Vondas populares" items={popular} favSet={favSet} link="Ver todas" />}
+          {popular.length > 0 && <CarouselRow title="Gropos populares" items={popular} favSet={favSet} link="Ver todos" />}
 
           <div className="h-16" />
         </>
@@ -173,17 +173,17 @@ export default function GroupsGrid({ products, favoriteIds = [], isAuthed = fals
         <div className="px-[18px] py-16 text-center text-sm text-neutral-400">No hay grupos abiertos</div>
       )}
 
-      {/* ── Bottom sheet ¿Cómo funciona Vonda? ── */}
-      <HowVondaSheet open={sheetOpen} onClose={() => setSheetOpen(false)} />
+      {/* ── Bottom sheet ¿Cómo funciona Gropo? ── */}
+      <HowGropoSheet open={sheetOpen} onClose={() => setSheetOpen(false)} />
     </>
   )
 }
 
 /* ═══════════════════════════════════════════
-   FeaturedVondaCard — card destacada 10M
+   FeaturedGropoCard — card destacada 10M
    ═══════════════════════════════════════════ */
 
-function FeaturedVondaCard({ x, isFavorited, isAuthed, onOpenSheet }: { x: Priced; isFavorited: boolean; isAuthed: boolean; onOpenSheet: () => void }) {
+function FeaturedGropoCard({ x, isFavorited, isAuthed, onOpenSheet }: { x: Priced; isFavorited: boolean; isAuthed: boolean; onOpenSheet: () => void }) {
   const { p, currentPrice, savings, complete } = x
   const { open } = useCheckout()
   const router = useRouter()
@@ -224,7 +224,7 @@ function FeaturedVondaCard({ x, isFavorited, isAuthed, onOpenSheet }: { x: Price
     <div className="mx-3 mt-1 relative rounded-[16px]" style={{ background: '#F5F3F9', padding: '13px 13px 12px' }}>
       {/* Header: eyebrow + status pill */}
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] font-extrabold uppercase text-brand" style={{ letterSpacing: '0.4px' }}>★ Vonda destacada</span>
+        <span className="text-[10px] font-extrabold uppercase text-brand" style={{ letterSpacing: '0.4px' }}>★ Gropo destacada</span>
         {confirmed ? (
           <span className="inline-flex items-center gap-1.5 rounded-full text-[11.5px] font-bold text-brand" style={{ background: '#EDE9FB', padding: '3px 10px 3px 4px' }}>
             <span className="grid place-items-center rounded-full text-white text-[9px] font-black" style={{ width: 16, height: 16, background: '#6C4BF4' }}>✓</span>
@@ -266,7 +266,7 @@ function FeaturedVondaCard({ x, isFavorited, isAuthed, onOpenSheet }: { x: Price
       <div className="mt-2.5 pt-2.5" style={{ borderTop: '1px solid #E4DEEE' }}>
         <div className="text-[17px] font-extrabold tracking-tight leading-[1.2] mb-1.5 text-[#1a1a1f]">¿Hasta cuánto quieres pagar?</div>
         {detents.length > 1 ? (
-          <VondaTargetSlider detents={detents} curIdx={curIdx} selIdx={selIdx} onSelIdx={setSelIdx} size="mini" chrome="nudge" pulse={pulseData?.steps} glow={pulseData?.glow} shortfallTicks currentUnits={p.currentUnits} />
+          <GropoTargetSlider detents={detents} curIdx={curIdx} selIdx={selIdx} onSelIdx={setSelIdx} size="mini" chrome="nudge" pulse={pulseData?.steps} glow={pulseData?.glow} shortfallTicks currentUnits={p.currentUnits} />
         ) : (
           <div className="h-2" />
         )}

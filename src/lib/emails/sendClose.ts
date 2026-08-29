@@ -89,7 +89,7 @@ export async function sendClosePaymentEmails(groupId: string): Promise<CloseEmai
         else sent++
       } else {
         // Adjudicado sin captura → instrucciones de pago por transferencia
-        const concepto = `VONDA-${groupPrefix}-${m.join_order}`
+        const concepto = `GROPO-${groupPrefix}-${m.join_order}`
         const { error } = await sendPaymentInstructions({
           to: email,
           nombre: u?.name ?? undefined,

@@ -1,4 +1,4 @@
-// src/components/PulseRings.tsx — VONDA PULSE · anillos decorativos
+// src/components/PulseRings.tsx — GROPO PULSE · anillos decorativos
 // Sin hooks: usable desde componentes server y client.
 // El padre debe ser `position: relative`; los anillos se expanden desde su centro.
 
@@ -25,12 +25,12 @@ export default function PulseRings({ tone, intensity, className = '' }: Props) {
   return (
     <span aria-hidden="true" className={className} style={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
       <span
-        className="vonda-pulse-ring"
+        className="gropo-pulse-ring"
         style={{ border: `2px solid ${color}`, ['--pulse-speed' as never]: speed }}
       />
       {intensity >= 2 && (
         <span
-          className="vonda-pulse-ring vonda-pulse-ring--delayed"
+          className="gropo-pulse-ring gropo-pulse-ring--delayed"
           style={{ border: `2px solid ${color}`, ['--pulse-speed' as never]: speed }}
         />
       )}

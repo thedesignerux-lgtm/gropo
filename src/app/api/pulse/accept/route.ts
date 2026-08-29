@@ -1,4 +1,4 @@
-// src/app/api/pulse/accept/route.ts — VONDA PULSE (G2)
+// src/app/api/pulse/accept/route.ts — GROPO PULSE (G2)
 // POST: inicia la aceptación ("Aceptar este precio").
 // Crea un SetupIntent (0 € — SOLO guarda la tarjeta para uso off-session).
 // La retención real solo ocurre cuando la masa crítica se alcanza (lib/pulse.ts).

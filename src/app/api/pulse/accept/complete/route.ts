@@ -1,4 +1,4 @@
-// src/app/api/pulse/accept/complete/route.ts — VONDA PULSE (G2)
+// src/app/api/pulse/accept/complete/route.ts — GROPO PULSE (G2)
 // POST: cierra la aceptación tras confirmar el SetupIntent en el cliente.
 // Server-authoritative: verifica el SetupIntent CONTRA STRIPE (nunca confía
 // en el front), guarda tarjeta + datos de contacto/envío en el pledge y

@@ -11,7 +11,7 @@ export interface TierPoint {
   unlocked?: boolean
 }
 
-/** VONDA PULSE · estado por salto (lenguaje: solo VERDE y MORADO)
+/** GROPO PULSE · estado por salto (lenguaje: solo VERDE y MORADO)
  *  VERDE  sólido → demanda firme (dinero al precio actual)
  *  MORADO sólido → dinero condicional (holds de esperadores + tarjetas Pulse)
  *  MORADO difuminado → intención marcada (sin tarjeta), proporcional (>1 supera)
@@ -45,7 +45,7 @@ interface Props {
   /** Tramos ascendentes por unidades (desde tier_demand) */
   tiers: TierPoint[]
   variant: TierVariant
-  /** VONDA PULSE: estado por tramo (opcional) */
+  /** GROPO PULSE: estado por tramo (opcional) */
   pulse?: TierPulse[]
   /** Bruma de observadores 0–3 */
   glow?: 0 | 1 | 2 | 3
@@ -61,7 +61,7 @@ interface Props {
 }
 
 /**
- * TierProgress — barra de tramos + Vonda Pulse.
+ * TierProgress — barra de tramos + Gropo Pulse.
  * La demanda firme (verde) avanza de izquierda a derecha; la condicional
  * (morado) nace en cada tier y avanza hacia atrás. Cuando se tocan, el tier cae.
  */
@@ -193,11 +193,11 @@ export default function TierProgress({
       {/* Ancla del usuario (PMA) — siempre morada */}
       {hasAnchor && (
         <span
-          className="vonda-anchor"
+          className="gropo-anchor"
           style={{ left: `${posByUnits.get(selectedUnits!) ?? pct(selectedUnits!)}%`, top: labelH }}
         >
-          <span className="vonda-anchor__ring" />
-          <span className="vonda-anchor__line" />
+          <span className="gropo-anchor__ring" />
+          <span className="gropo-anchor__line" />
         </span>
       )}
 
@@ -209,7 +209,7 @@ export default function TierProgress({
         {/* Bruma de observadores (muy sutil) — solo si no hay compromiso ni intención */}
         {effectiveGlow > 0 && (
           <span
-            className="vonda-glow"
+            className="gropo-glow"
             style={{
               left: `${firmPct}%`,
               width: `${Math.max(0, 100 - firmPct)}%`,
@@ -220,11 +220,11 @@ export default function TierProgress({
         )}
         {/* Intención marcada (difuminado) */}
         {layers.filter((l) => l.kind === 'marked').map((l, i) => (
-          <span key={`mk-${i}`} className="vonda-marked" style={{ left: `${l.left}%`, width: `${l.width}%` }} />
+          <span key={`mk-${i}`} className="gropo-marked" style={{ left: `${l.left}%`, width: `${l.width}%` }} />
         ))}
         {/* Dinero condicional (sólido, en movimiento) */}
         {layers.filter((l) => l.kind === 'money').map((l, i) => (
-          <span key={`mn-${i}`} className="vonda-reverse-fill" style={{ left: `${l.left}%`, width: `${l.width}%` }} />
+          <span key={`mn-${i}`} className="gropo-reverse-fill" style={{ left: `${l.left}%`, width: `${l.width}%` }} />
         ))}
         {/* Demanda firme */}
         <div

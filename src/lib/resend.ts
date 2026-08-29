@@ -7,8 +7,8 @@ import { purchaseConfirmationEmail } from './emails/purchaseConfirmation'
 
 // Remitente: por defecto el sandbox de Resend (entrega solo al email de la
 // cuenta sin dominio verificado). Para producción, define RESEND_FROM con una
-// dirección de un dominio verificado, p.ej. "Vonda <no-reply@vonda.es>".
-const FROM = process.env.RESEND_FROM ?? 'Vonda <no-reply@vonda.es>'
+// dirección de un dominio verificado, p.ej. "Gropo <no-reply@vonda.es>".
+const FROM = process.env.RESEND_FROM ?? 'Gropo <no-reply@vonda.es>'
 
 function getResend(): Resend {
   const apiKey = process.env.RESEND_API_KEY

@@ -1,4 +1,4 @@
-// src/components/PulseZone.tsx — VONDA PULSE v3 · Mi Radar
+// src/components/PulseZone.tsx — GROPO PULSE v3 · Mi Radar
 // Dueño único del área inferior de la tarjeta: barra (anatomía del mockup) +
 // UNA línea de estado + UNA CTA primaria por estado (secundaria opcional).
 //
@@ -14,7 +14,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { type TierPoint, type TierVariant } from '@/components/TierProgress'
-import VondaTargetSlider, { type Detent } from '@/components/VondaTargetSlider'
+import GropoTargetSlider, { type Detent } from '@/components/GropoTargetSlider'
 import PulseAcceptModal from '@/components/PulseAcceptModal'
 import { usePulse } from '@/hooks/usePulse'
 
@@ -394,7 +394,7 @@ export default function PulseZone({
       {/* En canAccept el slider sobra: el precio ya está elegido y lo único que
           toca es activarlo. Mostrarlo invita a re-anclar y compite con la CTA. */}
       {detents.length > 0 && !canAccept && (
-        <VondaTargetSlider
+        <GropoTargetSlider
           detents={detents}
           curIdx={curIdx}
           selIdx={selIdx}

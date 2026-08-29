@@ -106,7 +106,7 @@ export async function POST(req: Request) {
       off_session: false,
       setup_future_usage: 'on_session',
       payment_method_types: ['card'],
-      description: `Vonda · ${prep.product_name} (${prep.product_spec}) x${quantity}`,
+      description: `Gropo · ${prep.product_name} (${prep.product_spec}) x${quantity}`,
       shipping: {
         name: lastMember.shipping_name ?? profile.name ?? '',
         phone: lastMember.shipping_phone ?? normalizedPhone,

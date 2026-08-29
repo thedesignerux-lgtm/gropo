@@ -195,7 +195,7 @@ export function MgCard({ m, ladder, onOpen }: { m: Membership; ladder: LadderRow
           )}
         </div>
       </div>
-      {/* barra — VONDA PULSE completa en grupos vivos; barra simple en estados finales */}
+      {/* barra — GROPO PULSE completa en grupos vivos; barra simple en estados finales */}
       {isOpen && (d.state === 'encurso' || d.state === 'apunto') && ladder.length > 0 ? (
         <PulseBar
           groupId={m.group_id}
@@ -326,7 +326,7 @@ export function Drawer({ m, ladder, onClose }: { m: Membership; ladder: LadderRo
         </div>
         <div className="border border-neutral-200 rounded-2xl p-4 mt-4">
           <h4 className="text-[11px] font-bold uppercase tracking-wide text-neutral-500 mb-2">Por qué no se alcanzó</h4>
-          <p className="text-[13px] text-neutral-600 leading-relaxed">El grupo no llegó al volumen mínimo a tiempo. Cuando esto pasa, nadie paga: es la garantía de Vonda.</p>
+          <p className="text-[13px] text-neutral-600 leading-relaxed">El grupo no llegó al volumen mínimo a tiempo. Cuando esto pasa, nadie paga: es la garantía de Gropo.</p>
         </div>
       </div>
       <div className="px-[22px] py-4 border-t border-neutral-100">

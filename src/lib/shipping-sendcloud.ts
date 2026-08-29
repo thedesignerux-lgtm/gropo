@@ -13,8 +13,8 @@ const BOX = { length: '30', width: '30', height: '20', unit: 'cm' };
 // Remitente = distribuidor (placeholder hasta concretar; swap = editar .env.local).
 function getFromAddress() {
   return {
-    name: process.env.SENDCLOUD_FROM_NAME ?? 'Vonda Envios (test)',
-    company_name: process.env.SENDCLOUD_FROM_COMPANY ?? 'Vonda',
+    name: process.env.SENDCLOUD_FROM_NAME ?? 'Gropo Envios (test)',
+    company_name: process.env.SENDCLOUD_FROM_COMPANY ?? 'Gropo',
     address_line_1: process.env.SENDCLOUD_FROM_ADDRESS_LINE1 ?? 'Carrer de Prova 1',
     house_number: process.env.SENDCLOUD_FROM_HOUSE_NUMBER ?? '1',
     postal_code: process.env.SENDCLOUD_FROM_POSTAL_CODE ?? '08001',
@@ -69,7 +69,7 @@ export async function generateShippingLabels(groupId: string): Promise<ShippingR
     const body = {
       apply_shipping_defaults: false,
       apply_shipping_rules: false,
-      order_number: `vonda-${String(m.id).slice(0, 8)}`,
+      order_number: `gropo-${String(m.id).slice(0, 8)}`,
       external_reference_id: m.id, // Capa 2: idempotencia del lado Sendcloud.
       to_address: {
         name: m.shipping_name ?? '',

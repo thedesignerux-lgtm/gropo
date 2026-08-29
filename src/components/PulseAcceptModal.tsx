@@ -1,4 +1,4 @@
-// src/components/PulseAcceptModal.tsx — VONDA PULSE (G5)
+// src/components/PulseAcceptModal.tsx — GROPO PULSE (G5)
 // Modal "Aceptar este precio": datos de envío + tarjeta (SetupIntent, 0 € hoy).
 // La retención SOLO ocurre cuando la masa crítica se alcanza (motor G2).
 // Renderizado via portal (las tarjetas viven dentro de <Link>).

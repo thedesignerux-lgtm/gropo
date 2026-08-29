@@ -58,7 +58,7 @@ interface Props {
   chrome?: 'none' | 'nudge' | 'full'
   /** Unidades que faltan para el siguiente tramo (para el nudge). Si no se pasa, se calcula. */
   udsToNext?: number
-  /** VONDA PULSE: estado por tramo (de usePulse). Decorativo; si no se pasa, no se pinta. */
+  /** GROPO PULSE: estado por tramo (de usePulse). Decorativo; si no se pasa, no se pinta. */
   pulse?: TierPulse[]
   /** Bruma de observadores 0–3 (de usePulse). */
   glow?: 0 | 1 | 2 | 3
@@ -84,7 +84,7 @@ interface Props {
   currentUnits?: number
 }
 
-export default function VondaTargetSlider({
+export default function GropoTargetSlider({
   detents, curIdx, selIdx, onSelIdx, size = 'full', chrome = 'none', udsToNext,
   pulse, glow = 0, onCommit, minIdx = 0, disabled = false, anchorMode = false,
   anchorFading = false, hideThumb = false, locked = false,
@@ -159,7 +159,7 @@ export default function VondaTargetSlider({
     : 0
   const projW = showProj && projEndIdx != null && n > 1 ? ((projEndIdx - curIdx) / (n - 1)) * 86 + '%' : '0%'
   const projColor = esperarTrail ? '#E8944A' : '#C9BEF6'
-  // Copy (Vonda: elegir por debajo del actual = esperador válido)
+  // Copy (Gropo: elegir por debajo del actual = esperador válido)
   const selP = detents[selIdx]?.price ?? 0
   const curP = detents[curIdx]?.price ?? 0
   const nextP = nextIdx != null ? detents[nextIdx].price : null
@@ -194,7 +194,7 @@ export default function VondaTargetSlider({
   const nudgeBg = confirmed ? '#F4F1FE' : '#FCF4EA'
   const nudgeBr = confirmed ? '#E4DCFB' : '#F3E3CC'
 
-  // ── VONDA PULSE ──────────────────────────────────────────────
+  // ── GROPO PULSE ──────────────────────────────────────────────
   // Capas de actividad en vivo mapeadas al sistema de posiciones del slider
   // (detents equiespaciados de 7% a 93%). Réplica de la lógica de TierProgress
   // adaptada; puramente decorativo (nunca afecta al thumb ni a la selección).
@@ -295,12 +295,12 @@ export default function VondaTargetSlider({
           <div style={{ position: 'absolute', left: 0, right: 0, top: '50%', transform: 'translateY(-50%)', height: 8, borderRadius: 999, background: '#ECEAF4' }} />
           <div className="ts-pulse" style={{ position: 'absolute', left: pos(curIdx), width: projW, top: '50%', transform: 'translateY(-50%)', height: 8, borderRadius: 999, background: `repeating-linear-gradient(90deg,${projColor} 0 6px,transparent 6px 12px)` }} />
 
-          {/* VONDA PULSE · capas de actividad en vivo (sobre la proyección, bajo la onda firme) */}
+          {/* GROPO PULSE · capas de actividad en vivo (sobre la proyección, bajo la onda firme) */}
           {(pLayers.length > 0 || effectiveGlow > 0) && (
             <div style={{ position: 'absolute', left: 0, right: 0, top: '50%', transform: 'translateY(-50%)', height: 8, borderRadius: 999, overflow: 'hidden', pointerEvents: 'none', zIndex: 1 }}>
               {effectiveGlow > 0 && (
                 <span
-                  className="vonda-glow"
+                  className="gropo-glow"
                   style={{
                     left: `${firmPct}%`,
                     width: `${Math.max(0, 100 - firmPct)}%`,
@@ -310,10 +310,10 @@ export default function VondaTargetSlider({
                 />
               )}
               {pLayers.filter((l) => l.kind === 'marked').map((l, i) => (
-                <span key={`mk-${i}`} className="vonda-marked" style={{ left: `${l.left}%`, width: `${l.width}%` }} />
+                <span key={`mk-${i}`} className="gropo-marked" style={{ left: `${l.left}%`, width: `${l.width}%` }} />
               ))}
               {pLayers.filter((l) => l.kind === 'money').map((l, i) => (
-                <span key={`mn-${i}`} className="vonda-reverse-fill" style={{ left: `${l.left}%`, width: `${l.width}%` }} />
+                <span key={`mn-${i}`} className="gropo-reverse-fill" style={{ left: `${l.left}%`, width: `${l.width}%` }} />
               ))}
             </div>
           )}

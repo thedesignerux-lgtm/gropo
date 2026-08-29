@@ -1,4 +1,4 @@
-// src/app/api/pulse/pledge/route.ts — VONDA PULSE (G2)
+// src/app/api/pulse/pledge/route.ts — GROPO PULSE (G2)
 // POST: crear/actualizar pledge 'watching' ("Esperar en este precio").
 // DELETE: cancelar el pledge vivo.
 // Requiere sesión (magic link). La validación de negocio vive en SQL.

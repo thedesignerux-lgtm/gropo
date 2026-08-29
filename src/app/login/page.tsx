@@ -81,7 +81,7 @@ export default function LoginPage() {
           <Link href="/" className="block text-center mb-6">
             <img src="/logo.png" alt="Gropo" className="h-8 mx-auto" />
           </Link>
-          <h1 className="text-xl font-bold text-neutral-900 text-center mb-2">Entra en Vonda</h1>
+          <h1 className="text-xl font-bold text-neutral-900 text-center mb-2">Entra en Gropo</h1>
           <p className="text-sm text-neutral-500 text-center mb-6">
             Entra con Google o con un enlace por email. Sin contraseñas.
           </p>

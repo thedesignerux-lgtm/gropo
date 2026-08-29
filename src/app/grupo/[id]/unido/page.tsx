@@ -20,14 +20,14 @@ export default function UnidoPage({ params }: { params: { id: string } }) {
         </h1>
         <p className="mt-2 text-sm leading-relaxed text-neutral-500">
           Hemos retenido el precio garantizado en tu tarjeta. En cuanto se confirme, te avisamos
-          por email. Pagarás el precio final de la vonda al cierre — siempre igual o menor.
+          por email. Pagarás el precio final del gropo al cierre — siempre igual o menor.
         </p>
 
         <Link
           href={`/grupo/${params.id}`}
           className="mt-8 inline-flex h-12 items-center justify-center rounded-xl bg-brand px-6 text-[15px] font-semibold text-white transition-colors hover:bg-brand-dark"
         >
-          Volver a la vonda
+          Volver al gropo
         </Link>
       </div>
     </div>

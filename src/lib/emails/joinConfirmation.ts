@@ -1,5 +1,5 @@
 // Plantilla del email de confirmación de unión a un grupo.
-// Remitente visible: Vonda.
+// Remitente visible: Gropo.
 
 export interface JoinEmailData {
   nombre?: string
@@ -45,7 +45,7 @@ El grupo cierra el ${cierre}.
 
 Cuantos más seáis, mejor precio para todos. Te avisaremos cuando el grupo cierre.
 
-— Vonda`
+— Gropo`
 
   // Saludo HTML: nombre en verde de marca; sin nombre, solo "Hola,".
   const saludoHtml = nombre
@@ -79,7 +79,7 @@ Cuantos más seáis, mejor precio para todos. Te avisaremos cuando el grupo cier
                     <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                       <tr>
                         <td style="width:36px;height:36px;background:#6C3CE1;border-radius:18px;text-align:center;vertical-align:middle;color:#FFFFFF;font-family:${FONT};font-size:20px;font-weight:700;line-height:36px;">V</td>
-                        <td style="padding-left:10px;font-family:${FONT};font-size:22px;font-weight:700;color:#1A1A1A;vertical-align:middle;">Vonda</td>
+                        <td style="padding-left:10px;font-family:${FONT};font-size:22px;font-weight:700;color:#1A1A1A;vertical-align:middle;">Gropo</td>
                       </tr>
                     </table>
                   </td>
@@ -159,7 +159,7 @@ Cuantos más seáis, mejor precio para todos. Te avisaremos cuando el grupo cier
           <tr>
             <td style="padding:24px 32px 32px 32px;">
               <p style="margin:0 0 4px 0;font-family:${FONT};font-size:15px;color:#1A1A1A;line-height:1.4;">¡Gracias por unirte!</p>
-              <p style="margin:0;font-family:${FONT};font-size:15px;font-weight:700;color:#6C3CE1;">— Vonda</p>
+              <p style="margin:0;font-family:${FONT};font-size:15px;font-weight:700;color:#6C3CE1;">— Gropo</p>
             </td>
           </tr>
 

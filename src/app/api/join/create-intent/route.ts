@@ -133,7 +133,7 @@ export async function POST(req: Request) {
       customer: customerId,
       setup_future_usage: 'on_session',
       payment_method_types: ['card'],
-      description: `Vonda · ${prep.product_name} (${prep.product_spec}) x${quantity}`,
+      description: `Gropo · ${prep.product_name} (${prep.product_spec}) x${quantity}`,
       shipping: {
         name: shipping.name,
         phone: shipping.phone ?? normalizedPhone,

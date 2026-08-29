@@ -1,4 +1,4 @@
-// src/app/api/group/[id]/pulse/route.ts — VONDA PULSE (G3)
+// src/app/api/group/[id]/pulse/route.ts — GROPO PULSE (G3)
 // Superficie PÚBLICA del Pulse: intensidad agregada por salto de la escalera
 // fusionada. NUNCA viajan al cliente: conteos exactos, identidades, pujas.
 // (Decisión P3: solo niveles discretos 0–3 + flag de surge.)

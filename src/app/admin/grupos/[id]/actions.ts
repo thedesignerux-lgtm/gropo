@@ -33,7 +33,7 @@ export async function closeGroup(
   // CAPTURA AL CIERRE (Bloque 2.5) — BLINDADA: el cierre ya está cometido en la
   // BD; mover el dinero en Stripe va después y por miembro, así que un fallo
   // puntual NO revierte el cierre. Cobra a los adjudicados (final_price×qty) y
-  // libera los holds de las vondas canceladas. Idempotente.
+  // libera los holds de los gropos cancelados. Idempotente.
   try {
     const cap = await captureGroupPayments(groupId)
     console.log(`[closeGroup] captura ${groupId}:`, JSON.stringify(cap))
@@ -41,7 +41,7 @@ export async function closeGroup(
       const detail = cap.failed.map(f => `• miembro ${f.memberId} (PI ${f.paymentIntentId}): ${f.error}`).join('\n')
       try {
         await sendAdminAlert(
-          `[Vonda] ${cap.failed.length} cobro(s) fallaron al cerrar la vonda`,
+          `[Gropo] ${cap.failed.length} cobro(s) fallaron al cerrar el gropo`,
           `Estos holds no se pudieron capturar/liberar al cerrar ${groupId}:\n\n${detail}\n\n` +
             `Siguen pendientes en el panel. Si el motivo es un hold caducado (status canceled/expired), reintentar el cierre NO sirve: el miembro ya ha recibido instrucciones de pago por transferencia. Verifica el PaymentIntent en Stripe y controla que la transferencia llegue dentro del plazo.`,
         )

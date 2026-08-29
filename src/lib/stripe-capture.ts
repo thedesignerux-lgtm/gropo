@@ -8,7 +8,7 @@
 //        La captura es PARCIAL: final_price ≤ guaranteed_price (lo retenido),
 //        así que Stripe cobra el final y libera la diferencia automáticamente.
 //        → payment_status='paid', captured_amount.
-//   · 'cancelled' (vonda sin ejecución / sin puja) → LIBERAR el hold → 'released'.
+//   · 'cancelled' (gropo sin ejecución / sin puja) → LIBERAR el hold → 'released'.
 //   · 'authorized' excedente → SIN TOCAR (lo resuelve el admin, 2ª puja).
 //
 // IDEMPOTENTE: opera por estado en BD (re-correr el cierre no recaptura), y si
@@ -49,7 +49,7 @@ export async function captureGroupPayments(groupId: string): Promise<CaptureSumm
           .eq('id', m.id);
         summary.captured++;
       }
-      // VONDA CANCELADA → liberar el hold, cero cargo
+      // GROPO CANCELADA → liberar el hold, cero cargo
       else if (m.payment_status === 'cancelled') {
         await cancelIdempotent(pi);
         await supabaseAdmin
