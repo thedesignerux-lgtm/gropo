@@ -2,6 +2,7 @@ CREATE OR REPLACE FUNCTION public.confirm_join(p_payment_intent_id text, p_group
  RETURNS json
  LANGUAGE plpgsql
  SECURITY DEFINER
+ SET search_path TO 'public'
 AS $function$
 DECLARE
   v_phone         text;
@@ -14,6 +15,8 @@ DECLARE
   v_bid_id        uuid;
   v_max_stock     int;
   v_current_total int;
+  v_has_addresses boolean;
+  v_shipping_line1 text;
 BEGIN
   -- IDEMPOTENCIA: mismo PaymentIntent → no duplicar miembro.
   IF EXISTS (SELECT 1 FROM group_members WHERE stripe_payment_intent_id = p_payment_intent_id) THEN
@@ -23,8 +26,12 @@ BEGIN
   v_phone := regexp_replace(p_phone, '[\s\-\.]', '', 'g');
   v_phone := regexp_replace(v_phone, '^\+34', '');
 
-  -- RE-VALIDACIÓN (carrera hold→confirm)
-  IF NOT EXISTS (SELECT 1 FROM groups WHERE id = p_group_id AND status = 'open') THEN
+  -- RE-VALIDACIÓN (carrera hold→confirm) + candado de fila:
+  -- FOR UPDATE serializa confirm_join concurrentes del mismo grupo,
+  -- para que el guard de stock vea siempre la suma ya actualizada
+  -- por la transacción anterior (evita overselling por carrera).
+  PERFORM 1 FROM groups WHERE id = p_group_id AND status = 'open' FOR UPDATE;
+  IF NOT FOUND THEN
     RETURN json_build_object('status', 'needs_release', 'reason', 'group_closed');
   END IF;
 
@@ -42,7 +49,16 @@ BEGIN
     RETURN json_build_object('status', 'needs_release', 'reason', 'no_bid');
   END IF;
   SELECT max_stock INTO v_max_stock FROM bids WHERE id = v_bid_id;
-  SELECT COALESCE(total_units, 0) INTO v_current_total FROM groups WHERE id = p_group_id;
+
+  -- GUARD DE STOCK: techo fisico invariable. Cuenta TODAS las unidades
+  -- de miembros vivos, sin filtrar por modo ni precio. (groups.total_units
+  -- es "demanda firme al precio vigente" y fluctua con el precio — no
+  -- sirve como techo de stock; ese era el bug de overselling.)
+  SELECT COALESCE(SUM(quantity), 0) INTO v_current_total
+  FROM group_members
+  WHERE group_id = p_group_id
+    AND payment_status IN ('authorized','instructed','paid');
+
   IF v_current_total + p_quantity > v_max_stock THEN
     RETURN json_build_object('status', 'needs_release', 'reason', 'out_of_stock');
   END IF;
@@ -61,18 +77,49 @@ BEGIN
     INSERT INTO group_members (
       group_id, user_id, quantity, guaranteed_price, join_order, payment_status,
       stripe_payment_intent_id, authorized_amount,
-      join_mode, target_price,                 -- NUEVO
+      join_mode, target_price,
       shipping_name, shipping_phone, shipping_address_line1, shipping_address_line2,
       shipping_city, shipping_province, shipping_postal_code, shipping_country
     ) VALUES (
       p_group_id, v_user_id, p_quantity, p_guaranteed_price, v_join_order, 'authorized',
       p_payment_intent_id, p_authorized_amount,
-      COALESCE(p_join_mode, 'comprar'), p_target_price,    -- NUEVO
+      COALESCE(p_join_mode, 'comprar'), p_target_price,
       p_shipping->>'name', p_shipping->>'phone',
       p_shipping->>'line1', p_shipping->>'line2',
       p_shipping->>'city', p_shipping->>'province', p_shipping->>'postal_code',
       COALESCE(p_shipping->>'country', 'ES')
     );
+
+    -- ── SYNC dirección de envío → user_addresses (perfil) ──
+    -- Solo si p_shipping tiene line1. No afecta pricing ni stock.
+    v_shipping_line1 := nullif(trim(COALESCE(p_shipping->>'line1', '')), '');
+    IF v_shipping_line1 IS NOT NULL THEN
+      -- ¿Ya tiene esa misma dirección (por line1 + postal_code)?
+      IF NOT EXISTS (
+        SELECT 1 FROM user_addresses
+        WHERE user_id = v_user_id
+          AND line1 = v_shipping_line1
+          AND postal_code = nullif(trim(p_shipping->>'postal_code'), '')
+      ) THEN
+        -- ¿Es su primera dirección? → marcar como default
+        SELECT count(*) = 0 INTO v_has_addresses
+        FROM user_addresses WHERE user_id = v_user_id;
+
+        INSERT INTO user_addresses (user_id, label, line1, line2, city, province, postal_code, country, is_default)
+        VALUES (
+          v_user_id,
+          'Envío',
+          v_shipping_line1,
+          nullif(trim(p_shipping->>'line2'), ''),
+          nullif(trim(p_shipping->>'city'), ''),
+          nullif(trim(p_shipping->>'province'), ''),
+          nullif(trim(p_shipping->>'postal_code'), ''),
+          COALESCE(nullif(trim(p_shipping->>'country'), ''), 'España'),
+          v_has_addresses  -- true si es la primera, false si ya tiene otras
+        );
+      END IF;
+    END IF;
+    -- ── FIN sync dirección ──
 
     SELECT best_price, next_price INTO v_new_price, v_next_price FROM compute_price(p_group_id);
     UPDATE groups SET current_price = v_new_price, next_price = v_next_price WHERE id = p_group_id;
