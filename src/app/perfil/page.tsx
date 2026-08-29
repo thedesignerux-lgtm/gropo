@@ -205,8 +205,8 @@ export default function PerfilPage() {
             <div className="flex flex-col gap-[18px]">
               <Card num="1" title="Datos de contacto">
                 <ContactRow label="Nombre" value={user?.name || ''} editing={editField === 'name'} onEdit={() => setEditField('name')} onSave={v => saveContact('name', v)} />
-                <ContactRow label="Email" value={user?.email || ''} verified editing={editField === 'email'} onEdit={() => setEditField('email')} onSave={v => saveContact('email', v)} />
-                <ContactRow label="Teléfono" value={user?.phone || ''} verified last editing={editField === 'phone'} onEdit={() => setEditField('phone')} onSave={v => saveContact('phone', v)} />
+                <ContactRow label="Email" value={user?.email || ''} verified={!!user?.email} editing={editField === 'email'} onEdit={() => setEditField('email')} onSave={v => saveContact('email', v)} />
+                <ContactRow label="Teléfono" value={user?.phone || ''} last editing={editField === 'phone'} onEdit={() => setEditField('phone')} onSave={v => saveContact('phone', v)} />
               </Card>
 
               <Card num="2" title="Método de pago">
