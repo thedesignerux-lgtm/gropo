@@ -55,6 +55,8 @@ export default function PerfilPage() {
     // Cierre de sesión DE VERDAD: antes solo se borraba localStorage, así que
     // no había forma de volver a entrar (nunca hubo sesión que reabrir).
     try { await sb.auth.signOut() } catch { /* best-effort */ }
+    // Barrido server-side de cookies sb-* huérfanas (chunks de sesiones previas).
+    try { await fetch('/auth/signout', { method: 'POST' }) } catch { /* best-effort */ }
     try { localStorage.removeItem('vonda_user') } catch { /* ignorar */ }
     window.location.href = '/'
   }

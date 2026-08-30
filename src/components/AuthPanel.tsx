@@ -51,7 +51,12 @@ export default function AuthPanel({
     const supabase = createClient()
     const { error: gError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: callbackUrl() },
+      options: {
+        redirectTo: callbackUrl(),
+        // Forzar el selector de cuentas de Google. Sin esto, si el navegador
+        // ya tiene una sesión de Google entra directo sin dejar elegir.
+        queryParams: { prompt: 'select_account' },
+      },
     })
     if (gError) {
       setGoogleLoading(false)
