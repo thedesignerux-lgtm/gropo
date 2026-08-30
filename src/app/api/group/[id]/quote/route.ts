@@ -11,7 +11,7 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   const { searchParams } = new URL(req.url);
-  const units = Math.max(1, Math.min(10, Number(searchParams.get('units') ?? 1)));
+  const units = Math.max(0, Math.min(10, Number(searchParams.get('units') ?? 1)));
   const targetRaw = searchParams.get('target');
   const target = targetRaw != null && targetRaw !== '' ? Number(targetRaw) : null;
   const { data, error } = await supabaseAdmin.rpc('compute_price', {
