@@ -70,7 +70,18 @@ export default function HomeProductCard({ product, isFavorited = false, isAuthed
     : `Reservar plaza · Máx. ${fmt(selectedPrice)}`
 
   const handleCheckout = () => {
-    if (!confirmed) {
+    if (!confirmed && isAuthed) {
+      open({
+        groupId: product.id,
+        productName: product.name,
+        productSpec: product.variant,
+        imageUrl,
+        quantity: 1,
+        maxPricePerUnit: selectedPrice,
+        joinMode: 'esperar',
+        targetPrice: selectedPrice,
+      })
+    } else if (!confirmed) {
       router.push(`${href}/unirme?mode=esperar&target=${selectedPrice}`)
     } else if (isAuthed) {
       open({

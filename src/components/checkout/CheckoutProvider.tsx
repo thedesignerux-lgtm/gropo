@@ -15,6 +15,8 @@ export type CheckoutPayload = {
   imageUrl?: string | null;
   quantity: number;
   /** Precio máximo garantizado por unidad (techo — "nunca pagarás más"). */
+  joinMode?: 'comprar' | 'esperar';
+  targetPrice?: number;
   maxPricePerUnit: number;
 };
 

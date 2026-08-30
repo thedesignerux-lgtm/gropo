@@ -44,7 +44,9 @@ export default function FastCheckoutModal({
   const [prefill, setPrefill] = useState<Prefill | null>(null);
   const [prefillLoading, setPrefillLoading] = useState(true);
 
-  const total = payload.maxPricePerUnit * payload.quantity;
+  const isEsperar = payload.joinMode === 'esperar';
+  const pricePerUnit = isEsperar && payload.targetPrice ? payload.targetPrice : payload.maxPricePerUnit;
+  const total = pricePerUnit * payload.quantity;
   const amountCents = Math.max(50, Math.round(total * 100));
 
   useEffect(() => {
@@ -97,6 +99,7 @@ export default function FastCheckoutModal({
           <InnerCheckout
             payload={payload}
             total={total}
+            isEsperar={isEsperar}
             prefill={prefill}
             prefillLoading={prefillLoading}
             onClose={onClose}
@@ -119,6 +122,7 @@ type Status = 'idle' | 'processing' | 'success' | 'error';
 function InnerCheckout({
   payload,
   total,
+  isEsperar,
   prefill,
   prefillLoading,
   onClose,
@@ -126,6 +130,7 @@ function InnerCheckout({
 }: {
   payload: CheckoutPayload;
   total: number;
+  isEsperar: boolean;
   prefill: Prefill | null;
   prefillLoading: boolean;
   onClose: () => void;
@@ -177,7 +182,8 @@ function InnerCheckout({
             name: prefill?.contact?.name ?? prefill?.shipping?.name ?? '',
             email: prefill?.contact?.email ?? '',
             phone: prefill?.contact?.phone ?? prefill?.shipping?.phone ?? '',
-            join_mode: 'comprar',
+            join_mode: payload.joinMode || 'comprar',
+            ...(payload.targetPrice != null ? { target_price: payload.targetPrice } : {}),
             shipping: {
               name: prefill?.shipping?.name ?? prefill?.contact?.name ?? '',
               phone: prefill?.shipping?.phone ?? prefill?.contact?.phone ?? '',
@@ -208,7 +214,7 @@ function InnerCheckout({
       const res = await fetch('/api/checkout/lock', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ group_id: payload.groupId, quantity: payload.quantity }),
+        body: JSON.stringify({ group_id: payload.groupId, quantity: payload.quantity, join_mode: payload.joinMode || 'comprar', ...(payload.targetPrice != null ? { target_price: payload.targetPrice } : {}) }),
       });
       const data = await res.json().catch(() => ({}));
 
@@ -255,7 +261,7 @@ function InnerCheckout({
 
       {/* Header */}
       <div className="mb-1 flex items-center justify-between">
-        <h2 className="text-lg font-bold text-neutral-900">Confirma tu bloqueo</h2>
+        <h2 className="text-lg font-bold text-neutral-900">{isEsperar ? 'Confirma tu reserva' : 'Confirma tu bloqueo'}</h2>
         <button onClick={onClose} aria-label="Cerrar" className="text-neutral-400 hover:text-neutral-600">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="6" y1="6" x2="18" y2="18" /><line x1="18" y1="6" x2="6" y2="18" /></svg>
         </button>
@@ -275,12 +281,12 @@ function InnerCheckout({
       {/* Precio máximo garantizado — HERO centrado (ancla visual) */}
       <div className="mt-4 border-t border-neutral-100 pt-5 text-center">
         <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-500">
-          Precio máximo garantizado{payload.quantity > 1 ? ` · ${payload.quantity} uds` : ''}
+          {isEsperar ? 'Compra automática a' : 'Precio máximo garantizado'}{payload.quantity > 1 ? ` · ${payload.quantity} uds` : ''}
         </p>
         <p className="mt-2 text-4xl font-bold text-brand tabular-nums">{eur(total)}</p>
         <p className="mt-2 flex items-center justify-center gap-1 text-xs font-medium text-neutral-500">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19" /><polyline points="19 12 12 19 5 12" /></svg>
-          Nunca pagarás más.
+          {isEsperar ? 'Si el gropo alcanza este precio, se confirma automáticamente.' : 'Nunca pagarás más.'}
         </p>
       </div>
 
@@ -367,21 +373,21 @@ function InnerCheckout({
         {succeeded ? (
           <span className="flex items-center gap-2">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-            ¡Precio asegurado!
+            {isEsperar ? '¡Reserva confirmada!' : '¡Precio asegurado!'}
           </span>
         ) : processing ? (
           <span className="flex items-center gap-2">
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-            Asegurando tu precio…
+            {isEsperar ? 'Reservando tu plaza…' : 'Asegurando tu precio…'}
           </span>
         ) : (
-          `BLOQUEAR POR ${eur(total)}`
+          isEsperar ? `RESERVAR POR ${eur(total)}` : `BLOQUEAR POR ${eur(total)}`
         )}
       </button>
 
       <p className="mt-3 flex items-start justify-center gap-1.5 px-2 text-center text-[11.5px] leading-snug text-neutral-400">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-0.5 flex-shrink-0"><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
-        No realizaremos ningún cargo hoy. Solo pagas si el grupo se completa.
+        {isEsperar ? 'Se retendrá este importe. Si el gropo no alcanza tu precio, se libera sin cargo.' : 'No realizaremos ningún cargo hoy. Solo pagas si el grupo se completa.'}
       </p>
     </div>
   );

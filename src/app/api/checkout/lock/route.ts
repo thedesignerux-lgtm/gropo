@@ -29,7 +29,7 @@ export async function POST(req: Request) {
     if (!user) return NextResponse.json({ error: 'not_authenticated' }, { status: 401 });
 
     const body = await req.json();
-    const { group_id, quantity } = body ?? {};
+    const { group_id, quantity, join_mode, target_price } = body ?? {};
     if (!group_id || !quantity) {
       return NextResponse.json({ error: 'Faltan datos obligatorios' }, { status: 400 });
     }
@@ -48,7 +48,7 @@ export async function POST(req: Request) {
     const customerId = profile.stripe_customer_id;
 
     // 3) Validación de negocio + precio garantizado (idéntico a create-intent).
-    //    Ruta 1-Click = solo "comprar" (el esperador usa el flujo largo).
+    //    Ruta 1-Click = comprar o esperar (ambos modos soportados).
     const { data: prep, error: prepError } = await supabaseAdmin.rpc('prepare_join', {
       p_group_id: group_id,
       p_phone: profile.phone ?? '',
@@ -56,9 +56,28 @@ export async function POST(req: Request) {
     });
     if (prepError) return NextResponse.json({ error: prepError.message }, { status: 400 });
 
-    const guaranteedPrice = Number(prep.guaranteed_price);
+    let holdPrice = Number(prep.guaranteed_price);
     const normalizedPhone = (prep.phone as string) ?? profile.phone ?? '';
-    const amountCents = Math.round(guaranteedPrice * quantity * 100);
+
+    // Esperar mode: hold at target price (validated against tier ladder)
+    if (join_mode === 'esperar') {
+      if (target_price == null) {
+        return NextResponse.json({ error: 'Falta el precio objetivo' }, { status: 400 });
+      }
+      const { data: ladder, error: ladderError } = await supabaseAdmin.rpc('tier_demand', {
+        p_group_id: group_id,
+      });
+      if (ladderError || !Array.isArray(ladder) || ladder.length === 0) {
+        return NextResponse.json({ error: 'No se pudo validar el precio objetivo' }, { status: 400 });
+      }
+      const tierPrices = (ladder as any[]).map((t: any) => Number(t.price));
+      const target = Number(target_price);
+      if (!tierPrices.includes(target)) {
+        return NextResponse.json({ error: 'El precio objetivo no es válido' }, { status: 400 });
+      }
+      holdPrice = target;
+    }
+    const amountCents = Math.round(holdPrice * quantity * 100);
 
     // 4) PaymentMethod por defecto del Customer.
     let pmId: string | null = null;
@@ -126,8 +145,9 @@ export async function POST(req: Request) {
         buyer_name: profile.name ?? lastMember.shipping_name ?? '',
         buyer_email: profile.email ?? user.email ?? '',
         buyer_phone: normalizedPhone,
-        guaranteed_price: String(guaranteedPrice),
-        join_mode: 'comprar',
+        guaranteed_price: String(holdPrice),
+        join_mode: join_mode || 'comprar',
+        ...(target_price != null ? { target_price: String(target_price) } : {}),
       },
     };
 

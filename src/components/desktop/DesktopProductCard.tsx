@@ -73,7 +73,18 @@ export default function DesktopProductCard({ product, isFavorited = false, isAut
   const accent = confirmed ? '#6C4BF4' : '#E8944A'
 
   const handleCheckout = () => {
-    if (!confirmed) {
+    if (!confirmed && isAuthed) {
+      open({
+        groupId: product.id,
+        productName: product.name,
+        productSpec: product.variant,
+        imageUrl: product.imageUrl ?? null,
+        quantity: 1,
+        maxPricePerUnit: selectedPrice,
+        joinMode: 'esperar',
+        targetPrice: selectedPrice,
+      })
+    } else if (!confirmed) {
       router.push(`${href}/unirme?mode=esperar&target=${selectedPrice}`)
     } else if (isAuthed) {
       open({

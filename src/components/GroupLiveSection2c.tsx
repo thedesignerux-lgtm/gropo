@@ -75,7 +75,9 @@ export default function GroupLiveSection2c({
   const accent = confirmed ? '#6C4BF4' : '#E8944A'
 
   const handleCheckout = () => {
-    if (isEsperar) {
+    if (isEsperar && authed) {
+      open({ groupId, productName: name, productSpec: spec, imageUrl: null, quantity: 1, maxPricePerUnit: effectiveSelected, joinMode: 'esperar', targetPrice: effectiveSelected })
+    } else if (isEsperar) {
       const p = new URLSearchParams({ mode: 'esperar', target: String(effectiveSelected) })
       router.push(`/grupo/${groupId}/unirme?${p.toString()}`)
     } else if (authed) {

@@ -89,7 +89,9 @@ export default function GroupRightSidebar({
     setLockPhase(1) // arrows start spinning
     setTimeout(() => setLockPhase(2), 1000) // after 1s → CTA changes
     setTimeout(() => {
-      if (isEsperar) {
+      if (isEsperar && authed) {
+        open({ groupId, productName: name, productSpec: spec, imageUrl, quantity, maxPricePerUnit: selectedPrice, joinMode: 'esperar', targetPrice: selectedPrice })
+      } else if (isEsperar) {
         router.push(ctaHref)
       } else if (authed) {
         open({ groupId, productName: name, productSpec: spec, imageUrl, quantity, maxPricePerUnit: selectedPrice })

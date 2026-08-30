@@ -294,7 +294,18 @@ function useCardState(product: GroupProduct, isAuthed: boolean) {
     : `Bloquear precio · Máx. ${fmt(selectedPrice)}`
 
   const handleCheckout = () => {
-    if (!confirmed) {
+    if (!confirmed && isAuthed) {
+      open({
+        groupId: product.id,
+        productName: product.name,
+        productSpec: product.variant,
+        imageUrl: product.imageUrl ?? null,
+        quantity: 1,
+        maxPricePerUnit: selectedPrice,
+        joinMode: 'esperar',
+        targetPrice: selectedPrice,
+      })
+    } else if (!confirmed) {
       router.push(`${href}/unirme?mode=esperar&target=${selectedPrice}`)
     } else if (isAuthed) {
       open({

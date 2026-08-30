@@ -85,7 +85,9 @@ export default function GroupLiveSection({
     setLockPhase(1) // arrows start spinning
     setTimeout(() => setLockPhase(2), 1000) // after 1s → CTA changes
     setTimeout(() => {
-      if (isEsperar) {
+      if (isEsperar && authed) {
+        open({ groupId, productName: name, productSpec: spec, imageUrl: null, quantity: 1, maxPricePerUnit: effectiveSelected, joinMode: 'esperar', targetPrice: effectiveSelected })
+      } else if (isEsperar) {
         const p = new URLSearchParams({ mode: 'esperar', target: String(effectiveSelected) })
         router.push(`/grupo/${groupId}/unirme?${p.toString()}`)
       } else if (authed) {

@@ -204,7 +204,18 @@ function FeaturedGropoCard({ x, isFavorited, isAuthed, onOpenSheet }: { x: Price
   const accent = confirmed ? '#6C4BF4' : '#E8944A'
 
   const handlePrimary = () => {
-    if (!confirmed) {
+    if (!confirmed && isAuthed) {
+      open({
+        groupId: p.id,
+        productName: p.name,
+        productSpec: p.variant,
+        imageUrl: p.imageUrl ?? null,
+        quantity: 1,
+        maxPricePerUnit: selectedPrice,
+        joinMode: 'esperar',
+        targetPrice: selectedPrice,
+      })
+    } else if (!confirmed) {
       router.push(`${href}/unirme?mode=esperar&target=${selectedPrice}`)
     } else if (isAuthed) {
       open({
