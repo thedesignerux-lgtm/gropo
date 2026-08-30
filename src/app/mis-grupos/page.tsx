@@ -22,6 +22,8 @@ interface Membership {
   closes_at: string
   current_price: number
   payment_info: string | null
+  join_mode: 'comprar' | 'esperar' | null
+  target_price: number | null
 }
 
 export default function MisGruposPage() {

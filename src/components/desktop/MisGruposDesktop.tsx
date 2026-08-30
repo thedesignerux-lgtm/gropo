@@ -22,6 +22,8 @@ export interface Membership {
   closes_at: string
   current_price: number
   payment_info: string | null
+  join_mode: 'comprar' | 'esperar' | null
+  target_price: number | null
 }
 interface LadderRow { min_units: number; price: number; effective_demand: number; unlocked: boolean }
 type StateKey = 'encurso' | 'apunto' | 'meta' | 'noalc'
@@ -180,6 +182,7 @@ export function MgCard({ m, ladder, onOpen }: { m: Membership; ladder: LadderRow
         <div className="min-w-0 pt-0.5">
           <p className="text-[14.5px] font-bold text-neutral-900 leading-tight truncate">{m.product_name}</p>
           {m.product_spec && <p className="text-xs text-neutral-500 mt-1 truncate">{m.product_spec}</p>}
+          <p className="text-[11px] font-semibold mt-1 truncate" style={{ color: m.join_mode === 'esperar' ? '#D97706' : '#6C3CE1' }}>{m.join_mode === 'esperar' ? `Reserva a ${fmt(Number(m.target_price))}` : 'Compra directa'}</p>
         </div>
       </div>
       {/* financiero */}
@@ -261,7 +264,7 @@ export function Drawer({ m, ladder, onClose }: { m: Membership; ladder: LadderRo
           </div>
           <div className="flex gap-3 items-center">
             <div className="w-[52px] h-[52px] rounded-xl bg-neutral-100 shrink-0 overflow-hidden">{m.image_url && <img src={m.image_url} alt="" className="w-full h-full object-cover" />}</div>
-            <div><div className="text-base font-bold">{m.product_name}</div>{spec && <div className="text-[12.5px] text-neutral-500 mt-0.5">{spec}</div>}</div>
+            <div><div className="text-base font-bold">{m.product_name}</div>{spec && <div className="text-[12.5px] text-neutral-500 mt-0.5">{spec}</div>}<div className="text-[11px] font-semibold mt-1" style={{ color: m.join_mode === 'esperar' ? '#D97706' : '#6C3CE1' }}>{m.join_mode === 'esperar' ? `Reserva a ${fmt(Number(m.target_price))}` : 'Compra directa'}</div></div>
           </div>
           <div className="flex gap-3 items-start rounded-2xl p-3.5 mt-4" style={{ background: t.secbg }}>
             <span className="w-[38px] h-[38px] rounded-xl flex items-center justify-center text-white shrink-0" style={{ background: t.c }}>{I.shield}</span>
@@ -292,7 +295,7 @@ export function Drawer({ m, ladder, onClose }: { m: Membership; ladder: LadderRo
         <div className="px-[22px] py-5 overflow-y-auto flex-1">
           <div className="flex gap-3 items-center mb-2">
             <div className="w-[52px] h-[52px] rounded-xl bg-neutral-100 shrink-0 overflow-hidden">{m.image_url && <img src={m.image_url} alt="" className="w-full h-full object-cover" />}</div>
-            <div><div className="text-base font-bold">{m.product_name}</div>{spec && <div className="text-[12.5px] text-neutral-500 mt-0.5">{spec}</div>}</div>
+            <div><div className="text-base font-bold">{m.product_name}</div>{spec && <div className="text-[12.5px] text-neutral-500 mt-0.5">{spec}</div>}<div className="text-[11px] font-semibold mt-1" style={{ color: m.join_mode === 'esperar' ? '#D97706' : '#6C3CE1' }}>{m.join_mode === 'esperar' ? `Reserva a ${fmt(Number(m.target_price))}` : 'Compra directa'}</div></div>
           </div>
           <div className="border border-neutral-200 rounded-2xl p-4 mt-4">
             <h4 className="text-[11px] font-bold uppercase tracking-wide text-neutral-500 mb-3">Confirmación de compra</h4>
@@ -318,7 +321,7 @@ export function Drawer({ m, ladder, onClose }: { m: Membership; ladder: LadderRo
       <div className="px-[22px] py-5 overflow-y-auto flex-1">
         <div className="flex gap-3 items-center mb-2">
           <div className="w-[52px] h-[52px] rounded-xl bg-neutral-100 shrink-0 overflow-hidden">{m.image_url && <img src={m.image_url} alt="" className="w-full h-full object-cover" />}</div>
-          <div><div className="text-base font-bold">{m.product_name}</div>{spec && <div className="text-[12.5px] text-neutral-500 mt-0.5">{spec}</div>}</div>
+          <div><div className="text-base font-bold">{m.product_name}</div>{spec && <div className="text-[12.5px] text-neutral-500 mt-0.5">{spec}</div>}<div className="text-[11px] font-semibold mt-1" style={{ color: m.join_mode === 'esperar' ? '#D97706' : '#6C3CE1' }}>{m.join_mode === 'esperar' ? `Reserva a ${fmt(Number(m.target_price))}` : 'Compra directa'}</div></div>
         </div>
         <div className="flex gap-2.5 rounded-2xl p-3.5 mt-4 text-[12.5px] leading-relaxed" style={{ background: '#EFF6FF', color: '#1E3A8A' }}>
           <span className="shrink-0">{I.shield}</span>
