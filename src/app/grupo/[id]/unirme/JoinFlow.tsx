@@ -218,21 +218,30 @@ export default function JoinFlow({
     <div>
       {/* ── MODO ESPERAR / TARGET REACHED BANNER (money-critical display) ── */}
       {visualMode === 'esperar' ? (
+        /* ── Diseño 4b · dos filas jerárquicas: precio actual del grupo (neutro)
+              + tu precio objetivo (resaltado morado con diana). Datos en vivo. ── */
         <section className="px-4 pt-4">
-          <div className="rounded-2xl bg-brand/5 border border-brand/20 p-4">
-            <div className="flex items-start gap-3">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-brand flex-shrink-0 mt-0.5">
-                <circle cx="12" cy="12" r="10" />
-                <polyline points="12 6 12 12 16 14" />
-              </svg>
-              <div>
-                <p className="text-sm font-semibold text-neutral-900">Compra automática a {eur(efectiveTargetPrice)}</p>
-                <p className="text-xs text-neutral-500 mt-1">
-                  Se retendrán {eur(efectiveTargetPrice * quantity)} en tu tarjeta ({eur(efectiveTargetPrice)}/ud × {quantity}). Si el gropo alcanza ese precio antes del cierre, se confirma automáticamente. Si no se alcanza, se libera sin cargo.
-                </p>
+          <div className="rounded-[18px] border border-black/[0.08] bg-white p-1.5">
+            <div className="flex items-center px-3 py-[11px]">
+              <div className="text-xs font-semibold text-neutral-500">Precio actual del grupo</div>
+              <div className="ml-auto text-[22px] font-extrabold leading-none tracking-tight tabular-nums text-neutral-900">{eur(pricePerUnit)}</div>
+            </div>
+            <div className="flex items-center rounded-[14px] border-[1.5px] px-3.5 py-3" style={{ background: '#F4F0FE', borderColor: '#6C3CE1' }}>
+              <div className="mr-[11px] grid h-[34px] w-[34px] flex-none place-items-center rounded-[10px]" style={{ background: '#6C3CE1' }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4.5" /><circle cx="12" cy="12" r="1" /></svg>
               </div>
+              <div>
+                <div className="text-[15px] font-bold text-brand">Tu precio objetivo</div>
+                <div className="mt-px text-xs font-medium" style={{ color: '#8A72D6' }}>al que compras si el grupo lo alcanza</div>
+              </div>
+              <div className="ml-auto text-[22px] font-extrabold leading-none tracking-tight tabular-nums text-brand">{eur(efectiveTargetPrice)}</div>
             </div>
           </div>
+          {/* Transparencia money-critical: importe retenido (se conserva de la versión anterior) */}
+          <p className="mt-2.5 flex items-start gap-1.5 px-1 text-[12px] leading-snug text-neutral-500">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mt-px flex-none text-brand"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+            <span>Se retendrán {eur(efectiveTargetPrice * quantity)} ({eur(efectiveTargetPrice)}/ud × {quantity}). Si el gropo alcanza este precio antes del cierre, se confirma automáticamente. Si no, se libera sin cargo.</span>
+          </p>
         </section>
       ) : targetReached ? (
         <section className="px-4 pt-4">
@@ -271,18 +280,27 @@ export default function JoinFlow({
         <div className="min-w-0 flex-1">
           <h1 className="text-[19px] font-extrabold leading-tight tracking-tight text-neutral-900">{group.product_name}</h1>
           {group.product_spec && <p className="text-sm text-neutral-400 mt-0.5">{group.product_spec}</p>}
-          <div className="mt-1.5 flex items-baseline gap-2 flex-wrap">
-            <span className="text-[26px] font-extrabold leading-none text-brand tabular-nums">{eur(displayPricePerUnit)}</span>
-            <span className="text-xs text-neutral-400">/ud</span>
-            {group.pvp > displayPricePerUnit && (
-              <span className="text-sm text-neutral-400 line-through">{eur(group.pvp)}</span>
-            )}
-          </div>
-          {savingsPerUnit > 0.01 && (
-            <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[#E6F4EC] px-2.5 py-1 text-xs font-bold text-[#157F52]">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" /><line x1="7" y1="7" x2="7.01" y2="7" /></svg>
-              Ahorras {eur(savingsPerUnit)} /ud
-            </span>
+          {visualMode === 'esperar' ? (
+            /* 4b: en modo esperar el precio vive en la tarjeta de dos filas; aquí solo el PVP tachado */
+            group.pvp > 0 && (
+              <p className="mt-1.5 text-sm font-medium text-neutral-400">Precio tienda <span className="line-through">{eur(group.pvp)}</span></p>
+            )
+          ) : (
+            <>
+              <div className="mt-1.5 flex items-baseline gap-2 flex-wrap">
+                <span className="text-[26px] font-extrabold leading-none text-brand tabular-nums">{eur(displayPricePerUnit)}</span>
+                <span className="text-xs text-neutral-400">/ud</span>
+                {group.pvp > displayPricePerUnit && (
+                  <span className="text-sm text-neutral-400 line-through">{eur(group.pvp)}</span>
+                )}
+              </div>
+              {savingsPerUnit > 0.01 && (
+                <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[#E6F4EC] px-2.5 py-1 text-xs font-bold text-[#157F52]">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" /><line x1="7" y1="7" x2="7.01" y2="7" /></svg>
+                  Ahorras {eur(savingsPerUnit)} /ud
+                </span>
+              )}
+            </>
           )}
         </div>
       </section>
