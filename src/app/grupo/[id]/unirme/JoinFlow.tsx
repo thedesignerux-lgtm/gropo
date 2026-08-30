@@ -165,10 +165,7 @@ export default function JoinFlow({
 
   const projected = group.total_units + quantity;
   const unlocks = !!nextTier && projected >= nextTier.minUnits; // Estado A
-  const missing = nextTier ? Math.max(0, nextTier.minUnits - projected) : 0; // Estado B
 
-  // ── Progreso del grupo (unidades dentro → siguiente precio) ──
-  const missingPeople = nextTier ? Math.max(0, nextTier.minUnits - group.total_units) : 0;
 
   // Hold para Stripe: siempre target × qty para esperadores (techo de seguridad)
   const holdPricePerUnit = isEsperar ? efectiveTargetPrice : pricePerUnit;
@@ -194,11 +191,16 @@ export default function JoinFlow({
   const [payInfoOpen, setPayInfoOpen] = useState(false);
 
   // ── Stepper de tramos (diseño 4b): estados y relleno de la barra ──
+  // La barra refleja las unidades PROYECTADAS (grupo + las que elige el usuario),
+  // en coherencia con el precio, que también es proyectado.
   const nTiers = sorted.length;
   const lastUnlockedIdx = (() => { let idx = -1; for (let i = 0; i < sorted.length; i++) if (group.total_units >= sorted[i].minUnits) idx = i; return idx; })();
+  const projIdx = (() => { let idx = -1; for (let i = 0; i < sorted.length; i++) if (projected >= sorted[i].minUnits) idx = i; return idx; })();
+  const comprarGoalIdx = projIdx + 1 < nTiers ? projIdx + 1 : -1;
   const targetTier = sorted.find((t) => Math.abs(t.price - efectiveTargetPrice) < 0.01) ?? sorted[sorted.length - 1];
-  const missingToTarget = targetTier ? Math.max(0, targetTier.minUnits - group.total_units) : 0;
+  const missingToTarget = targetTier ? Math.max(0, targetTier.minUnits - projected) : 0;
   const fillFrac = nTiers > 1 ? Math.max(0, lastUnlockedIdx) / (nTiers - 1) : 0;
+  const projFillFrac = nTiers > 1 ? Math.max(0, projIdx) / (nTiers - 1) : 0;
 
   return (
     <div>
@@ -277,15 +279,21 @@ export default function JoinFlow({
               </div>
               <div className="relative mx-1 mb-2 mt-6">
                 <div className="absolute left-[6%] right-[6%] top-[9px] h-[3px] rounded bg-black/10" />
-                <div className="absolute left-[6%] top-[9px] h-[3px] rounded bg-brand" style={{ width: `calc(88% * ${fillFrac})` }} />
+                <div className="absolute left-[6%] top-[9px] h-[3px] rounded bg-brand/30 transition-all duration-300" style={{ width: `calc(88% * ${projFillFrac})` }} />
+                <div className="absolute left-[6%] top-[9px] h-[3px] rounded bg-brand transition-all duration-300" style={{ width: `calc(88% * ${fillFrac})` }} />
                 <div className="relative flex justify-between">
                   {sorted.map((t, i) => {
-                    const unlocked = group.total_units >= t.minUnits;
+                    const groupReached = group.total_units >= t.minUnits;
+                    const youReached = projected >= t.minUnits;
                     const isTarget = Math.abs(t.price - efectiveTargetPrice) < 0.01;
                     return (
                       <div key={i} className="flex w-14 flex-col items-center">
-                        {unlocked ? (
+                        {groupReached ? (
                           <div className="grid h-5 w-5 place-items-center rounded-full border-[3px] border-[#faf9fc] bg-brand" style={{ boxShadow: '0 0 0 1.5px #6C3CE1' }}>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                          </div>
+                        ) : youReached ? (
+                          <div className="grid h-5 w-5 place-items-center rounded-full border-[3px] border-[#faf9fc]" style={{ background: 'rgba(108,60,225,.5)', boxShadow: '0 0 0 1.5px rgba(108,60,225,.5)' }}>
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                           </div>
                         ) : isTarget ? (
@@ -295,7 +303,7 @@ export default function JoinFlow({
                         ) : (
                           <div className="mt-0.5 h-4 w-4 rounded-full border-[2.5px] border-black/[0.18] bg-white" />
                         )}
-                        <div className={`mt-2 text-[15px] font-extrabold ${isTarget && !unlocked ? 'text-[#e8890c]' : unlocked ? 'text-neutral-900' : 'text-neutral-400'}`}>{eur(t.price)}</div>
+                        <div className={`mt-2 text-[15px] font-extrabold ${isTarget && !youReached ? 'text-[#e8890c]' : groupReached ? 'text-neutral-900' : youReached ? 'text-brand' : 'text-neutral-400'}`}>{eur(t.price)}</div>
                         <div className="text-xs font-medium text-neutral-400">{t.minUnits} uds</div>
                       </div>
                     );
@@ -418,15 +426,21 @@ export default function JoinFlow({
               </div>
               <div className="relative mx-1 mb-2 mt-6">
                 <div className="absolute left-[6%] right-[6%] top-[9px] h-[3px] rounded bg-black/10" />
-                <div className="absolute left-[6%] top-[9px] h-[3px] rounded bg-brand" style={{ width: `calc(88% * ${fillFrac})` }} />
+                <div className="absolute left-[6%] top-[9px] h-[3px] rounded bg-brand/30 transition-all duration-300" style={{ width: `calc(88% * ${projFillFrac})` }} />
+                <div className="absolute left-[6%] top-[9px] h-[3px] rounded bg-brand transition-all duration-300" style={{ width: `calc(88% * ${fillFrac})` }} />
                 <div className="relative flex justify-between">
                   {sorted.map((t, i) => {
-                    const unlocked = group.total_units >= t.minUnits;
-                    const isGoal = !!nextTier && Math.abs(t.price - nextTier.price) < 0.01;
+                    const groupReached = group.total_units >= t.minUnits;
+                    const youReached = projected >= t.minUnits;
+                    const isGoal = i === comprarGoalIdx;
                     return (
                       <div key={i} className="flex w-14 flex-col items-center">
-                        {unlocked ? (
+                        {groupReached ? (
                           <div className="grid h-5 w-5 place-items-center rounded-full border-[3px] border-[#faf9fc] bg-brand" style={{ boxShadow: '0 0 0 1.5px #6C3CE1' }}>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                          </div>
+                        ) : youReached ? (
+                          <div className="grid h-5 w-5 place-items-center rounded-full border-[3px] border-[#faf9fc]" style={{ background: 'rgba(108,60,225,.5)', boxShadow: '0 0 0 1.5px rgba(108,60,225,.5)' }}>
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                           </div>
                         ) : isGoal ? (
@@ -436,15 +450,17 @@ export default function JoinFlow({
                         ) : (
                           <div className="mt-0.5 h-4 w-4 rounded-full border-[2.5px] border-black/[0.18] bg-white" />
                         )}
-                        <div className={`mt-2 text-[15px] font-extrabold ${isGoal && !unlocked ? 'text-[#e8890c]' : unlocked ? 'text-neutral-900' : 'text-neutral-400'}`}>{eur(t.price)}</div>
+                        <div className={`mt-2 text-[15px] font-extrabold ${isGoal && !youReached ? 'text-[#e8890c]' : groupReached ? 'text-neutral-900' : youReached ? 'text-brand' : 'text-neutral-400'}`}>{eur(t.price)}</div>
                         <div className="text-xs font-medium text-neutral-400">{t.minUnits} uds</div>
                       </div>
                     );
                   })}
                 </div>
               </div>
-              {nextTier && missingPeople > 0 ? (
-                <div className="mt-1 text-center text-xs font-medium text-neutral-500">Faltan <b className="text-[#e8890c]">{missingPeople} {missingPeople === 1 ? 'unidad' : 'unidades'}</b> para desbloquear {eur(nextTier.price)}</div>
+              {projIdx > lastUnlockedIdx ? (
+                <div className="mt-1 text-center text-xs font-bold text-[#0F8A4D]">Tus {quantity} {quantity === 1 ? 'unidad desbloquea' : 'uds desbloquean'} {eur(sorted[projIdx].price)} 🎉</div>
+              ) : comprarGoalIdx >= 0 ? (
+                <div className="mt-1 text-center text-xs font-medium text-neutral-500">Faltan <b className="text-[#e8890c]">{sorted[comprarGoalIdx].minUnits - projected} {sorted[comprarGoalIdx].minUnits - projected === 1 ? 'unidad' : 'unidades'}</b> para desbloquear {eur(sorted[comprarGoalIdx].price)}</div>
               ) : (
                 <div className="mt-1 text-center text-xs font-bold text-[#0F8A4D]">Mejor precio ya desbloqueado 🎉</div>
               )}
