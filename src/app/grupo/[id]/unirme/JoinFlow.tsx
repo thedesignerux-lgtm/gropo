@@ -619,7 +619,7 @@ function InnerForm({
         email: c.email.trim(),
         phone: normalizePhone(c.phone),
         quantity,
-        price: displayPricePerUnit,
+        price: Math.round((total / quantity) * 100) / 100,
         address_line1: s.line1,
       }));
     } catch {}
