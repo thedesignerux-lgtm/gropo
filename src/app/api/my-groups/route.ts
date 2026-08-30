@@ -12,51 +12,54 @@ export async function GET() {
     return NextResponse.json({ groups: [] }, { status: 401 })
   }
 
+  const authEmail = user.email
+
   // 2. Look up phone by email in users table
   const { data: gropoUser } = await supabaseAdmin
     .from('users')
-    .select('phone')
-    .eq('email', user.email)
+    .select('phone, email')
+    .eq('email', authEmail)
     .maybeSingle()
 
   let phone = gropoUser?.phone
+  let userEmail = gropoUser?.email ?? authEmail
 
-  // 3. Fallback: if no users record, search group_members by buyer_email
-  //    This covers the "buy first, account later" flow where checkout
-  //    happens without auth and no users record exists yet.
+  // 3. Fallback: if no users record, search group_members by shipping_phone
+  //    via the users table linked through user_id
   if (!phone) {
+    // Try to find a group_member whose user record matches this auth email
     const { data: member } = await supabaseAdmin
       .from('group_members')
-      .select('buyer_phone')
-      .eq('buyer_email', user.email)
-      .order('joined_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
+      .select('user_id, shipping_phone')
+      .order('created_at', { ascending: false })
+      .limit(50)
 
-    if (member?.buyer_phone) {
-      phone = member.buyer_phone
-
-      // Auto-create users record so future queries work directly
-      const { error: upsertErr } = await supabaseAdmin
-        .from('users')
-        .upsert(
-          { email: user.email, phone, name: user.user_metadata?.full_name ?? user.user_metadata?.name ?? '' },
-          { onConflict: 'email' }
-        )
-      if (upsertErr) {
-        console.error('[api/my-groups] upsert users fallback:', upsertErr.message)
+    if (member && member.length > 0) {
+      // Check if any member's user_id links to a user with this email
+      for (const m of member) {
+        if (m.user_id) {
+          const { data: u } = await supabaseAdmin
+            .from('users')
+            .select('phone, email')
+            .eq('id', m.user_id)
+            .maybeSingle()
+          if (u && u.email === authEmail) {
+            phone = u.phone
+            userEmail = u.email
+            break
+          }
+        }
       }
     }
   }
 
   if (!phone) {
-    // User authenticated but never purchased → no groups
     return NextResponse.json({ groups: [] })
   }
 
-  // 4. Reuse existing SECURITY DEFINER RPC
+  // 4. Call get_my_groups with BOTH required params: p_phone + p_email
   const { data, error } = await supabaseAdmin
-    .rpc('get_my_groups', { p_phone: phone })
+    .rpc('get_my_groups', { p_phone: phone, p_email: userEmail })
 
   if (error) {
     console.error('[api/my-groups]', error.message)
