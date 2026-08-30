@@ -403,6 +403,7 @@ export default function PostCheckoutView({ group }: { group: PostCheckoutGroup }
                 }
                 next={`/grupo/${group.id}`}
                 sentNote="Haz clic en el enlace del email para activar tu cuenta. Tu reserva no se ve afectada."
+                initialEmail={memberEmail}
               />
               <p className="mt-3 text-center text-[11.5px] text-neutral-400 leading-relaxed">
                 Sin compromiso. Solo para seguir tu reserva y ver el precio en tiempo real.

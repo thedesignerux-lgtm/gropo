@@ -19,6 +19,8 @@ export interface AuthPanelProps {
   next?: string
   /** Nota bajo el formulario tras enviar el enlace. */
   sentNote?: string
+  /** Email pre-rellenado (ej. del checkout). */
+  initialEmail?: string
 }
 
 export default function AuthPanel({
@@ -28,8 +30,9 @@ export default function AuthPanel({
   icon,
   next,
   sentNote = 'Haz clic en el enlace del email para entrar.',
+  initialEmail = '',
 }: AuthPanelProps) {
-  const [email, setEmail] = useState('')
+  const [email, setEmail] = useState(initialEmail)
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
