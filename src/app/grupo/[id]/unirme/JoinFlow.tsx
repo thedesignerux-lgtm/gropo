@@ -618,6 +618,9 @@ function InnerForm({
         name: fullName,
         email: c.email.trim(),
         phone: normalizePhone(c.phone),
+        quantity,
+        price: displayPricePerUnit,
+        address_line1: s.line1,
       }));
     } catch {}
 

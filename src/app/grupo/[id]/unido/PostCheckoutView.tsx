@@ -179,6 +179,7 @@ export default function PostCheckoutView({ group }: { group: PostCheckoutGroup }
   const [memberEmail, setMemberEmail] = useState('')
   const [memberName, setMemberName] = useState('')
   const [memberQty, setMemberQty] = useState(1)
+  const [memberPrice, setMemberPrice] = useState<number | null>(null)
   const [memberAddress, setMemberAddress] = useState('')
   const [livePrice, setLivePrice] = useState(group.current_price)
   const [liveUnits, setLiveUnits] = useState(group.total_units)
@@ -194,6 +195,7 @@ export default function PostCheckoutView({ group }: { group: PostCheckoutGroup }
         setMemberEmail(u.email ?? '')
         setMemberName(u.name ?? '')
         if (u.quantity) setMemberQty(Number(u.quantity))
+        if (u.price) setMemberPrice(Number(u.price))
         if (u.address_line1) setMemberAddress(u.address_line1)
       }
     } catch {}
@@ -339,7 +341,7 @@ export default function PostCheckoutView({ group }: { group: PostCheckoutGroup }
                   <p className="text-[12.5px] text-neutral-400 mt-0.5">{group.product_spec}</p>
                 )}
                 <p className="mt-1 text-[14px] font-bold text-brand">
-                  {memberQty} {memberQty === 1 ? 'ud' : 'uds'} × {eur(displayPrice)}
+                  {memberQty} {memberQty === 1 ? 'ud' : 'uds'} × {eur(memberPrice ?? displayPrice)}
                 </p>
               </div>
             </div>
@@ -355,10 +357,10 @@ export default function PostCheckoutView({ group }: { group: PostCheckoutGroup }
                 <span className="text-neutral-400">Cierre del grupo</span>
                 <span className="font-medium text-neutral-700">Domingo, 22:00</span>
               </div>
-              {savings > 0.5 && (
+              {(group.pvp - (memberPrice ?? displayPrice)) > 0.5 && (
                 <div className="flex justify-between text-[13px]">
                   <span className="text-neutral-400">Ahorro vs PVP</span>
-                  <span className="font-bold text-green-600">{eur(savings)}/ud</span>
+                  <span className="font-bold text-green-600">{eur(group.pvp - (memberPrice ?? displayPrice))}/ud</span>
                 </div>
               )}
             </div>
