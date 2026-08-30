@@ -19,14 +19,44 @@ export async function GET() {
     .eq('email', user.email)
     .maybeSingle()
 
-  if (!gropoUser?.phone) {
+  let phone = gropoUser?.phone
+
+  // 3. Fallback: if no users record, search group_members by buyer_email
+  //    This covers the "buy first, account later" flow where checkout
+  //    happens without auth and no users record exists yet.
+  if (!phone) {
+    const { data: member } = await supabaseAdmin
+      .from('group_members')
+      .select('buyer_phone')
+      .eq('buyer_email', user.email)
+      .order('joined_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (member?.buyer_phone) {
+      phone = member.buyer_phone
+
+      // Auto-create users record so future queries work directly
+      const { error: upsertErr } = await supabaseAdmin
+        .from('users')
+        .upsert(
+          { email: user.email, phone, name: user.user_metadata?.full_name ?? user.user_metadata?.name ?? '' },
+          { onConflict: 'email' }
+        )
+      if (upsertErr) {
+        console.error('[api/my-groups] upsert users fallback:', upsertErr.message)
+      }
+    }
+  }
+
+  if (!phone) {
     // User authenticated but never purchased → no groups
     return NextResponse.json({ groups: [] })
   }
 
-  // 3. Reuse existing SECURITY DEFINER RPC
+  // 4. Reuse existing SECURITY DEFINER RPC
   const { data, error } = await supabaseAdmin
-    .rpc('get_my_groups', { p_phone: gropoUser.phone })
+    .rpc('get_my_groups', { p_phone: phone })
 
   if (error) {
     console.error('[api/my-groups]', error.message)
