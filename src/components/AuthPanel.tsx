@@ -49,6 +49,12 @@ export default function AuthPanel({
     setGoogleLoading(true)
     setError(null)
     const supabase = createClient()
+    // Arranque LIMPIO: barre cookies sb-* huérfanas (incluido el code-verifier
+    // de un intento anterior a medias) antes de iniciar OAuth. Sin esto, un
+    // login con Google previo abandonado bloquea el siguiente ("no me entra"),
+    // que es exactamente lo que pasaba tras probar con varias cuentas.
+    try { await fetch('/auth/signout', { method: 'POST' }) } catch { /* best-effort */ }
+    try { await supabase.auth.signOut({ scope: 'local' }) } catch { /* best-effort */ }
     const { error: gError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {

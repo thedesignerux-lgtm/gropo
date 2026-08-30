@@ -38,5 +38,11 @@ export async function GET(request: Request) {
       return response
     }
   }
-  return NextResponse.redirect(`${origin}/login?error=auth`)
+  // Falló el intercambio (o no vino código): limpiar cookies sb-* para que el
+  // siguiente intento arranque de cero, y no quedarse en un bucle de "no entra".
+  const failResponse = NextResponse.redirect(`${origin}/login?error=auth`)
+  for (const c of cookies().getAll()) {
+    if (c.name.startsWith('sb-')) failResponse.cookies.set(c.name, '', { path: '/', maxAge: 0 })
+  }
+  return failResponse
 }
