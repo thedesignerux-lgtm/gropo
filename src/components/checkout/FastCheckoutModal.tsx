@@ -248,21 +248,21 @@ function InnerCheckout({
   // pausa 1,5 s para que el cerebro procese el refuerzo, y el sheet baja (onSuccess
   // → provider: toast + refresh). Evita la "ceguera de cambio".
   async function completeSuccess(piId?: string | null) {
-    // El hold ya está autorizado, pero la membresía la crea el WEBHOOK.
-    // Esperamos a verla en BD (máx ~8 s) antes de poner el verde.
+    // El hold YA está autorizado por el banco. La membresía la crea el WEBHOOK
+    // de Stripe, que en producción (serverless) puede tardar unos segundos.
+    // Mientras tanto mantenemos el spinner "Reservando/Asegurando…" (status
+    // sigue en 'processing') e intentamos confirmar la fila en BD.
+    // Si se confirma → verde inmediato. Si el webhook tarda más de la cuenta,
+    // mostramos el verde IGUALMENTE: la retención está aceptada y la membresía
+    // llega sí o sí (backend idempotente). NUNCA volvemos al botón inicial,
+    // que daría la falsa impresión de que no pasó nada.
     if (piId) {
-      let joined = false;
-      for (let i = 0; i < 10 && !joined; i++) {
+      for (let i = 0; i < 18; i++) {
         try {
           const r = await fetch(`/api/join/status?pi=${encodeURIComponent(piId)}`);
-          joined = (await r.json())?.joined === true;
+          if ((await r.json())?.joined === true) break;
         } catch { /* red: reintenta */ }
-        if (!joined) await new Promise(res => setTimeout(res, 800));
-      }
-      if (!joined) {
-        setStatus('idle');
-        setErrorMsg('Tu banco ha aceptado la retención, pero la confirmación aún se está procesando. Revisa "Mis grupos" en unos segundos.');
-        return;
+        await new Promise(res => setTimeout(res, 1000));
       }
     }
     setStatus('success');
