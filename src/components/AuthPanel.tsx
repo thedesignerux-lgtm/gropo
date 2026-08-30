@@ -5,7 +5,7 @@
 // una hoja, y Mis grupos / Mi perfil lo pintan a página completa cuando no hay
 // sesión. Antes esta lógica vivía solo dentro de RadarAuthSheet.
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase-browser'
 
 export interface AuthPanelProps {
@@ -33,6 +33,8 @@ export default function AuthPanel({
   initialEmail = '',
 }: AuthPanelProps) {
   const [email, setEmail] = useState(initialEmail)
+  // Sync cuando initialEmail llega tarde (ej. desde localStorage)
+  useEffect(() => { if (initialEmail && !email) setEmail(initialEmail) }, [initialEmail])
   const [sent, setSent] = useState(false)
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
