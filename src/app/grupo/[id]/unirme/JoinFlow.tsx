@@ -25,7 +25,6 @@ import confetti from 'canvas-confetti';
 import { PROVINCIAS_ES } from '@/lib/provincias';
 import { normalizePhone } from '@/lib/phone';
 import { supabase } from '@/lib/supabase';
-import GropoTargetSlider, { type Detent } from '@/components/GropoTargetSlider';
 import HowGropoSheet from '@/components/HowGropoSheet';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
@@ -170,26 +169,6 @@ export default function JoinFlow({
 
   // ── Progreso del grupo (unidades dentro → siguiente precio) ──
   const missingPeople = nextTier ? Math.max(0, nextTier.minUnits - group.total_units) : 0;
-
-  // ── Slider de tramos (modo lectura): fija visualmente el tier elegido ──
-  const detents: Detent[] = useMemo(
-    () => sorted.map((t) => ({ price: t.price, uds: t.minUnits })),
-    [sorted],
-  );
-  const curIdx = useMemo(() => {
-    let idx = 0;
-    for (let i = 0; i < detents.length; i++) if (detents[i].price >= pricePerUnit) idx = i;
-    return idx;
-  }, [detents, pricePerUnit]);
-  // selIdx: tramo que el usuario eligió en la ficha (llega por URL ?target=X)
-  const selIdx = useMemo(() => {
-    const tp = displayPricePerUnit;
-    let best = curIdx;
-    for (let i = 0; i < detents.length; i++) {
-      if (Math.abs(detents[i].price - tp) < 0.01) { best = i; break; }
-    }
-    return best;
-  }, [detents, displayPricePerUnit, curIdx]);
 
   // Hold para Stripe: siempre target × qty para esperadores (techo de seguridad)
   const holdPricePerUnit = isEsperar ? efectiveTargetPrice : pricePerUnit;
@@ -368,189 +347,144 @@ export default function JoinFlow({
         </>
       ) : (
         <>
-      {targetReached ? (
-        <section className="px-4 pt-4">
-          <div className="rounded-2xl bg-green-50 border border-green-200 p-4">
-            <div className="flex items-start gap-3">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-green-600 flex-shrink-0 mt-0.5">
-                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                <polyline points="22 4 12 14.01 9 11.01" />
-              </svg>
-              <div>
-                <p className="text-sm font-semibold text-neutral-900">Compras ahora a {eur(pricePerUnit)}</p>
-                <p className="text-xs text-neutral-500 mt-1">
-                  Con tus {quantity} {quantity === 1 ? 'unidad' : 'unidades'}, el grupo desbloquea {eur(pricePerUnit)}/ud — más barato que tu objetivo de {eur(efectiveTargetPrice)}.
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-      ) : null}
 
-      {/* ── RESUMEN DE PRODUCTO ── */}
-      <section className="flex gap-4 px-4 pt-4">
-        <div className="h-[92px] w-[92px] flex-shrink-0 overflow-hidden rounded-2xl bg-[#F0EEE8]">
-          {group.image_url ? (
-            <img src={group.image_url} alt={group.product_name} className="h-full w-full object-cover" />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-gray-300">
-              <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                <circle cx="8.5" cy="8.5" r="1.5" />
-                <polyline points="21 15 16 10 5 21" />
-              </svg>
-            </div>
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <h1 className="text-[19px] font-extrabold leading-tight tracking-tight text-neutral-900">{group.product_name}</h1>
-          {group.product_spec && <p className="text-sm text-neutral-400 mt-0.5">{group.product_spec}</p>}
-          <div className="mt-1.5 flex items-baseline gap-2 flex-wrap">
-            <span className="text-[26px] font-extrabold leading-none text-brand tabular-nums">{eur(displayPricePerUnit)}</span>
-            <span className="text-xs text-neutral-400">/ud</span>
-            {group.pvp > displayPricePerUnit && (
-              <span className="text-sm text-neutral-400 line-through">{eur(group.pvp)}</span>
-            )}
-          </div>
-          {savingsPerUnit > 0.01 && (
-            <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[#E6F4EC] px-2.5 py-1 text-xs font-bold text-[#157F52]">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" /><line x1="7" y1="7" x2="7.01" y2="7" /></svg>
-              Ahorras {eur(savingsPerUnit)} /ud
-            </span>
-          )}
-        </div>
-      </section>
+          {/* ═══ Diseño 4b adaptado a modo comprar (comprar ahora, sin precio objetivo) ═══ */}
 
-      {/* ── SELECTOR DE CANTIDAD ── */}
-      <section className="px-4 pt-4">
-        <div className="mx-auto flex w-full max-w-[260px] items-center justify-between rounded-full border border-neutral-200 px-1.5 py-1.5">
-          <button
-            type="button"
-            onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-            disabled={quantity <= 1}
-            aria-label="Quitar una unidad"
-            className="grid h-9 w-9 place-items-center rounded-full text-xl text-neutral-600 transition-colors hover:bg-neutral-100 disabled:text-neutral-300"
-          >
-            −
-          </button>
-          <span className="text-[15px] font-semibold tabular-nums text-neutral-900">
-            {quantity} {quantity === 1 ? 'unidad' : 'unidades'}
-          </span>
-          <button
-            type="button"
-            onClick={() => setQuantity((q) => Math.min(maxQty, q + 1))}
-            disabled={quantity >= maxQty}
-            aria-label="Añadir una unidad"
-            className="grid h-9 w-9 place-items-center rounded-full text-xl text-neutral-600 transition-colors hover:bg-neutral-100 disabled:text-neutral-300"
-          >
-            +
-          </button>
-        </div>
-
-        {/* Ahorro potencial */}
-        {savingsPerUnit > 0.01 && (
-          <div className="mt-3 flex items-start gap-2.5 rounded-2xl bg-[#F1FBF5] border border-[#D5EEDF] px-3.5 py-3">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#157F52" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-0.5"><rect x="2" y="6" width="20" height="12" rx="2" /><circle cx="12" cy="12" r="2.5" /><path d="M6 12h.01M18 12h.01" /></svg>
-            <p className="text-[13px] leading-snug text-neutral-700">
-              <strong className="font-bold text-neutral-900">{quantity} {quantity === 1 ? 'unidad' : 'unidades'} = {eur(savingsPerUnit * quantity)}</strong> de ahorro potencial
-              <span className="text-neutral-400"> frente al PVP</span>
-            </p>
-          </div>
-        )}
-      </section>
-
-      {/* ── PROGRESO DEL GRUPO + CIERRE ── */}
-      <section className="px-4 pt-4">
-        <div className="rounded-2xl bg-[#F5F3F9] p-4">
-          {/* Cabecera: unidades dentro · cierre */}
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="text-base leading-none">🔥</span>
-                <span className="text-sm font-bold text-neutral-900">{group.total_units} ciclista{group.total_units !== 1 ? 's' : ''} ya {group.total_units === 1 ? 'está' : 'están'} dentro</span>
-              </div>
-              <p className="mt-1.5 text-[13px] leading-snug text-neutral-600">
-                {missingPeople > 0 ? (
-                  <>Faltan <strong className="font-bold text-brand">{missingPeople} {missingPeople === 1 ? 'unidad' : 'unidades'}</strong> para desbloquear {eur(nextTier!.price)}</>
-                ) : (
-                  <strong className="font-bold text-[#157F52]">Mejor precio ya desbloqueado 🎉</strong>
-                )}
-              </p>
-            </div>
-            <div className="flex flex-shrink-0 flex-col items-center border-l border-[#E4DEEE] pl-4 text-center">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#6C4BF4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15 15" /></svg>
-              <span className="mt-1.5 text-[11px] font-medium text-neutral-500">Cierra en</span>
-              <CompactCountdown closesAt={group.closes_at} />
-              <span className="text-[11px] text-neutral-400">Domingo 22:00</span>
-            </div>
-          </div>
-
-          {/* Slider de tramos — fija visualmente el tier elegido (modo lectura) */}
-          {detents.length > 1 && (
-            <div className="mt-1">
-              <GropoTargetSlider
-                detents={detents}
-                curIdx={curIdx}
-                selIdx={selIdx}
-                onSelIdx={() => {}}
-                size="mini"
-                disabled
-                locked
-              />
-            </div>
-          )}
-        </div>
-      </section>
-
-      {/* ── TARJETAS DE CONFIANZA ── */}
-      <section className="px-4 pt-4 space-y-3">
-        <div className="rounded-2xl bg-[#F5F3F9] p-4">
-          <div className="flex items-start gap-3">
-            <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-xl bg-brand text-white">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="M9 12l2 2 4-4" /></svg>
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-start gap-3">
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-neutral-900">Tu reserva garantiza el descuento</p>
-                  <p className="mt-1 text-[13px] leading-snug text-neutral-500">
-                    La marca solo concede este precio cuando existe suficiente demanda confirmada. Por eso verificamos el importe en tu tarjeta antes del cierre del gropo.
-                  </p>
+          {/* Tarjeta de producto */}
+          <section className="px-4 pt-4">
+            <div className="rounded-[18px] border border-black/[0.08] bg-white p-[15px]">
+              <div className="flex gap-[15px]">
+                <div className="h-24 w-24 flex-none overflow-hidden rounded-[15px] bg-[#F4F2F8]">
+                  {group.image_url ? (
+                    <img src={group.image_url} alt={group.product_name} className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="grid h-full w-full place-items-center text-neutral-300">
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>
+                    </div>
+                  )}
                 </div>
-                {/* Ilustración candado + tarjeta */}
-                <svg width="66" height="58" viewBox="0 0 66 58" fill="none" className="hidden flex-shrink-0 sm:block" aria-hidden="true">
-                  <rect x="4" y="10" width="34" height="30" rx="6" fill="#B9A6F5" />
-                  <rect x="10" y="18" width="34" height="30" rx="6" fill="#8B6BF0" />
-                  <rect x="10" y="24" width="34" height="5" fill="#6C4BF4" />
-                  <rect x="15" y="35" width="12" height="3" rx="1.5" fill="#fff" fillOpacity=".85" />
-                  <circle cx="49" cy="38" r="13" fill="#fff" />
-                  <circle cx="49" cy="38" r="11" fill="#6C4BF4" />
-                  <path d="M45.6 36.4v-2.1a3.4 3.4 0 0 1 6.8 0v2.1" stroke="#fff" strokeWidth="2" strokeLinecap="round" />
-                  <rect x="43.6" y="36.4" width="10.8" height="8.4" rx="2" fill="#fff" />
-                </svg>
+                <div className="flex min-w-0 flex-1 flex-col">
+                  <div className="text-[15px] font-bold leading-[1.3] text-neutral-900">{group.product_name}</div>
+                  {group.product_spec && <div className="mt-0.5 text-xs text-neutral-400">{group.product_spec}</div>}
+                  {group.pvp > displayPricePerUnit && (
+                    <div className="mt-auto pt-2 text-xs font-medium text-neutral-400">Precio tienda <span className="line-through">{eur(group.pvp)}</span></div>
+                  )}
+                </div>
               </div>
-              <button type="button" onClick={() => setPayInfoOpen(true)} className="mt-2 inline-flex items-center gap-1.5 text-[13px] font-semibold text-brand">
-                <span className="grid h-4 w-4 place-items-center rounded-full bg-brand/10 text-[10px] font-black">i</span>
-                ¿Cómo funciona el pago?
-              </button>
+              <div className="mt-[13px] flex items-center gap-2">
+                <div className="flex h-[34px] items-center gap-2.5 rounded-[11px] border border-black/[0.08] bg-[#F5F3F9] px-1.5">
+                  <button type="button" onClick={() => setQuantity((q) => Math.max(1, q - 1))} disabled={quantity <= 1} aria-label="Quitar una unidad" className="grid h-6 w-6 place-items-center text-[17px] leading-none text-neutral-600 disabled:text-neutral-300">−</button>
+                  <span className="min-w-[22px] text-center text-[15px] font-bold tabular-nums text-neutral-900">{quantity}</span>
+                  <button type="button" onClick={() => setQuantity((q) => Math.min(maxQty, q + 1))} disabled={quantity >= maxQty} aria-label="Añadir una unidad" className="grid h-6 w-6 place-items-center text-[17px] leading-none text-neutral-600 disabled:text-neutral-300">+</button>
+                </div>
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#F5F3F9] px-2.5 py-1.5 text-xs font-semibold text-neutral-500">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6C3CE1" strokeWidth="2"><rect x="1" y="6" width="14" height="10" rx="1.5" /><path d="M15 9h4l3 3v4h-7" /><circle cx="6" cy="18" r="2" /><circle cx="18" cy="18" r="2" /></svg>
+                  Entrega gratis
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#E6F5EC] px-2.5 py-1.5 text-xs font-bold text-[#0F8A4D]">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                  En stock
+                </span>
+              </div>
             </div>
-          </div>
-        </div>
+          </section>
 
-        <div className="rounded-2xl bg-[#F1FBF5] border border-[#D5EEDF] p-4">
-          <div className="flex items-start gap-3">
-            <span className="grid h-9 w-9 flex-shrink-0 place-items-center rounded-xl bg-[#157F52] text-white">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="6" /><path d="M8.5 13.5L7 22l5-3 5 3-1.5-8.5" /></svg>
-            </span>
-            <div className="min-w-0">
-              <p className="text-sm font-bold text-[#157F52]">Siempre pagas el mejor precio alcanzado</p>
-              <p className="mt-1 text-[13px] leading-snug text-neutral-600">
-                Si el grupo alcanza un precio más bajo, se aplicará automáticamente.
-              </p>
+          {/* Tarjeta de precio: una sola fila resaltada (el precio que aseguras hoy) */}
+          <section className="px-4 pt-3.5">
+            <div className="flex items-center rounded-[18px] border-[1.5px] px-3.5 py-3.5" style={{ background: '#F4F0FE', borderColor: '#6C3CE1' }}>
+              <div className="mr-[11px] grid h-[34px] w-[34px] flex-none place-items-center rounded-[10px]" style={{ background: '#6C3CE1' }}>
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11z" /><path d="M9 12l2 2 4-4" /></svg>
+              </div>
+              <div>
+                <div className="text-[15px] font-bold text-brand">Precio de tu plaza</div>
+                <div className="mt-px text-xs font-medium" style={{ color: '#8A72D6' }}>bajará si entran más compradores</div>
+              </div>
+              <div className="ml-auto text-[22px] font-extrabold leading-none tracking-tight tabular-nums text-brand">{eur(displayPricePerUnit)}</div>
             </div>
-          </div>
-        </div>
-      </section>
+            {savingsPerUnit > 0.01 && (
+              <p className="mt-2 px-1 text-[12px] font-semibold text-[#0F8A4D]">Ahorras {eur(savingsPerUnit * quantity)} frente al precio de tienda</p>
+            )}
+          </section>
+
+          {/* Progreso del grupo — stepper horizontal (objetivo = próximo tramo por desbloquear) */}
+          <section className="px-4 pt-3.5">
+            <div className="rounded-[18px] border border-black/[0.08] bg-white p-[15px]">
+              <div className="flex items-center">
+                <div className="flex-1 text-[15px] font-extrabold text-neutral-900">Progreso del grupo</div>
+                <div className="flex items-center gap-1 text-xs font-semibold text-neutral-500">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6C3CE1" strokeWidth="2.2"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" strokeLinecap="round" /></svg>
+                  <span>Cierra en</span> <CompactCountdown closesAt={group.closes_at} />
+                </div>
+              </div>
+              <div className="relative mx-1 mb-2 mt-6">
+                <div className="absolute left-[6%] right-[6%] top-[9px] h-[3px] rounded bg-black/10" />
+                <div className="absolute left-[6%] top-[9px] h-[3px] rounded bg-brand" style={{ width: `calc(88% * ${fillFrac})` }} />
+                <div className="relative flex justify-between">
+                  {sorted.map((t, i) => {
+                    const unlocked = group.total_units >= t.minUnits;
+                    const isGoal = !!nextTier && Math.abs(t.price - nextTier.price) < 0.01;
+                    return (
+                      <div key={i} className="flex w-14 flex-col items-center">
+                        {unlocked ? (
+                          <div className="grid h-5 w-5 place-items-center rounded-full border-[3px] border-[#faf9fc] bg-brand" style={{ boxShadow: '0 0 0 1.5px #6C3CE1' }}>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                          </div>
+                        ) : isGoal ? (
+                          <div className="grid h-[22px] w-[22px] animate-pulse place-items-center rounded-full border-[3px] border-[#e8890c] bg-white">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#e8890c" strokeWidth="2.6"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+                          </div>
+                        ) : (
+                          <div className="mt-0.5 h-4 w-4 rounded-full border-[2.5px] border-black/[0.18] bg-white" />
+                        )}
+                        <div className={`mt-2 text-[15px] font-extrabold ${isGoal && !unlocked ? 'text-[#e8890c]' : unlocked ? 'text-neutral-900' : 'text-neutral-400'}`}>{eur(t.price)}</div>
+                        <div className="text-xs font-medium text-neutral-400">{t.minUnits} uds</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              {nextTier && missingPeople > 0 ? (
+                <div className="mt-1 text-center text-xs font-medium text-neutral-500">Faltan <b className="text-[#e8890c]">{missingPeople} {missingPeople === 1 ? 'unidad' : 'unidades'}</b> para desbloquear {eur(nextTier.price)}</div>
+              ) : (
+                <div className="mt-1 text-center text-xs font-bold text-[#0F8A4D]">Mejor precio ya desbloqueado 🎉</div>
+              )}
+            </div>
+          </section>
+
+          {/* Banner verde: aseguras tu plaza hoy sin pagar */}
+          <section className="px-4 pt-3.5">
+            <div className="flex gap-[11px] rounded-2xl border border-[#CFEADA] bg-[#EEF8F1] p-[13px]">
+              <svg width="19" height="19" className="mt-px flex-none" viewBox="0 0 24 24" fill="none" stroke="#0F8A4D" strokeWidth="2"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11z" /><path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              <div className="text-xs font-semibold leading-[1.5] text-[#0D6B3D]">
+                <b>Aseguras tu plaza hoy sin pagar.</b> Retenemos el importe en tu tarjeta y solo se cobra al cierre del grupo, al mejor precio alcanzado. Si el grupo no se completa, se libera sin cargo.{' '}
+                <button type="button" onClick={() => setPayInfoOpen(true)} className="font-extrabold underline">¿Cómo funciona el pago?</button>
+              </div>
+            </div>
+          </section>
+
+          {/* Filas de confianza */}
+          <section className="px-4 pt-3.5">
+            <div className="flex flex-col gap-2.5">
+              <div className="flex gap-3 rounded-2xl border border-black/[0.08] bg-white p-[13px]">
+                <div className="grid h-[34px] w-[34px] flex-none place-items-center rounded-[10px] bg-brand">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11z" /><path d="M9 12l2 2 4-4" /></svg>
+                </div>
+                <div>
+                  <div className="text-[15px] font-bold text-neutral-900">Tu reserva garantiza el descuento</div>
+                  <div className="mt-0.5 text-xs leading-[1.5] text-neutral-500">La marca solo concede este precio cuando existe suficiente demanda confirmada.</div>
+                </div>
+              </div>
+              <div className="flex gap-3 rounded-2xl border border-black/[0.08] bg-white p-[13px]">
+                <div className="grid h-[34px] w-[34px] flex-none place-items-center rounded-[10px] bg-brand">
+                  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 16L3 6l5.5 4L12 4l3.5 6L21 6l-2 10z" /><path d="M5 20h14" /></svg>
+                </div>
+                <div>
+                  <div className="text-[15px] font-bold text-neutral-900">Siempre pagas el mejor precio alcanzado</div>
+                  <div className="mt-0.5 text-xs leading-[1.5] text-neutral-500">Si el grupo alcanza un precio más bajo, se aplicará automáticamente.</div>
+                </div>
+              </div>
+            </div>
+          </section>
 
       </>
       )}
