@@ -199,8 +199,19 @@ export default function JoinFlow({
   const comprarGoalIdx = projIdx + 1 < nTiers ? projIdx + 1 : -1;
   const targetTier = sorted.find((t) => Math.abs(t.price - efectiveTargetPrice) < 0.01) ?? sorted[sorted.length - 1];
   const missingToTarget = targetTier ? Math.max(0, targetTier.minUnits - projected) : 0;
-  const fillFrac = nTiers > 1 ? Math.max(0, lastUnlockedIdx) / (nTiers - 1) : 0;
-  const projFillFrac = nTiers > 1 ? Math.max(0, projIdx) / (nTiers - 1) : 0;
+  // Posición CONTINUA en la barra: interpola entre tramos según las unidades,
+  // así el relleno avanza porcentualmente al acercarse al siguiente tramo.
+  const posOf = (units: number) => {
+    if (nTiers <= 1) return 0;
+    if (units >= sorted[nTiers - 1].minUnits) return 1;
+    let lo = 0;
+    for (let i = 0; i < nTiers; i++) if (units >= sorted[i].minUnits) lo = i;
+    const a = sorted[lo].minUnits, b = sorted[lo + 1].minUnits;
+    const seg = b > a ? Math.min(1, Math.max(0, (units - a) / (b - a))) : 0;
+    return (lo + seg) / (nTiers - 1);
+  };
+  const groupPos = posOf(group.total_units);
+  const projPos = posOf(projected);
 
   return (
     <div>
@@ -278,9 +289,12 @@ export default function JoinFlow({
                 </div>
               </div>
               <div className="relative mx-1 mb-2 mt-6">
-                <div className="absolute left-[6%] right-[6%] top-[9px] h-[3px] rounded bg-black/10" />
-                <div className="absolute left-[6%] top-[9px] h-[3px] rounded bg-brand/30 transition-all duration-300" style={{ width: `calc(88% * ${projFillFrac})` }} />
-                <div className="absolute left-[6%] top-[9px] h-[3px] rounded bg-brand transition-all duration-300" style={{ width: `calc(88% * ${fillFrac})` }} />
+                <div className="absolute left-[6%] right-[6%] top-[9px] h-[3px] rounded-full bg-black/[0.07]" />
+                <div className="absolute left-[6%] top-[9px] h-[3px] rounded-full bg-[#B9A6F5] transition-[width] duration-300 ease-out" style={{ width: `calc(88% * ${projPos})` }} />
+                <div className="absolute left-[6%] top-[9px] h-[3px] rounded-full bg-brand transition-[width] duration-300 ease-out" style={{ width: `calc(88% * ${groupPos})` }} />
+                {projPos > groupPos + 0.005 && projPos < 0.995 && (
+                  <div className="absolute top-[6px] z-[1] h-[9px] w-[9px] -translate-x-1/2 rounded-full bg-brand ring-2 ring-white shadow-sm transition-[left] duration-300 ease-out" style={{ left: `calc(6% + 88% * ${projPos})` }} />
+                )}
                 <div className="relative flex justify-between">
                   {sorted.map((t, i) => {
                     const groupReached = group.total_units >= t.minUnits;
@@ -293,7 +307,7 @@ export default function JoinFlow({
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                           </div>
                         ) : youReached ? (
-                          <div className="grid h-5 w-5 place-items-center rounded-full border-[3px] border-[#faf9fc]" style={{ background: 'rgba(108,60,225,.5)', boxShadow: '0 0 0 1.5px rgba(108,60,225,.5)' }}>
+                          <div className="grid h-5 w-5 place-items-center rounded-full border-[3px] border-[#faf9fc]" style={{ background: '#9B7FE6', boxShadow: '0 0 0 1.5px #9B7FE6' }}>
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                           </div>
                         ) : isTarget ? (
@@ -425,9 +439,12 @@ export default function JoinFlow({
                 </div>
               </div>
               <div className="relative mx-1 mb-2 mt-6">
-                <div className="absolute left-[6%] right-[6%] top-[9px] h-[3px] rounded bg-black/10" />
-                <div className="absolute left-[6%] top-[9px] h-[3px] rounded bg-brand/30 transition-all duration-300" style={{ width: `calc(88% * ${projFillFrac})` }} />
-                <div className="absolute left-[6%] top-[9px] h-[3px] rounded bg-brand transition-all duration-300" style={{ width: `calc(88% * ${fillFrac})` }} />
+                <div className="absolute left-[6%] right-[6%] top-[9px] h-[3px] rounded-full bg-black/[0.07]" />
+                <div className="absolute left-[6%] top-[9px] h-[3px] rounded-full bg-[#B9A6F5] transition-[width] duration-300 ease-out" style={{ width: `calc(88% * ${projPos})` }} />
+                <div className="absolute left-[6%] top-[9px] h-[3px] rounded-full bg-brand transition-[width] duration-300 ease-out" style={{ width: `calc(88% * ${groupPos})` }} />
+                {projPos > groupPos + 0.005 && projPos < 0.995 && (
+                  <div className="absolute top-[6px] z-[1] h-[9px] w-[9px] -translate-x-1/2 rounded-full bg-brand ring-2 ring-white shadow-sm transition-[left] duration-300 ease-out" style={{ left: `calc(6% + 88% * ${projPos})` }} />
+                )}
                 <div className="relative flex justify-between">
                   {sorted.map((t, i) => {
                     const groupReached = group.total_units >= t.minUnits;
@@ -440,7 +457,7 @@ export default function JoinFlow({
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                           </div>
                         ) : youReached ? (
-                          <div className="grid h-5 w-5 place-items-center rounded-full border-[3px] border-[#faf9fc]" style={{ background: 'rgba(108,60,225,.5)', boxShadow: '0 0 0 1.5px rgba(108,60,225,.5)' }}>
+                          <div className="grid h-5 w-5 place-items-center rounded-full border-[3px] border-[#faf9fc]" style={{ background: '#9B7FE6', boxShadow: '0 0 0 1.5px #9B7FE6' }}>
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                           </div>
                         ) : isGoal ? (
