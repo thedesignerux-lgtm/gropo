@@ -169,12 +169,12 @@ export async function POST(req: Request) {
     // 7) 3DS: si el banco pide autenticación, devolvemos el client_secret para que
     //    el cliente resuelva el reto con stripe.handleNextAction (sin salir del modal).
     if (pi.status === 'requires_action') {
-      return NextResponse.json({ requires_action: true, clientSecret: pi.client_secret });
+      return NextResponse.json({ requires_action: true, clientSecret: pi.client_secret, pi_id: pi.id });
     }
 
     // 8) Hold colocado (manual capture → requires_capture). El webhook hará el resto.
     if (pi.status === 'requires_capture') {
-      return NextResponse.json({ status: 'ok' });
+      return NextResponse.json({ status: 'ok', pi_id: pi.id });
     }
 
     // Estado inesperado.

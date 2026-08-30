@@ -202,7 +202,7 @@ function InnerCheckout({
         });
         if (confirmError) { setStatus('error'); setErrorMsg(confirmError.message ?? 'No se pudo verificar el pago'); return; }
 
-        completeSuccess();
+        await completeSuccess(data.clientSecret ? String(data.clientSecret).split('_secret')[0] : null);
       } catch {
         setStatus('error'); setErrorMsg('Error de conexión. Inténtalo de nuevo.');
       }
@@ -227,7 +227,7 @@ function InnerCheckout({
         if (!stripe) { setStatus('error'); setErrorMsg('Pago no disponible. Reintenta.'); return; }
         const { error: naError } = await stripe.handleNextAction({ clientSecret: data.clientSecret });
         if (naError) { setStatus('error'); setErrorMsg(naError.message ?? 'No se pudo verificar el pago.'); return; }
-        completeSuccess();
+        await completeSuccess(data.pi_id ?? String(data.clientSecret).split('_secret')[0]);
         return;
       }
 
@@ -238,7 +238,7 @@ function InnerCheckout({
         setEditingPayment(true);
         return;
       }
-      completeSuccess();
+      await completeSuccess(data.pi_id ?? null);
     } catch {
       setStatus('error'); setErrorMsg('Error de conexión. Inténtalo de nuevo.');
     }
@@ -247,7 +247,24 @@ function InnerCheckout({
   // Éxito INLINE (sin pantalla nueva): el botón se transforma a verde con check,
   // pausa 1,5 s para que el cerebro procese el refuerzo, y el sheet baja (onSuccess
   // → provider: toast + refresh). Evita la "ceguera de cambio".
-  function completeSuccess() {
+  async function completeSuccess(piId?: string | null) {
+    // El hold ya está autorizado, pero la membresía la crea el WEBHOOK.
+    // Esperamos a verla en BD (máx ~8 s) antes de poner el verde.
+    if (piId) {
+      let joined = false;
+      for (let i = 0; i < 10 && !joined; i++) {
+        try {
+          const r = await fetch(`/api/join/status?pi=${encodeURIComponent(piId)}`);
+          joined = (await r.json())?.joined === true;
+        } catch { /* red: reintenta */ }
+        if (!joined) await new Promise(res => setTimeout(res, 800));
+      }
+      if (!joined) {
+        setStatus('idle');
+        setErrorMsg('Tu banco ha aceptado la retención, pero la confirmación aún se está procesando. Revisa "Mis grupos" en unos segundos.');
+        return;
+      }
+    }
     setStatus('success');
     setTimeout(() => onSuccess(), 1500);
   }
