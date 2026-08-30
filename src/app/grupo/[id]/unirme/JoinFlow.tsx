@@ -122,6 +122,7 @@ export default function JoinFlow({
   });
   const prevPrice = useRef<number | null>(null);
 
+
   const sorted = useMemo(() => [...group.tiers].sort((a, b) => a.minUnits - b.minUnits), [group.tiers]);
   const isEsperar = joinMode === 'esperar';
   const pricePerUnit = quote.pricePerUnit ?? group.current_price;
@@ -504,6 +505,7 @@ function InnerForm({
   const [billingSame, setBillingSame] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const datosRef = useRef<HTMLElement>(null);
   // Precarga: si el usuario ya compró antes, no debe volver a teclear sus datos
   // ni su dirección. La identidad vive en localStorage (la guarda este mismo
   // checkout al confirmar) y la dirección predeterminada en el perfil.
@@ -554,6 +556,14 @@ function InnerForm({
   async function handleSubmit() {
     setError(null);
     if (!stripe || !elements) return;
+
+    // Validar campos obligatorios — si faltan, scroll al formulario
+    const missing = !c.nombre.trim() || !c.apellidos.trim() || !c.email.trim() || !c.phone.trim() || !s.line1.trim() || !s.postal_code.trim() || !s.city.trim() || !s.province;
+    if (missing) {
+      datosRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      setError("Completa todos los campos antes de continuar.");
+      return;
+    }
 
     setLoading(true);
     const fullName = `${c.nombre} ${c.apellidos}`.trim();
@@ -647,7 +657,7 @@ function InnerForm({
       </section>
 
       {/* ── 1. TUS DATOS ── */}
-      <section className={SECTION}>
+      <section ref={datosRef as any} className={SECTION}>
         <h2 className={H}>1. Tus datos</h2>
         <div className="grid grid-cols-2 gap-3">
           <input className={INPUT} placeholder="Nombre"
