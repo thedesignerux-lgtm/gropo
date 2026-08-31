@@ -212,6 +212,9 @@ export default function JoinFlow({
   };
   const groupPos = posOf(group.total_units);
   const projPos = posOf(projected);
+  // El punto (knob) solo se muestra mientras avanza ENTRE hitos; al llegar
+  // justo a un tramo, ese nodo pasa a check y el punto desaparece.
+  const showKnob = projIdx < nTiers - 1 && projected > sorted[projIdx].minUnits;
 
   return (
     <div>
@@ -290,9 +293,9 @@ export default function JoinFlow({
               </div>
               <div className="relative mx-1 mb-2 mt-6">
                 <div className="absolute left-[6%] right-[6%] top-[9px] h-[3px] rounded-full bg-black/[0.07]" />
-                <div className="absolute left-[6%] top-[9px] h-[3px] rounded-full bg-[#B9A6F5] transition-[width] duration-300 ease-out" style={{ width: `calc(88% * ${projPos})` }} />
+                <div className="absolute left-[6%] top-[9px] h-[3px] rounded-full bg-brand transition-[width] duration-300 ease-out" style={{ width: `calc(88% * ${projPos})` }} />
                 <div className="absolute left-[6%] top-[9px] h-[3px] rounded-full bg-brand transition-[width] duration-300 ease-out" style={{ width: `calc(88% * ${groupPos})` }} />
-                {projPos > groupPos + 0.005 && projPos < 0.995 && (
+                {showKnob && (
                   <div className="absolute top-[6px] z-[1] h-[9px] w-[9px] -translate-x-1/2 rounded-full bg-brand ring-2 ring-white shadow-sm transition-[left] duration-300 ease-out" style={{ left: `calc(6% + 88% * ${projPos})` }} />
                 )}
                 <div className="relative flex justify-between">
@@ -307,7 +310,7 @@ export default function JoinFlow({
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                           </div>
                         ) : youReached ? (
-                          <div className="grid h-5 w-5 place-items-center rounded-full border-[3px] border-[#faf9fc]" style={{ background: '#9B7FE6', boxShadow: '0 0 0 1.5px #9B7FE6' }}>
+                          <div className="grid h-5 w-5 place-items-center rounded-full border-[3px] border-[#faf9fc]" style={{ background: '#6C3CE1', boxShadow: '0 0 0 1.5px #6C3CE1' }}>
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                           </div>
                         ) : isTarget ? (
@@ -440,9 +443,9 @@ export default function JoinFlow({
               </div>
               <div className="relative mx-1 mb-2 mt-6">
                 <div className="absolute left-[6%] right-[6%] top-[9px] h-[3px] rounded-full bg-black/[0.07]" />
-                <div className="absolute left-[6%] top-[9px] h-[3px] rounded-full bg-[#B9A6F5] transition-[width] duration-300 ease-out" style={{ width: `calc(88% * ${projPos})` }} />
+                <div className="absolute left-[6%] top-[9px] h-[3px] rounded-full bg-brand transition-[width] duration-300 ease-out" style={{ width: `calc(88% * ${projPos})` }} />
                 <div className="absolute left-[6%] top-[9px] h-[3px] rounded-full bg-brand transition-[width] duration-300 ease-out" style={{ width: `calc(88% * ${groupPos})` }} />
-                {projPos > groupPos + 0.005 && projPos < 0.995 && (
+                {showKnob && (
                   <div className="absolute top-[6px] z-[1] h-[9px] w-[9px] -translate-x-1/2 rounded-full bg-brand ring-2 ring-white shadow-sm transition-[left] duration-300 ease-out" style={{ left: `calc(6% + 88% * ${projPos})` }} />
                 )}
                 <div className="relative flex justify-between">
@@ -457,7 +460,7 @@ export default function JoinFlow({
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                           </div>
                         ) : youReached ? (
-                          <div className="grid h-5 w-5 place-items-center rounded-full border-[3px] border-[#faf9fc]" style={{ background: '#9B7FE6', boxShadow: '0 0 0 1.5px #9B7FE6' }}>
+                          <div className="grid h-5 w-5 place-items-center rounded-full border-[3px] border-[#faf9fc]" style={{ background: '#6C3CE1', boxShadow: '0 0 0 1.5px #6C3CE1' }}>
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                           </div>
                         ) : isGoal ? (
