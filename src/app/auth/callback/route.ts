@@ -1,9 +1,12 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { authCookieOptions } from '@/lib/auth-cookie-domain'
 
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url)
+  const url = new URL(request.url)
+  const { searchParams, origin } = url
+  const opts = authCookieOptions(url.hostname)
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/'
   const intent = searchParams.get('intent')
@@ -16,6 +19,7 @@ export async function GET(request: Request) {
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
       {
+        ...(opts ? { cookieOptions: opts } : {}),
         cookies: {
           getAll() { return cookieStore.getAll() },
           setAll(cookiesToSet) {
@@ -38,11 +42,8 @@ export async function GET(request: Request) {
       return response
     }
   }
-  // Falló el intercambio (o no vino código): limpiar cookies sb-* para que el
-  // siguiente intento arranque de cero, y no quedarse en un bucle de "no entra".
-  const failResponse = NextResponse.redirect(`${origin}/login?error=auth`)
-  for (const c of cookies().getAll()) {
-    if (c.name.startsWith('sb-')) failResponse.cookies.set(c.name, '', { path: '/', maxAge: 0 })
-  }
-  return failResponse
+  // Falló el intercambio (o no vino código). NO borramos cookies aquí: un
+  // segundo callback con "State has already been used" (doble submit) llegaría
+  // después de uno bueno y borraría la sesión recién creada. Solo redirigimos.
+  return NextResponse.redirect(`${origin}/login?error=auth`)
 }

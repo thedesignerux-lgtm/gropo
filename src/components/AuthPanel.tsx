@@ -42,7 +42,14 @@ export default function AuthPanel({
 
   function callbackUrl() {
     const target = next ?? window.location.pathname ?? '/'
-    return `${window.location.origin}/auth/callback?next=${encodeURIComponent(target)}`
+    // Host canónico: en producción el OAuth vuelve SIEMPRE a www.gropo.es
+    // (el apex gropo.es hace 308 a www y rompía el intercambio de cookies).
+    const host = window.location.hostname
+    const origin =
+      host === 'gropo.es' || host === 'www.gropo.es'
+        ? 'https://www.gropo.es'
+        : window.location.origin
+    return `${origin}/auth/callback?next=${encodeURIComponent(target)}`
   }
 
   async function handleGoogle() {
