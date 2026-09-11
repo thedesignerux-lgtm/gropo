@@ -3,7 +3,7 @@
 > **ÚNICO punto de entrada operativo para una IA que va a continuar desarrollando Gropo.**
 > Léeme primero: ningún otro documento de `docs/` sustituye a este como punto de partida.
 > **No sustituyo a la documentación detallada**: doy el mapa, lo roto, lo que no
-> debes asumir y cómo trabajar. El detalle está en los otros 12 documentos de `docs/`.
+> debes asumir y cómo trabajar. El detalle está en los otros 14 documentos de `docs/`.
 >
 > Base: repo `main @ 7c49ef3` + base de datos de producción `xpktkuozspreuxucnguh`, auditada en
 > vivo el **6 de septiembre de 2026**.
@@ -450,6 +450,8 @@ distinta crea una **SOBRECARGA**, no reemplaza · `DROP + CREATE` **resetea los 
 | Cómo está montado y **por qué** (16 ADR) | `docs/ARCHITECTURE.md` |
 | Qué está roto y con qué prioridad | `docs/KNOWN_ISSUES.md` |
 | Qué hace el proyecto caro de cambiar | `docs/TECHNICAL_DEBT.md` |
+| **Con qué criterio se juzga una pantalla, un flujo o un copy** | **`docs/PRODUCT_PRINCIPLES.md`** |
+| Cómo pasar a pagos reales, paso a paso | `docs/LAUNCH_CHECKLIST.md` |
 | Panorama, invariantes, dependency map, DO NOT ASSUME | `docs/PROJECT_KNOWLEDGE_PACK.md` |
 | **Protocolo, comandos y checklist** | **`docs/CONTINUE_DEVELOPMENT.md`** |
 

@@ -226,6 +226,10 @@ completa desde su primer comprador.
 
 ### ADR-08 · Mínimo acumulado en la escalera (`F*(N) = MIN(F(1..N))`)
 **Motivo:** garantizar *"más gente = nunca peor"* aunque una puja se quede sin stock arriba.
+**Alternativa descartada (7-jul-2026, "Decisión B"):** que `max_stock` participara en el **precio
+publicado**, como pedía la especificación multi-puja §3.1. Se descartó porque habría roto D0 —la
+invariante de que con una sola puja el resultado es idéntico a v1— y porque la cobertura ya la
+garantiza la adjudicación. La protección por stock vive **solo** en el cierre.
 **Consecuencias:** ✅ monotonía. ❌ El precio publicado es una promesa de "mejor caso" — de ahí
 ADR-09.
 
@@ -233,6 +237,12 @@ ADR-09.
 **Motivo:** si el precio final sube por encima de lo prometido, no se puede cobrar de más.
 **Implementación:** `close_group` paso 4 cancela también a los `comprar` con
 `guaranteed_price < settlement`.
+**Alternativa descartada (7-jul-2026, opción "(a)" de §4.4):** que el **vendedor absorbiera** la
+diferencia. Se descartó porque obligaría a un vendedor a sostener el precio de un competidor al
+que ni siquiera puede ver (D5, opacidad). La opción (b) deja **una sola regla económica**, y con
+una única puja es un no-op.
+**Enmienda registrada en la misma decisión:** el settlement de una candidata **inelegible** es
+precio de referencia para ranking y logging, **no necesariamente ejecutable**.
 **Consecuencias:** ✅ **el `guaranteed_price` es un techo inviolable**. ❌ Un comprador puede
 quedar fuera sin haber hecho nada mal, **y sin recibir aviso** (P2-06).
 ❌ **Asimetría deliberada** con `compute_price` — la sutileza más peligrosa del sistema.

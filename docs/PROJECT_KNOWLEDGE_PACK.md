@@ -72,6 +72,8 @@ Cuando producción y repositorio difieren en una función SQL:
 | **`ARCHITECTURE.md`** | Cómo está montado el sistema y **por qué** (16 ADR), stack real, frontera de confianza |
 | **`KNOWN_ISSUES.md`** | 28 problemas priorizados P0–P3, con evidencia |
 | **`TECHNICAL_DEBT.md`** | 19 elementos de deuda estructural y su coste |
+| **`PRODUCT_PRINCIPLES.md`** | La doctrina de producto, UX y UX writing: **el criterio con el que se juzga** una pantalla, un flujo o un copy |
+| **`LAUNCH_CHECKLIST.md`** | El procedimiento paso a paso para abrir pagos reales, y el estado de los bloqueantes |
 | **`CONTINUE_DEVELOPMENT.md`** | **Guía operativa: protocolo, comandos y checklist. Se aplica DESPUÉS de `AI_HANDOFF.md`** |
 
 ---
