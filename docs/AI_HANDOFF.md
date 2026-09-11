@@ -265,13 +265,12 @@ dos PaymentIntents distintos → dos holds reales sobre la misma tarjeta. · **R
 directa de P0-01. · **LOCATION** `create-intent/route.ts:167` · `checkout/lock/route.ts:156` ·
 **STATUS** 🔴 Activo · **RELATED** `PAYMENTS.md` §10.2
 
-### 🔴 P0-05 · Incertidumbre sobre `CRON_SECRET`
-**PROBLEM** No se sabe si `CRON_SECRET` está configurada en Vercel. · **CURRENT** El cron
-**falla cerrado**: sin la variable devuelve 401 y no cierra nada. · **ROOT CAUSE** `.env.local`
-tiene 9 de las 27 variables que el código usa, y el panel de Vercel no es verificable desde el
-repositorio. · **IMPACT si falta también en Vercel** **Los grupos no se cierran nunca**; los holds
-caducan a los 7 días sin capturarse. · **LOCATION** `api/cron/close-groups/route.ts:21-25` ·
-**STATUS** ❓ **UNKNOWN** · **RELATED** §13 PV-05
+### ✅ P0-05 · `CRON_SECRET` — RESUELTO (11-sep-2026)
+**PROBLEM** No se sabía si `CRON_SECRET` estaba configurada en Vercel; el cron **falla cerrado**
+(sin la variable devuelve 401 y no cierra nada). · **RESOLUCIÓN** Verificado en el panel de
+Vercel el 11-sep-2026: **existe**, en Production y Preview, actualizada el 4-jul-2026. El cierre
+automático dominical está armado y se dispara. · **LOCATION**
+`api/cron/close-groups/route.ts:21-25` · **STATUS** ✅ **VERIFICADO** · **RELATED** §13 PV-05
 
 ### P1 (detalle en `KNOWN_ISSUES.md`)
 | ID | Problema | Status |
@@ -423,13 +422,13 @@ distinta crea una **SOBRECARGA**, no reemplaza · `DROP + CREATE` **resetea los 
 
 | # | Verificar | Dónde | Por qué |
 |---|---|---|---|
-| **PV-01** | Modo de Stripe (test/live) y claves activas | Stripe + Vercel | El cutover figura como pendiente crítico |
-| **PV-02** | **URL del webhook dada de alta** | Stripe → Webhooks | `CLAUDE.md` dice `www.vonda.es`; el dominio del código es **`gropo.es`**. 🔴 Si apunta a un dominio muerto, **no se crea ningún miembro** |
-| **PV-03** | Eventos suscritos | Stripe | El código solo procesa `amount_capturable_updated` |
-| **PV-04** | Que `STRIPE_WEBHOOK_SECRET` corresponde a ese endpoint | Stripe + Vercel | Firma inválida → 400 → ningún miembro |
-| **PV-05** | **`CRON_SECRET` en Vercel** | Vercel | 🔴 Sin ella **los grupos no se cierran nunca** |
+| **PV-01** | Modo de Stripe (test/live) y claves activas | Stripe + Vercel | ✅ **VERIFICADO 11-sep-2026:** modo **test** (sandbox). El cutover a live sigue pendiente |
+| **PV-02** | **URL del webhook dada de alta** | Stripe → Webhooks | ✅ **VERIFICADO 11-sep-2026:** `https://www.gropo.es/api/stripe/webhook` (`we_1TjGhOA114rXo3Kahd7KyxWg`), **único destino activo**, probado de extremo a extremo |
+| **PV-03** | Eventos suscritos | Stripe | ✅ **VERIFICADO 11-sep-2026:** uno solo, `payment_intent.amount_capturable_updated` — el correcto para captura manual |
+| **PV-04** | Que `STRIPE_WEBHOOK_SECRET` corresponde a ese endpoint | Stripe + Vercel | ✅ **VERIFICADO 11-sep-2026:** sí. Entrega en 200 + miembro creado; con firma inválida habría sido 400 |
+| **PV-05** | **`CRON_SECRET` en Vercel** | Vercel | ✅ **VERIFICADO 11-sep-2026:** presente en Production y Preview (actualizada el 4-jul). El cierre automático está armado |
 | **PV-06** | Las otras 17 variables ausentes de `.env.local` | Vercel | `RESEND_*`, `ADMIN_EMAIL`, `NEXT_PUBLIC_SITE_URL` y **las 12 de Sendcloud** |
-| **PV-07** | Si `vonda.es` sigue resolviendo | DNS | Afecta a PV-02 y a los enlaces de los emails del Pulse |
+| **PV-07** | Si `vonda.es` sigue resolviendo | DNS | ✅ **VERIFICADO 11-sep-2026:** sí resuelve, y es un **alias del MISMO proyecto de Vercel** que `gropo.es` (mismo código, mismas variables, misma BD). Su portada sirve una copia cacheada antigua. Los enlaces de los emails del Pulse siguen siendo deuda de rebranding |
 | **PV-08** | Supabase Auth y **Custom SMTP** | Supabase | El SMTP integrado limita a ~2-4 emails/h **para toda la app** (bloqueante) |
 | **PV-09** | Rotación de claves de Sendcloud | Sendcloud | *"Expuestas en chat"*, pendiente desde julio |
 | **PV-10** | Declaración del trigger sobre `auth.users` | Supabase (`auth`) | Solo se auditó la función |
@@ -560,7 +559,7 @@ perder datos o generar costes. **Nunca toques `.git/`.**
 | P0 | P0-02 Acceso a datos ajenos | Rompe INV-027; redirección de envíos | 🔴 Activo | Migrar antes los **9 puntos de llamada** |
 | P0 | P0-03 Éxito sin esperar al webhook | El usuario cree que compró y no compró | 🔴 Activo | `create-intent` debe devolver `pi_id` |
 | P0 | P0-04 PaymentIntent sin idempotencia | Causa directa de P0-01 | 🔴 Activo | Ninguna |
-| P0 | P0-05 Incertidumbre sobre `CRON_SECRET` | Sin ella **los grupos no se cierran** | ❓ UNKNOWN | **PV-05** |
+| — | P0-05 `CRON_SECRET` en Vercel | Sin ella los grupos no se cerrarían | ✅ **RESUELTO** 11-sep-2026 | Ninguna |
 | P1 | P1-01 Deriva producción ↔ repo | Se razona sobre un algoritmo inexistente | 🔴 Activo | Ninguna |
 | P1 | P1-02 `prepare_join.sql` corrupto | No parsea ni como referencia | 🔴 Activo | Se resuelve con P1-01 |
 | P1 | P1-03 Multi-puja sin ensayo real (G6) | Sin validación empírica | 🟠 Pendiente | 2º vendedor + ensayo en test |

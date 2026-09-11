@@ -395,26 +395,44 @@ devolver dinero si algo sale mal después de capturar**.
 
 ---
 
-## 12. CONFIGURACIÓN DE STRIPE — ❓ UNKNOWN
+## 12. CONFIGURACIÓN DE STRIPE — ✅ VERIFICADA (11-sep-2026)
 
-Esta sesión **no tiene acceso a la API ni al dashboard de Stripe**. Lo siguiente es lo que dice
-la documentación del proyecto, **sin verificar**:
+Verificada en el dashboard de Stripe y en el panel de Vercel el **11 de septiembre de 2026**, y
+confirmada con una **compra real de extremo a extremo** en el sandbox.
 
-| Dato | Fuente | Estado |
-|---|---|---|
-| Modo **test** | `CLAUDE.md`: *"Modo test"*, cuenta `Vonda sandbox`, `acct_1TieNuA114rXo3Ka` | ❓ **NO VERIFICADO** |
-| Endpoint del webhook: `https://www.vonda.es/api/stripe/webhook` | `CLAUDE.md` | ❓ **NO VERIFICADO** y ⚠️ **sospechoso**: el dominio de producción actual, deducido de `src/lib/auth-cookie-domain.ts`, es **`gropo.es`**, no `vonda.es` |
-| Eventos suscritos | — | ❓ **NO VERIFICADO.** El código solo procesa `payment_intent.amount_capturable_updated` |
-| Claves activas en Vercel (`pk_`/`sk_` test o live) | — | ❓ **NO VERIFICADO** |
-| Cutover test → live | `CLAUDE.md`, "Pendiente crítico" | ❓ **Presuntamente pendiente** |
+| Dato | Valor verificado |
+|---|---|
+| Modo | **Test / sandbox** (sandbox "Vonda sandbox", cuenta Gropo). El cutover a live **sigue pendiente** |
+| Destino de webhook | **`https://www.gropo.es/api/stripe/webhook`** — id `we_1TjGhOA114rXo3Kahd7KyxWg`, activo, y **el único dado de alta** |
+| Eventos suscritos | **Uno solo: `payment_intent.amount_capturable_updated`** — el correcto para captura manual |
+| `STRIPE_WEBHOOK_SECRET` | **Corresponde a ese endpoint.** Demostrado por comportamiento, no por comparación manual de secretos |
+| Claves en Vercel | `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` y `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, las tres en Production, en modo test |
+| Tasa de error de las entregas | **0 %** |
 
-**Comprobaciones que requieren consulta directa de producción:**
-1. En el dashboard de Stripe → *Developers → Webhooks*: qué URL está dada de alta, qué eventos
-   escucha, y si su firma corresponde al `STRIPE_WEBHOOK_SECRET` configurado en Vercel.
-2. Si esa URL apunta a `vonda.es` y ese dominio ya no sirve la aplicación, **los webhooks no
-   están llegando y no se está creando ningún miembro**.
-3. Qué claves (`sk_test_` vs `sk_live_`) están configuradas en las variables de entorno de
-   Vercel.
+### Prueba de extremo a extremo — 11-sep-2026, 16:24 UTC
+
+```
+16:24:43  payment_intent.created                    pi_3UEXFnA114rXo3Ka0yRH4oKS · 6000 · capture_method manual
+16:24:44  payment_intent.amount_capturable_updated  evt_3UEXFnA114rXo3Ka04qFlUDQ
+16:24:45  group_members                             join_order 16 · authorized · guaranteed_price 60
+16:24:45  events                                    member_joined · total_units 12 → 13
+```
+
+`confirm_join` **no tiene ningún otro llamante en el sistema**, así que la fila en
+`group_members` demuestra que la firma se validó, que el código se ejecutó y que la RPC escribió.
+Es una prueba más fuerte que un evento de prueba sintético, que no lleva `metadata.group_id` y
+por diseño se ignora con 200.
+
+> ⚠️ **`www.vonda.es` sigue resolviendo**, pero es un **alias del mismo proyecto de Vercel** que
+> `www.gropo.es`: mismo código, mismas variables, misma base de datos. Por eso las entregas
+> antiguas al endpoint de `vonda.es` también creaban miembros correctamente. Su portada sirve una
+> copia cacheada antigua; las rutas de API son dinámicas y no se cachean.
+
+**Lo que sigue sin verificar:**
+1. El cutover a modo **live**: claves `sk_live_`/`pk_live_`, endpoint de webhook en modo live con
+   su propio `whsec_`, y prueba controlada con tarjeta real.
+2. Los endpoints de modo live son una lista **separada** de los de test: crear el de live no
+   reutiliza nada de lo verificado aquí, y su secreto de firma será distinto.
 
 ---
 
@@ -425,7 +443,7 @@ la documentación del proyecto, **sin verificar**:
 | `STRIPE_SECRET_KEY` | ✅ | `src/lib/stripe.ts` — **lanza una excepción al importar si falta** |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | ✅ | `JoinFlow.tsx:30`, `FastCheckoutModal` |
 | `STRIPE_WEBHOOK_SECRET` | ✅ | verificación de la firma del webhook |
-| `CRON_SECRET` | 🔴 **NO** | autoriza `/api/cron/close-groups` — **sin ella los grupos no se cierran solos** |
+| `CRON_SECRET` | ❌ no — pero **sí en Vercel** | autoriza `/api/cron/close-groups`. ✅ Verificada en Vercel el 11-sep-2026 (Production y Preview): el cierre automático está armado |
 
 Ver `PROJECT_KNOWLEDGE_PACK.md` § FIRST THINGS TO CHECK.
 

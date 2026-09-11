@@ -17,7 +17,7 @@
 | P0-02 | Acceso a datos ajenos por (teléfono + email) desde `anon` | 🔴 P0 | ❓ desconocido |
 | P0-03 | `JoinFlow` muestra éxito sin esperar al webhook | 🔴 P0 | ❓ desconocido |
 | P0-04 | El PaymentIntent del checkout no es idempotente → holds duplicados | 🔴 P0 | ✅ **Consecuencia de P0-01** |
-| P0-05 | `CRON_SECRET` ausente de `.env.local`; estado en Vercel desconocido | 🔴 P0 | ❓ **requiere verificación** |
+| P0-05 | `CRON_SECRET` ausente de `.env.local`; **presente en Vercel** | ✅ resuelto | ✅ **Verificado 11-sep-2026** |
 | P1-01 | Deriva producción ↔ repositorio en 7 funciones SQL | 🟠 P1 | ✅ Sí |
 | P1-02 | `supabase/prepare_join.sql` está corrupto y no parsea | 🟠 P1 | ✅ Sí |
 | P1-03 | Multi-puja nunca ejecutada con dinero real (Gate G6) | 🟠 P1 | — |
@@ -160,9 +160,15 @@ el botón durante la petición.
 
 ---
 
-### P0-05 · `CRON_SECRET` ausente de `.env.local`; estado en Vercel desconocido
+### ✅ P0-05 · `CRON_SECRET` — RESUELTO (11-sep-2026)
 
-**Problema.** El cron de cierre **falla cerrado**:
+> **Resolución.** Verificado en el panel de Vercel el 11-sep-2026: `CRON_SECRET` **existe**, en
+> Production y Preview, actualizada el 4-jul-2026. El cierre automático dominical está armado y
+> se dispara. Sigue ausente de `.env.local`, que es solo el entorno de desarrollo local.
+> Se conserva la ficha porque el mecanismo de "falla cerrado" y el impacto descrito siguen
+> siendo exactos si algún día se borrara la variable.
+
+**Problema (histórico).** El cron de cierre **falla cerrado**:
 ```ts
 if (!process.env.CRON_SECRET || req.headers.get('authorization') !== expected)
   return new NextResponse('Unauthorized', { status: 401 })
@@ -178,8 +184,7 @@ remitente de placeholder (`"Gropo Envios (test)"`, `Carrer de Prova 1`, `envios@
 `shipping_option_code = 'sendcloud:letter'` — **no** `correos_express:paq24` como afirma
 `CLAUDE.md`.
 
-**STATUS:** ❓ **UNKNOWN — requiere consulta directa del panel de Vercel.** No es verificable
-desde el repositorio.
+**STATUS:** ✅ **RESUELTO el 11-sep-2026** — `CRON_SECRET` verificada presente en Vercel.
 
 ---
 

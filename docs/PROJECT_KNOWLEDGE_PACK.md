@@ -289,17 +289,22 @@ sed -E 's/=.*/=***/' .env.local                       # SOLO nombres, nunca valo
 grep -rho "process\.env\.[A-Z_0-9]*" src | sort -u     # lo que el código necesita
 ```
 **Referencia:** `.env.local` tiene **9** variables; el código usa **27**.
-🔴 **Falta `CRON_SECRET`** — sin ella, en cualquier entorno, **los grupos no se cierran solos**.
-❓ Lo que hay en Vercel **no es verificable desde el repositorio**: hay que mirar el panel.
+✅ **`CRON_SECRET` verificada presente en Vercel** (Production y Preview) el 11-sep-2026: el
+cierre automático dominical está armado. Sigue ausente de `.env.local`, que es solo el entorno
+local. Lo que hay en Vercel **no es verificable desde el repositorio**: hay que mirar el panel.
 
-### 7 · Integración con Stripe — ❓ requiere acceso externo
-Comprobar en el dashboard de Stripe:
-- Modo (test / live) y qué claves están en Vercel.
-- *Developers → Webhooks*: **qué URL está dada de alta** y qué eventos escucha.
-  ⚠️ `CLAUDE.md` dice `https://www.vonda.es/api/stripe/webhook`, pero el dominio real deducido
-  del código es **`gropo.es`**. Si el webhook apunta a un dominio muerto, **no se está creando
-  ningún miembro**.
-- Que el `STRIPE_WEBHOOK_SECRET` de Vercel corresponde a ese endpoint.
+### 7 · Integración con Stripe — ✅ VERIFICADA (11-sep-2026)
+Verificada en el dashboard de Stripe y en Vercel, y confirmada con una **compra real de extremo
+a extremo**. Detalle completo y traza de la prueba en `PAYMENTS.md` §12.
+- Modo **test / sandbox**. El cutover a **live sigue pendiente**.
+- Destino de webhook: **`https://www.gropo.es/api/stripe/webhook`**
+  (`we_1TjGhOA114rXo3Kahd7KyxWg`), activo y **el único dado de alta**.
+- Escucha **un solo evento**: `payment_intent.amount_capturable_updated` — el correcto para
+  captura manual.
+- El `STRIPE_WEBHOOK_SECRET` de Vercel **corresponde a ese endpoint**.
+- ⚠️ `www.vonda.es` sigue resolviendo, pero es un **alias del mismo proyecto de Vercel** que
+  `gropo.es`: mismo código, mismas variables, misma base de datos. Por eso las entregas antiguas
+  a ese dominio también creaban miembros correctamente.
 
 ### 8 · Webhooks
 ```bash
@@ -315,9 +320,10 @@ grep '"test"' package.json
 **Referencia: cero resultados.** Sustituto: `npm run build` (typecheck) y `npm run lint`.
 
 ### 10 · Problemas críticos conocidos
-Leer `KNOWN_ISSUES.md` — al menos los **cinco P0**:
+Leer `KNOWN_ISSUES.md` — al menos los **cuatro P0 activos**:
 P0-01 miembros duplicados · P0-02 acceso a datos ajenos · P0-03 confirmación optimista en
-`JoinFlow` · P0-04 PaymentIntent no idempotente · P0-05 `CRON_SECRET`.
+`JoinFlow` · P0-04 PaymentIntent no idempotente.
+(P0-05 `CRON_SECRET` quedó ✅ **resuelto** el 11-sep-2026.)
 
 > ⚠️ **Nunca imprimas ni copies valores de variables de entorno, claves ni secretos.**
 
@@ -498,11 +504,14 @@ tarjeta, multi-divisa, envío internacional, i18n, marketplace self-service, sus
 
 ## LÍMITES DE ESTA AUDITORÍA
 
-**No verificado — requiere consulta directa de producción:**
-1. **Stripe:** modo, endpoints de webhook, eventos suscritos, claves. Esta sesión **no tiene
-   acceso a la API de Stripe**.
+**Requiere consulta directa de producción** (actualizado el 11-sep-2026 — los ✅ ya se han
+verificado desde entonces):
+1. ✅ **Stripe — VERIFICADO el 11-sep-2026:** modo, endpoint de webhook, evento suscrito, secreto
+   de firma y claves. Ver `PAYMENTS.md` §12. Queda solo el cutover a **modo live**.
 2. **Variables de entorno en Vercel** (18 de 27 ausentes en `.env.local`).
-3. Si **`vonda.es`** sigue resolviendo y si el webhook apunta a un dominio vivo.
+   ✅ De ellas, `CRON_SECRET` verificada **presente en Vercel** el 11-sep-2026.
+3. ✅ **`vonda.es` — VERIFICADO:** resuelve, y es un **alias del mismo proyecto de Vercel** que
+   `gropo.es`.
 4. Configuración de **Supabase Auth** (proveedores, URLs de redirección, SMTP).
 5. Contenido de `bids.payment_info` (datos bancarios del vendedor) — no leído deliberadamente.
 6. La **declaración** del trigger sobre `auth.users` (solo se inspeccionó su función).

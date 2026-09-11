@@ -383,13 +383,17 @@ Recogidos de `CLAUDE.md`, **no verificables desde el código**:
 
 ## 8. QUÉ REQUIERE CONSULTA DIRECTA DE PRODUCCIÓN
 
-Esta auditoría **no ha podido verificar**:
+Esta auditoría no pudo verificar lo siguiente. **Actualizado el 11-sep-2026** — los marcados
+✅ ya se han verificado desde entonces:
 
-1. **Stripe:** modo (test/live), endpoints de webhook dados de alta, eventos suscritos, claves
-   configuradas en Vercel. No hay acceso a la API de Stripe en esta sesión.
+1. ✅ **Stripe — VERIFICADO el 11-sep-2026:** modo test/sandbox, **un único** endpoint de webhook
+   (`https://www.gropo.es/api/stripe/webhook`), **un solo** evento suscrito y el `whsec_`
+   correcto en Vercel. Ver `PAYMENTS.md` §12. Pendiente solo el cutover a **modo live**.
 2. **Variables de entorno en Vercel:** 18 de las 27 que el código usa **no están** en
-   `.env.local`, incluidas `CRON_SECRET`, `RESEND_API_KEY`, `ADMIN_EMAIL` y las 12 de Sendcloud.
-3. **Si `vonda.es` sigue resolviendo** y si el webhook de Stripe apunta a un dominio vivo.
+   `.env.local`, incluidas `RESEND_API_KEY`, `ADMIN_EMAIL` y las 12 de Sendcloud.
+   ✅ `CRON_SECRET` verificada **presente en Vercel** el 11-sep-2026.
+3. ✅ **`vonda.es` — VERIFICADO:** resuelve, y es un **alias del mismo proyecto de Vercel** que
+   `gropo.es` (mismo código, mismas variables, misma base de datos).
 4. **Configuración de Supabase Auth:** proveedores activos, URLs de redirección permitidas,
    SMTP.
 5. **Contenido real de `bids.payment_info`** (datos bancarios del vendedor) — no se ha leído.
