@@ -160,18 +160,29 @@ export async function POST(req: Request) {
       },
     };
 
+    // P0-04 · Idempotencia. Un doble submit (o un reintento de red) debe devolver
+    // el MISMO PaymentIntent, no crear un segundo hold sobre la misma tarjeta.
+    // La clave es determinista sobre la intencion de compra: mismo grupo, misma
+    // persona, misma cantidad => mismo PI durante las 24 h que Stripe la retiene.
+    const idemKey = `join-${group_id}-${normalizedPhone}-${quantity}`;
+
     // Capa 3: si el Customer reutilizado ya no existe en Stripe (cuenta borrada /
     // token caducado), lo atrapamos y salvamos la compra con uno fresco.
     let paymentIntent;
     try {
-      paymentIntent = await stripe.paymentIntents.create(piParams);
+      paymentIntent = await stripe.paymentIntents.create(piParams, { idempotencyKey: idemKey });
     } catch (err: any) {
       if (err?.code === 'resource_missing' && authUserId) {
         const fresh = await stripe.customers.create({ name, email, phone: normalizedPhone });
         try {
           await supabaseAdmin.from('users').update({ stripe_customer_id: fresh.id }).eq('auth_id', authUserId);
         } catch { /* best-effort */ }
-        paymentIntent = await stripe.paymentIntents.create({ ...piParams, customer: fresh.id });
+        // Clave distinta a proposito: Stripe cachea tambien los errores, y reusar
+        // la anterior con parametros distintos (customer nuevo) seria rechazado.
+        paymentIntent = await stripe.paymentIntents.create(
+          { ...piParams, customer: fresh.id },
+          { idempotencyKey: `${idemKey}-fresh` },
+        );
       } else {
         throw err;
       }

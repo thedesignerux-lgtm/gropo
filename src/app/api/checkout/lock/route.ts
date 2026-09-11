@@ -151,9 +151,14 @@ export async function POST(req: Request) {
       },
     };
 
+    // P0-04 · Idempotencia (ver create-intent). Clave propia de este camino:
+    // los parametros difieren (confirm server-side), asi que no puede compartir
+    // clave con create-intent sin que Stripe la rechace.
+    const idemKey = `lock-${group_id}-${normalizedPhone}-${quantity}`;
+
     let pi: Stripe.PaymentIntent;
     try {
-      pi = await stripe.paymentIntents.create(piParams);
+      pi = await stripe.paymentIntents.create(piParams, { idempotencyKey: idemKey });
     } catch (err: any) {
       // Tarjeta rechazada / caducada → el cliente reabre el acordeón y pide otra.
       if (err?.type === 'StripeCardError') {
