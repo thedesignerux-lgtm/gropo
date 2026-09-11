@@ -1,7 +1,7 @@
 // app/api/join/create-intent/route.ts
 import { NextResponse } from 'next/server';
 import type Stripe from 'stripe';
-import { stripe } from '@/lib/stripe';
+import { stripe, idempotencyKeyFor } from '@/lib/stripe';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { createClient } from '@/lib/supabase-server';
 
@@ -102,7 +102,14 @@ export async function POST(req: Request) {
     }
 
     if (!customerId) {
-      const customer = await stripe.customers.create({ name, email, phone: normalizedPhone });
+      // P0-04 · El Customer TAMBIEN debe ser idempotente. Sin esto, un invitado
+      // creaba uno nuevo en cada intento, `piParams.customer` cambiaba, y la
+      // clave del PaymentIntent chocaba con sus propios parametros.
+      const custParams = { name, email, phone: normalizedPhone };
+      const customer = await stripe.customers.create(
+        custParams,
+        { idempotencyKey: idempotencyKeyFor('cust', custParams) },
+      );
       customerId = customer.id;
       // Capa 2: persistir best-effort SOLO si autenticado; un fallo aquí no rompe
       // la compra (la tarjeta se guarda igual en el Customer de Stripe).
@@ -160,28 +167,31 @@ export async function POST(req: Request) {
       },
     };
 
-    // P0-04 · Idempotencia. Un doble submit (o un reintento de red) debe devolver
-    // el MISMO PaymentIntent, no crear un segundo hold sobre la misma tarjeta.
-    // La clave es determinista sobre la intencion de compra: mismo grupo, misma
-    // persona, misma cantidad => mismo PI durante las 24 h que Stripe la retiene.
-    const idemKey = `join-${group_id}-${normalizedPhone}-${quantity}`;
-
+    // P0-04 · Un doble submit (o un reintento de red) debe devolver el MISMO
+    // PaymentIntent, no crear un segundo hold sobre la misma tarjeta.
     // Capa 3: si el Customer reutilizado ya no existe en Stripe (cuenta borrada /
     // token caducado), lo atrapamos y salvamos la compra con uno fresco.
     let paymentIntent;
     try {
-      paymentIntent = await stripe.paymentIntents.create(piParams, { idempotencyKey: idemKey });
+      paymentIntent = await stripe.paymentIntents.create(
+        piParams,
+        { idempotencyKey: idempotencyKeyFor('join', piParams) },
+      );
     } catch (err: any) {
       if (err?.code === 'resource_missing' && authUserId) {
-        const fresh = await stripe.customers.create({ name, email, phone: normalizedPhone });
+        const freshParams = { name, email, phone: normalizedPhone };
+        const fresh = await stripe.customers.create(
+          freshParams,
+          { idempotencyKey: idempotencyKeyFor('cust-fresh', freshParams) },
+        );
         try {
           await supabaseAdmin.from('users').update({ stripe_customer_id: fresh.id }).eq('auth_id', authUserId);
         } catch { /* best-effort */ }
-        // Clave distinta a proposito: Stripe cachea tambien los errores, y reusar
-        // la anterior con parametros distintos (customer nuevo) seria rechazado.
+        // El customer cambia => el hash cambia solo. No hace falta sufijo manual.
+        const retryParams = { ...piParams, customer: fresh.id };
         paymentIntent = await stripe.paymentIntents.create(
-          { ...piParams, customer: fresh.id },
-          { idempotencyKey: `${idemKey}-fresh` },
+          retryParams,
+          { idempotencyKey: idempotencyKeyFor('join', retryParams) },
         );
       } else {
         throw err;
