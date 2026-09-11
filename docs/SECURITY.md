@@ -143,18 +143,22 @@ dar a `get_my_groups` un camino de JWT.
 **Causa (tres capas fallando a la vez):**
 1. `prepare_join` **en producción no tiene** el check `IF EXISTS (... u.phone = v_phone) → 'Ya
    estás en este grupo'` que **sí está** en `supabase/prepare_join.sql`.
-2. `confirm_join` **en producción no tiene** el check por `(phone OR email)` que **sí está** en
-   `supabase/confirm_join.sql`. Lo sustituyó por un manejador de `unique_violation` que
-   discrimina por `CONSTRAINT_NAME`, incluyendo una rama para **`users_phone_key`**.
+2. `confirm_join` maneja `unique_violation` discriminando por `CONSTRAINT_NAME`: desde el
+   11-sep-2026 incluye la rama **`uniq_member_per_group_alive` → `needs_release/already_member`**,
+   que libera el hold sobrante. Conserva una rama para **`users_phone_key`**, inalcanzable.
 3. **`users_phone_key` NO EXISTE en la base de datos.** Verificado en `pg_constraint`: sobre
-   `users` solo hay `users_pkey`, `users_email_key`, `users_auth_id_key`.
-   Y **no existe ningún UNIQUE `(group_id, user_id)`** en `group_members`.
-4. `create-intent` no usa `idempotencyKey` de Stripe ni comprueba membresía previa.
+   `users` solo hay `users_pkey`, `users_email_key`, `users_auth_id_key`. Esa rama de
+   `confirm_join` es código muerto (P1-07).
+   ✅ **SÍ existe**, desde el 11-sep-2026, `uniq_member_per_group_alive` UNIQUE
+   `(group_id, user_id)` **parcial** sobre las participaciones vivas.
+4. ✅ `create-intent` y `checkout/lock` usan `idempotencyKey` derivada del payload
+   (`idempotencyKeyFor()`), y `prepare_join` rechaza por teléfono antes de crear el hold.
 
-**Evidencia en datos de producción:**
+**Evidencia en datos de producción (11-sep-2026):**
 ```
-pares (group_id, user_id) duplicados en group_members : 2
-teléfonos duplicados en users                          : 2
+duplicados VIVOS (group_id, user_id)      : 0   ← barrera activa
+duplicados históricos, todos 'cancelled'  : 3   (0 € capturados)
+teléfonos repartidos entre varios users   : 2   ← P1-07, sigue abierto
 ```
 
 **Ataque posible / impacto:**

@@ -34,9 +34,11 @@ manual) · Resend · Sendcloud v3 · Vercel · Tailwind.
 
 **Estado real de producción:**
 ```
-1 grupo (de prueba, 'open') · 0 cerrados · 1 puja activa (máx. 1 por grupo)
-15 group_members, TODOS en 'authorized' (5 comprar, 10 esperar) · 0 pledges · 151 users
-🔴 2 pares (group_id,user_id) duplicados · 2 teléfonos duplicados
+0 grupos 'open' · 1 grupo de prueba cancelado · 16 group_members · 0 pledges · 151 users
+0 holds vivos ('authorized'/'instructed')
+✅ 0 duplicados VIVOS (group_id,user_id) — índice uniq_member_per_group_alive desde 11-sep-2026
+🟠 3 pares duplicados históricos, todos 'cancelled' y con 0 € capturados (el índice los ignora)
+🟠 2 teléfonos repartidos entre varios users (P1-07 — la identidad es el email)
 ```
 > Construido y ensayado, pero **no ha operado con dinero real fuera de los ensayos**, y el
 > **multi-puja nunca ha corrido con más de una puja**.
@@ -230,13 +232,17 @@ teléfono/hora · 10 intentos por IP/10 min (*fail-open*).
 
 *(Extracto. Los 28 problemas, en `KNOWN_ISSUES.md`.)*
 
-### 🔴 P0-01 · Miembros duplicados
-**PROBLEM** Una persona puede ser miembro N veces del mismo grupo. · **CURRENT** Doble clic → dos
-PaymentIntents → dos holds → dos miembros. · **ROOT CAUSE** Los checks fueron **eliminados** de
-`prepare_join` y `confirm_join` en producción; sin UNIQUE `(group_id,user_id)`; `create-intent` no
-comprueba membresía. · **IMPACT** Doble cobro y doble envío; inflado de demanda para desbloquear
-tramos. · **LOCATION** `prepare_join` · `confirm_join` · `group_members` · `api/join/create-intent`
-· **STATUS** 🔴 Activo — **ya ocurrió: 2 pares duplicados** · **RELATED** `KNOWN_ISSUES.md` P0-01
+### ✅ P0-01 · Miembros duplicados — RESUELTO (11-sep-2026)
+**REGLA DE PRODUCTO** 1 usuario + 1 grupo = **1 pedido único**. Sin ampliación de pedido ni
+segunda participación. · **RESOLUTION** Migración `p001_one_membership_per_user_per_group`, en
+orden obligatorio: (1) rama `already_member` en `confirm_join` → libera el hold sobrante;
+(2) índice parcial `uniq_member_per_group_alive` sobre `(group_id,user_id)`; (3) rechazo por
+teléfono en `prepare_join`, antes del hold. · **⚠ EL ORDEN NO ES OPCIONAL**: el índice sin la
+rama convierte el bug en holds atascados 7 días. · **VERIFIED** 22/22 en BD sintética + compra
+real en producción con segundo intento bloqueado. · **LIMIT** La identidad es el **email**: la
+misma persona con dos emails son dos `user_id` → depende de P0-02. · **HISTÓRICO** 3 pares
+duplicados (no 2), todos en un grupo de test, todos `cancelled`, **0 € cobrados de más**. ·
+**RELATED** `KNOWN_ISSUES.md` P0-01 · `supabase/p001_unique_member_per_group.sql`
 
 ### 🔴 P0-02 · Acceso a datos ajenos por (teléfono + email) desde `anon`
 **PROBLEM** 7 funciones `SECURITY DEFINER` abiertas a `anon` resuelven identidad con parámetros
@@ -257,13 +263,16 @@ redirección de un paquete físico. · **LOCATION** `_profile_uid`, `get_my_grou
 cree que ha comprado y no ha comprado. · **LOCATION** `grupo/[id]/unirme/JoinFlow.tsx:896` ·
 **STATUS** 🔴 Activo · **RELATED** `PAYMENTS.md` §7
 
-### 🔴 P0-04 · PaymentIntent sin idempotencia
-**PROBLEM** El PaymentIntent del checkout no es idempotente. · **CURRENT** Un doble submit crea
-dos PaymentIntents distintos → dos holds reales sobre la misma tarjeta. · **ROOT CAUSE** Ni
-`create-intent` ni `checkout/lock` usan `idempotencyKey` (`src/lib/pulse.ts:141` sí lo usa). ·
-**IMPACT** `uniq_group_members_pi` no los detecta porque son PIs distintos → dos miembros. Causa
-directa de P0-01. · **LOCATION** `create-intent/route.ts:167` · `checkout/lock/route.ts:156` ·
-**STATUS** 🔴 Activo · **RELATED** `PAYMENTS.md` §10.2
+### ✅ P0-04 · PaymentIntent sin idempotencia — RESUELTO (11-sep-2026)
+**RESOLUTION** Commits `015f467` y `7c9798e`. La clave **se deriva del payload real** (SHA-256 de
+los parámetros enviados) con `idempotencyKeyFor()` en `src/lib/stripe.ts`, aplicada en
+`create-intent` (PaymentIntent **y** `customers.create`) y en `checkout/lock`. · **POR QUÉ
+DERIVADA** Una clave escrita a mano (`grupo+teléfono+cantidad`) **falló en producción**: para un
+invitado `customers.create` generaba un Customer nuevo en cada intento, `piParams.customer`
+cambiaba y Stripe rechazaba la segunda petición. Derivándola del payload, clave y parámetros no
+pueden divergir. · **BONUS** El Customer idempotente elimina el goteo de un Customer nuevo por
+intento de invitado. · **VERIFIED** Dos peticiones idénticas a `/api/join/create-intent`
+devolvieron el mismo PI (`pi_3UEaFzA114rXo3Ka0trWudSg`). · **RELATED** `PAYMENTS.md` §10.2
 
 ### ✅ P0-05 · `CRON_SECRET` — RESUELTO (11-sep-2026)
 **PROBLEM** No se sabía si `CRON_SECRET` estaba configurada en Vercel; el cron **falla cerrado**
@@ -347,7 +356,11 @@ membresía**: el webhook escucha **solo** `payment_intent.amount_capturable_upda
 (**500 deliberado** si falla `cancel`) · capturas (por estado en BD + reconciliación con Stripe) ·
 Pulse (advisory lock + `idempotencyKey` + verificación del SetupIntent).
 
-**NO la hay en:** 🔴 creación del PaymentIntent (P0-04) · 🔴 dedup de membresía (P0-01) ·
+**HAY protección, desde el 11-sep-2026, también en:** ✅ creación del PaymentIntent y del
+Customer (`idempotencyKeyFor`, clave derivada del payload — P0-04) · ✅ dedup de membresía
+(índice parcial `uniq_member_per_group_alive` + rama `already_member` que libera el hold — P0-01).
+
+**NO la hay en:**
 🔴 `JoinFlow` no espera al webhook (P0-03; `FastCheckoutModal` **sí**, polling 18 s) ·
 ⚠️ PIs abandonados quedan huérfanos · ⚠️ `captureIdempotent` acepta un PI ya `succeeded` **sin
 verificar el importe** · 🔴 **no existe ningún mecanismo de reembolso**.
@@ -557,18 +570,18 @@ perder datos o generar costes. **Nunca toques `.git/`.**
 
 | Priority | Issue | Why | Status | Dependencies |
 |---|---|---|---|---|
-| P0 | P0-01 Miembros duplicados | Rompe INV-020: doble cobro, doble envío | 🔴 Activo · 2 casos | **OD-02** + limpiar los 2 duplicados **antes** de crear constraints |
+| — | P0-01 Miembros duplicados | Rompía INV-020: doble cobro, doble envío | ✅ **RESUELTO** 11-sep-2026 | Ninguna |
 | P0 | P0-02 Acceso a datos ajenos | Rompe INV-027; redirección de envíos | 🔴 Activo | Migrar antes los **9 puntos de llamada** |
-| P0 | P0-03 Éxito sin esperar al webhook | El usuario cree que compró y no compró | 🔴 Activo | `create-intent` debe devolver `pi_id` |
-| P0 | P0-04 PaymentIntent sin idempotencia | Causa directa de P0-01 | 🔴 Activo | Ninguna |
+| P0 | P0-03 Éxito sin esperar al webhook | El usuario cree que compró y no compró | 🔴 Activo | Ninguna — el `pi_id` **ya** está dentro del `clientSecret`: `String(cs).split('_secret')[0]`, como hace `FastCheckoutModal` |
+| — | P0-04 PaymentIntent sin idempotencia | Era la causa directa de P0-01 | ✅ **RESUELTO** 11-sep-2026 | Ninguna |
 | — | P0-05 `CRON_SECRET` en Vercel | Sin ella los grupos no se cerrarían | ✅ **RESUELTO** 11-sep-2026 | Ninguna |
-| P1 | P1-01 Deriva producción ↔ repo | Se razona sobre un algoritmo inexistente | 🔴 Activo | Ninguna |
-| P1 | P1-02 `prepare_join.sql` corrupto | No parsea ni como referencia | 🔴 Activo | Se resuelve con P1-01 |
+| P1 | P1-01 Deriva producción ↔ repo (quedan **5**) | Se razona sobre un algoritmo inexistente | 🟠 Parcial — `prepare_join` y `confirm_join` sincronizados 11-sep | Ninguna |
+| — | P1-02 `prepare_join.sql` corrupto | No parseaba ni como referencia | ✅ **RESUELTO** 11-sep-2026 | Ninguna |
 | P1 | P1-03 Multi-puja sin ensayo real (G6) | Sin validación empírica | 🟠 Pendiente | 2º vendedor + ensayo en test |
 | P1 | P1-04 Grupo atrapado en `closing` | Holds caducando sin salida | 🟠 Latente | **OD-05** |
 | P1 | P1-05 Adjudicado sin email ni alerta | Nunca sabe que debe pagar | 🟠 Activo | Ninguna |
 | P1 | P1-06 Cero tests | Sin red de seguridad con dinero real | 🟠 Estructural | Ninguna |
-| P1 | P1-07 `users_phone_key` inexistente | Rompe INV-021 | 🟠 Activo | Ligado a P0-01 |
+| P1 | P1-07 `users_phone_key` inexistente | Rompe INV-021; la rama que lo cita en `confirm_join` es **código muerto** | 🟠 Activo | Ninguna (P0-01 ya no depende de él) |
 | P2 | P2-01…P2-08 | Stock sobreestimado · sin relleno · `rate_limits` · copy obsoleto · PIs huérfanos · nadie avisa · fail-open · cookie de admin | 🟡 Activos | P2-02 → **OD-03**; P2-06 → **OD-04** |
 | P3 | P3-01…P3-08 | Huérfanos · rebranding · `price_mode` · 75% · enums muertos · `lang="en"` · fallback · README | 🔵 Cosméticos | Ninguna |
 

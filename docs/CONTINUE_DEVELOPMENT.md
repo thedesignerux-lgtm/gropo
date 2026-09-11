@@ -181,8 +181,11 @@ WHERE n.nspname = 'public' AND c.relkind = 'r' ORDER BY 1;
 
 ### Base de datos — comprobar los problemas conocidos
 ```sql
--- P0-01: miembros duplicados
-SELECT group_id, user_id, count(*) FROM group_members GROUP BY 1,2 HAVING count(*) > 1;
+-- P0-01 (RESUELTO 11-sep-2026): duplicados VIVOS. Debe devolver 0 filas.
+-- Los duplicados históricos en 'cancelled' son esperados y el índice parcial los ignora.
+SELECT group_id, user_id, count(*) FROM group_members
+ WHERE payment_status IN ('authorized','instructed','paid')
+ GROUP BY 1,2 HAVING count(*) > 1;
 -- P1-07: teléfonos duplicados
 SELECT phone, count(*) FROM users WHERE phone IS NOT NULL GROUP BY 1 HAVING count(*) > 1;
 -- P1-03: ¿hay algún grupo con más de una puja activa?

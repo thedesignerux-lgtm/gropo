@@ -322,9 +322,10 @@ grep '"test"' package.json
 **Referencia: cero resultados.** Sustituto: `npm run build` (typecheck) y `npm run lint`.
 
 ### 10 · Problemas críticos conocidos
-Leer `KNOWN_ISSUES.md` — al menos los **cuatro P0 activos**:
-P0-01 miembros duplicados · P0-02 acceso a datos ajenos · P0-03 confirmación optimista en
-`JoinFlow` · P0-04 PaymentIntent no idempotente.
+Leer `KNOWN_ISSUES.md` — al menos los **dos P0 activos**:
+P0-02 acceso a datos ajenos · P0-03 confirmación optimista en `JoinFlow`.
+(P0-01 miembros duplicados y P0-04 PaymentIntent no idempotente quedaron **resueltos y
+verificados el 11-sep-2026**; P0-05 el mismo día.)
 (P0-05 `CRON_SECRET` quedó ✅ **resuelto** el 11-sep-2026.)
 
 > ⚠️ **Nunca imprimas ni copies valores de variables de entorno, claves ni secretos.**

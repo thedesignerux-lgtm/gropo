@@ -50,10 +50,19 @@
 ### RULE-006 · Una persona solo puede estar una vez en un grupo
 - **SOURCE:** producto (implícita); presente en `supabase/prepare_join.sql` y
   `supabase/confirm_join.sql`
-- **IMPLEMENTATION:** 🔴 **ninguna**. El check fue eliminado de ambas funciones en producción;
-  no existe UNIQUE `(group_id, user_id)`; `create-intent` no usa `idempotencyKey`
-- **STATUS:** 🔴 `NOT_IMPLEMENTED`
-- **Evidencia:** 2 pares `(group_id, user_id)` duplicados en producción.
+- **IMPLEMENTATION:** ✅ **tres capas (11-sep-2026)**. Índice único parcial
+  `uniq_member_per_group_alive` sobre `(group_id, user_id)` limitado a participaciones vivas;
+  rama `already_member` en `confirm_join` que libera el hold sobrante; rechazo por teléfono en
+  `prepare_join` antes de crear el hold. `create-intent` y `checkout/lock` usan además una
+  `idempotencyKey` derivada del payload.
+- **STATUS:** ✅ `IMPLEMENTED`
+- **REGLA DE PRODUCTO (MVP):** 1 usuario + 1 grupo = **1 pedido único**. **No** existe ampliación
+  de pedido; permitirla sería una decisión de producto nueva y no debe resolverse con una
+  segunda fila.
+- **LÍMITE:** la identidad se resuelve por email, así que la misma persona con dos emails son dos
+  `user_id` → depende de P0-02.
+- **Evidencia histórica:** 3 pares duplicados, todos en un grupo de test, todos `cancelled`,
+  0 € cobrados de más.
 - Ver `KNOWN_ISSUES.md` P0-01.
 
 ### RULE-007 · Un teléfono identifica a un solo usuario
@@ -407,9 +416,9 @@
 
 | STATUS | Reglas |
 |---|---|
-| ✅ `IMPLEMENTED` (44) | 001, 002, 003, 005, 008, 009, 010, 011, 012, 013, 014, 016, 017, 018, 019, 020, 021, 022, 025, 026, 028, 029, 030, 031, 032, 033, 034, 035, 038, 039, 040, 042, 045, 046, 047, 048, 049, 050, 051, 052, 053, 054, 055, 056, 058, 059 |
+| ✅ `IMPLEMENTED` (45) | 001, 002, 003, 005, **006**, 008, 009, 010, 011, 012, 013, 014, 016, 017, 018, 019, 020, 021, 022, 025, 026, 028, 029, 030, 031, 032, 033, 034, 035, 038, 039, 040, 042, 045, 046, 047, 048, 049, 050, 051, 052, 053, 054, 055, 056, 058, 059 |
 | ⚠️ `PARTIALLY_IMPLEMENTED` (5) | 004 (fail-open), 015 (cron 1 h tarde en verano), 023 (solo admin), 024 (solo admin), 041 (sin lock) |
-| 🔴 `NOT_IMPLEMENTED` (6) | **006** (dedup de membresías), **007** (teléfono único), **027** (precio fluido), **036** (reembolsos), **037** (cláusula del 75%), **044** (tramo 1 ≤ mejor precio público) |
+| 🔴 `NOT_IMPLEMENTED` (5) | **007** (teléfono único), **027** (precio fluido), **036** (reembolsos), **037** (cláusula del 75%), **044** (tramo 1 ≤ mejor precio público) |
 | 🔴 `HISTORICAL` (1) | **043** (pujas mejorables y no retirables) |
 | ❓ `UNKNOWN` (1) | **060** (margen de Gropo) |
 | ⚠️ Comportamiento observado, no regla deseada (1) | 057 |

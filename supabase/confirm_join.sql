@@ -1,4 +1,20 @@
-CREATE OR REPLACE FUNCTION public.confirm_join(p_payment_intent_id text, p_group_id uuid, p_name text, p_email text, p_phone text, p_quantity integer, p_authorized_amount numeric, p_guaranteed_price numeric, p_shipping jsonb, p_join_mode text DEFAULT 'comprar'::text, p_target_price numeric DEFAULT NULL::numeric)
+-- supabase/confirm_join.sql
+-- ESPEJO DEL CUERPO VIVO EN PRODUCCIÓN a 11-sep-2026.
+-- Última modificación: migración `p001_one_membership_per_user_per_group`
+-- (rama ★P0-01 en el manejador de excepciones).
+-- Antes de tocar esta función, compara con producción:
+--   SELECT pg_get_functiondef(oid) FROM pg_proc
+--    WHERE proname='confirm_join' AND pronamespace='public'::regnamespace;
+--
+-- ⚠ La rama `uniq_member_per_group_alive` NO es opcional mientras exista ese
+-- índice: sin ella la unique_violation cae en ELSE→RAISE, el webhook devuelve
+-- 500 y el hold sobrante nunca se cancela.
+
+CREATE OR REPLACE FUNCTION public.confirm_join(
+  p_payment_intent_id text, p_group_id uuid, p_name text, p_email text,
+  p_phone text, p_quantity integer, p_authorized_amount numeric,
+  p_guaranteed_price numeric, p_shipping jsonb,
+  p_join_mode text DEFAULT 'comprar'::text, p_target_price numeric DEFAULT NULL::numeric)
  RETURNS json
  LANGUAGE plpgsql
  SECURITY DEFINER
@@ -17,6 +33,7 @@ DECLARE
   v_current_total int;
   v_has_addresses boolean;
   v_shipping_line1 text;
+  v_constraint    text;
 BEGIN
   -- IDEMPOTENCIA: mismo PaymentIntent → no duplicar miembro.
   IF EXISTS (SELECT 1 FROM group_members WHERE stripe_payment_intent_id = p_payment_intent_id) THEN
@@ -26,22 +43,10 @@ BEGIN
   v_phone := regexp_replace(p_phone, '[\s\-\.]', '', 'g');
   v_phone := regexp_replace(v_phone, '^\+34', '');
 
-  -- RE-VALIDACIÓN (carrera hold→confirm) + candado de fila:
-  -- FOR UPDATE serializa confirm_join concurrentes del mismo grupo,
-  -- para que el guard de stock vea siempre la suma ya actualizada
-  -- por la transacción anterior (evita overselling por carrera).
+  -- RE-VALIDACIÓN (carrera hold→confirm) + candado de fila
   PERFORM 1 FROM groups WHERE id = p_group_id AND status = 'open' FOR UPDATE;
   IF NOT FOUND THEN
     RETURN json_build_object('status', 'needs_release', 'reason', 'group_closed');
-  END IF;
-
-  -- duplicado por teléfono O email (la identidad se resuelve por email)
-  IF EXISTS (
-    SELECT 1 FROM group_members gm JOIN users u ON u.id = gm.user_id
-    WHERE gm.group_id = p_group_id
-      AND (u.phone = v_phone OR u.email = p_email)
-  ) THEN
-    RETURN json_build_object('status', 'needs_release', 'reason', 'duplicate');
   END IF;
 
   SELECT best_bid_id INTO v_bid_id FROM compute_price(p_group_id);
@@ -50,10 +55,6 @@ BEGIN
   END IF;
   SELECT max_stock INTO v_max_stock FROM bids WHERE id = v_bid_id;
 
-  -- GUARD DE STOCK: techo fisico invariable. Cuenta TODAS las unidades
-  -- de miembros vivos, sin filtrar por modo ni precio. (groups.total_units
-  -- es "demanda firme al precio vigente" y fluctua con el precio — no
-  -- sirve como techo de stock; ese era el bug de overselling.)
   SELECT COALESCE(SUM(quantity), 0) INTO v_current_total
   FROM group_members
   WHERE group_id = p_group_id
@@ -91,17 +92,14 @@ BEGIN
     );
 
     -- ── SYNC dirección de envío → user_addresses (perfil) ──
-    -- Solo si p_shipping tiene line1. No afecta pricing ni stock.
     v_shipping_line1 := nullif(trim(COALESCE(p_shipping->>'line1', '')), '');
     IF v_shipping_line1 IS NOT NULL THEN
-      -- ¿Ya tiene esa misma dirección (por line1 + postal_code)?
       IF NOT EXISTS (
         SELECT 1 FROM user_addresses
         WHERE user_id = v_user_id
           AND line1 = v_shipping_line1
           AND postal_code = nullif(trim(p_shipping->>'postal_code'), '')
       ) THEN
-        -- ¿Es su primera dirección? → marcar como default
         SELECT count(*) = 0 INTO v_has_addresses
         FROM user_addresses WHERE user_id = v_user_id;
 
@@ -115,17 +113,13 @@ BEGIN
           nullif(trim(p_shipping->>'province'), ''),
           nullif(trim(p_shipping->>'postal_code'), ''),
           COALESCE(nullif(trim(p_shipping->>'country'), ''), 'España'),
-          v_has_addresses  -- true si es la primera, false si ya tiene otras
+          v_has_addresses
         );
       END IF;
     END IF;
-    -- ── FIN sync dirección ──
 
     SELECT best_price, next_price INTO v_new_price, v_next_price FROM compute_price(p_group_id);
     UPDATE groups SET current_price = v_new_price, next_price = v_next_price WHERE id = p_group_id;
-    -- total_units = demanda FIRME al precio vigente: compradores 'ahora' (PMA=inf)
-    -- + esperadores cuyo target cubre el precio actual. Recalculado entero (no
-    -- incremental) para que nunca se desincronice cuando el precio se mueve.
     UPDATE groups SET total_units = (
       SELECT COALESCE(SUM(gm.quantity), 0)
       FROM group_members gm
@@ -148,7 +142,21 @@ BEGIN
     END IF;
   EXCEPTION
     WHEN unique_violation THEN
-      RETURN json_build_object('status', 'needs_release', 'reason', 'duplicate');
+      GET STACKED DIAGNOSTICS v_constraint = CONSTRAINT_NAME;
+      IF v_constraint = 'uniq_group_members_pi' THEN
+        -- Entrega concurrente del mismo PI: la membresía YA existe → no liberar jamás.
+        RETURN json_build_object('status', 'already_processed');
+      ELSIF v_constraint = 'uniq_member_per_group_alive' THEN
+        -- ★P0-01 · Esta persona YA tiene una participación viva en este grupo.
+        -- Regla MVP: 1 usuario + 1 grupo = 1 pedido. El hold sobrante se libera.
+        RETURN json_build_object('status', 'needs_release', 'reason', 'already_member');
+      ELSIF v_constraint = 'users_phone_key' THEN
+        -- NOTA: este constraint NO existe en producción (P1-07). Rama muerta
+        -- conservada a propósito: retirarla es cosmético y toca dinero.
+        RETURN json_build_object('status', 'needs_release', 'reason', 'phone_in_use');
+      ELSE
+        RAISE;
+      END IF;
   END;
 
   RETURN json_build_object(
@@ -158,5 +166,6 @@ BEGIN
   );
 END;
 $function$;
-REVOKE EXECUTE ON FUNCTION public.confirm_join(text,uuid,text,text,text,integer,numeric,numeric,jsonb,text,numeric) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.confirm_join(text,uuid,text,text,text,integer,numeric,numeric,jsonb,text,numeric) TO service_role;
+
+-- Permisos (verificar SIEMPRE tras cualquier cambio).
+-- Esperado: anon=false, authenticated=false, service_role=true.

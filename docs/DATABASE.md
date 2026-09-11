@@ -158,13 +158,21 @@ Sin políticas de INSERT/UPDATE/DELETE → solo `service_role` escribe.
 - `group_members_pkey`
 - `idx_members_group (group_id)`
 - **`uniq_group_members_pi` UNIQUE (stripe_payment_intent_id)** ← clave de idempotencia de pagos
+- **`uniq_member_per_group_alive` UNIQUE (group_id, user_id)
+  `WHERE payment_status IN ('authorized','instructed','paid')`** ← 1 usuario + 1 grupo = 1 pedido
+  (11-sep-2026)
 
 **RLS:** habilitada, **CERO políticas**.
 
-> 🔴 **NO EXISTE UNIQUE `(group_id, user_id)`.** Combinado con la eliminación de los checks de
-> duplicado en `prepare_join` y `confirm_join` (ver `ALGORITHM.md` §3 y §5), nada impide que una
-> misma persona sea miembro N veces del mismo grupo.
-> **Evidencia en datos de producción: 2 pares `(group_id, user_id)` duplicados.**
+> ✅ **UNIQUE `(group_id, user_id)` EXISTE desde el 11-sep-2026**, como índice **parcial** sobre
+> las participaciones vivas. Es la barrera final de la regla "1 usuario + 1 grupo = 1 pedido
+> único": ni siquiera un `INSERT` directo que se salte `confirm_join` puede crear la segunda
+> fila (verificado).
+> Es **parcial a propósito**: un miembro `released`/`cancelled` no bloquea volver a unirse.
+> Quien lo viole recibe `needs_release / already_member` y el webhook cancela su hold — esa rama
+> de `confirm_join` es obligatoria mientras el índice exista.
+> **Histórico:** 3 pares duplicados, todos en un grupo de test, todos `cancelled`, 0 € cobrados
+> de más. El índice parcial los ignora.
 > Ver `KNOWN_ISSUES.md` P0-01.
 >
 > ⚠️ **`join_mode` es `text` SIN CHECK constraint.** Un valor distinto de `'comprar'`/`'esperar'`

@@ -39,8 +39,8 @@ gestionar un reembolso**, porque nunca se cobra de más. Ver §11.
 
 | Origen | Fichero:línea | `confirm` | `off_session` | `setup_future_usage` | `idempotencyKey` |
 |---|---|---|---|---|---|
-| **Checkout normal** | `src/app/api/join/create-intent/route.ts:167` | ❌ (lo confirma el cliente) | ❌ | `'on_session'` | 🔴 **NO** |
-| **1-Click** | `src/app/api/checkout/lock/route.ts:156` | ✅ | `false` | `'on_session'` | 🔴 **NO** |
+| **Checkout normal** | `src/app/api/join/create-intent/route.ts` | ❌ (lo confirma el cliente) | ❌ | `'on_session'` | ✅ `join-{sha256(payload)}` |
+| **1-Click** | `src/app/api/checkout/lock/route.ts` | ✅ | `false` | `'on_session'` | ✅ `lock-{sha256(payload)}` |
 | **Gropo Pulse (automático)** | `src/lib/pulse.ts:140` | ✅ | **`true`** | — | ✅ `pulse-{pledge_id}-{triggered_at}` |
 
 Los tres construyen **la misma forma de `metadata`**, a propósito: así un único webhook sirve a
@@ -318,25 +318,31 @@ miembro nace `authorized`). Sería el estado de un miembro legado del V0 sin pag
 | `UPDATE ... .or('reachable_notified_price.is.null,...neq.X')` antes de enviar | `src/lib/pulse-notify.ts:126` | Email "ya sois suficientes" duplicado |
 | Filtro `status='open' AND closes_at<=now()` | cron de cierre | Recerrar un grupo |
 
-### 10.2 Dónde NO la hay 🔴
+### 10.2 Idempotencia del checkout ✅ (resuelto 11-sep-2026)
 
-**La creación del PaymentIntent en el checkout no es idempotente.**
+**Los dos emisores del checkout usan una `idempotencyKey` derivada del payload**
+(`idempotencyKeyFor()` en `src/lib/stripe.ts` — SHA-256 de los parámetros enviados):
 
-- `POST /api/join/create-intent` **no usa `idempotencyKey`** (verificado).
-- `POST /api/checkout/lock` **tampoco**.
-- Ninguno de los dos comprueba si el usuario **ya es miembro vivo** de ese grupo — el check de
-  duplicado fue eliminado de `prepare_join` y de `confirm_join`, y **no existe UNIQUE
-  `(group_id, user_id)`** (ver `DATABASE.md` §3.3).
+- `POST /api/join/create-intent` → prefijo `join`. También el `customers.create`, con prefijo
+  `cust`.
+- `POST /api/checkout/lock` → prefijo `lock`.
 
-**Consecuencia:** un doble clic o un doble submit crea **dos PaymentIntents** → **dos holds
-sobre la misma tarjeta** → los dos llegan al webhook con PIs distintos → `confirm_join` crea
-**dos miembros**.
+**Por qué derivada y no escrita a mano.** Stripe exige que una misma clave se use siempre con los
+mismos parámetros. Una clave compuesta a mano (`grupo+teléfono+cantidad`) **falló en
+producción**: para un invitado, `customers.create` generaba un Customer nuevo en cada intento,
+`piParams.customer` cambiaba y Stripe rechazaba la segunda petición con *"Keys for idempotent
+requests can only be used with the same parameters"*. Derivando la clave del payload, "misma
+clave" y "mismos parámetros" no pueden contradecirse.
 
-**Ya ha ocurrido: 2 pares `(group_id, user_id)` duplicados en producción.**
+**Segunda barrera, independiente de Stripe:** el índice parcial `uniq_member_per_group_alive`
+sobre `(group_id, user_id)`. Aunque llegaran dos PIs distintos, `confirm_join` devuelve
+`needs_release / already_member` para el segundo y el webhook cancela ese hold.
 
-**Mitigaciones parciales existentes:** rate limit de 10/10 min por IP (fail-open), rate limit de
-3/hora por teléfono en `prepare_join`, y el estado `loading` que deshabilita el botón mientras
-la petición está en vuelo.
+**Mitigaciones adicionales que siguen vigentes:** rate limit de 10/10 min por IP (fail-open),
+rate limit de 3/hora por teléfono en `prepare_join`, y el estado `loading` del botón.
+
+**Verificado en producción:** dos peticiones idénticas a `/api/join/create-intent` devolvieron el
+mismo PaymentIntent.
 
 Ver `KNOWN_ISSUES.md` P0-01 y P0-04.
 

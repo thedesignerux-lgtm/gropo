@@ -425,8 +425,8 @@ la suma de unidades comprometidas, y sin `GREATEST`.
 
 | # | Repositorio (HISTORICAL) | Producción (ACTUAL) | Gravedad |
 |---|---|---|---|
-| 1 | Fichero corrupto, no parsea | Función válida y desplegada | Documental |
-| 2 | **Check de duplicado por teléfono** | **ELIMINADO** | 🔴 **Ver `KNOWN_ISSUES.md` P0-01** |
+| 1 | ~~Fichero corrupto~~ | ✅ **Sincronizado 11-sep-2026**: el fichero es espejo del cuerpo vivo | Resuelto |
+| 2 | Check de duplicado por teléfono | ✅ **RESTAURADO 11-sep-2026** (bloque ★P0-01, antes del hold) | Resuelto — ver `KNOWN_ISSUES.md` P0-01 |
 | 3 | Guard de stock con `groups.total_units` | Guard con Σ unidades comprometidas de vivos | Producción es **correcta**; el fichero contiene el bug de overselling ya arreglado |
 | 4 | Sin `GREATEST(...)` | `GREATEST(v_max_stock - v_committed_units, 0)` | Evita mostrar negativos |
 | 5 | Sin `SET search_path` | `SET search_path TO 'public'` | Seguridad |
@@ -783,9 +783,9 @@ EXCEPTION WHEN unique_violation THEN
 
 | # | Repositorio (HISTORICAL) | Producción (ACTUAL) | Impacto |
 |---|---|---|---|
-| 1 | **Check de duplicado por (teléfono OR email)** | **ELIMINADO** | 🔴 **P0-01: miembros duplicados** |
+| 1 | Check de duplicado por (teléfono OR email) | ✅ **Sustituido 11-sep-2026** por el índice parcial `uniq_member_per_group_alive` + rama `already_member`: la barrera vive en la BD, no en una comprobación previa | Resuelto — ver `KNOWN_ISSUES.md` P0-01 |
 | 2 | `unique_violation` → siempre `needs_release/duplicate` | Discrimina por `CONSTRAINT_NAME`; `uniq_group_members_pi` → `already_processed` | Producción es **más correcta**: evita cancelar un hold cuya membresía ya existe |
-| 3 | — | Rama `users_phone_key` → `needs_release/phone_in_use` | 🔴 **CÓDIGO INALCANZABLE** |
+| 3 | — | Rama `users_phone_key` → `needs_release/phone_in_use` | 🟠 **CÓDIGO INALCANZABLE** (ese constraint no existe, P1-07). Conservado a propósito: retirarlo es cosmético y toca dinero |
 | 4 | Sin comentarios sobre el lock | Mismos mecanismos | — |
 
 > 🔴 **DISCREPANCIA #3 verificada contra la base de datos:** la constraint `users_phone_key`
@@ -1088,8 +1088,8 @@ explique. Ver `KNOWN_ISSUES.md` P2-02.
 |---|---|---|---|
 | `compute_price` | `(uuid, integer, numeric)` | `(uuid, integer)` | 🔴 **NO** |
 | `tier_demand` | `(uuid)` fusión multi-puja | `(uuid)` single-bid | 🔴 **NO** (misma firma, algoritmo distinto) |
-| `prepare_join` | `(uuid, text, integer)` sin dedup | `(uuid, text, integer)` con dedup, **fichero corrupto** | 🔴 **NO** |
-| `confirm_join` | 11 args, sin dedup, discrimina constraint | 11 args, con dedup | 🔴 **NO** |
+| `prepare_join` | `(uuid, text, integer)` con dedup por teléfono | idéntico (espejo, 11-sep-2026) | ✅ **SÍ** |
+| `confirm_join` | 11 args, discrimina constraint, rama `already_member` | idéntico (espejo, 11-sep-2026) | ✅ **SÍ** |
 | `close_group` | `(uuid)` v2 multi-puja + PMA universal | `(uuid)` v1 single-bid | 🔴 **NO** |
 | `get_my_groups` | `(text, text)` | `(text)` — 1 argumento | 🔴 **NO** |
 | `create_petition` | `(text,text,text,int,text,text,text)` v3 (anti-spam 5/h, upsert no destructivo) | v1 | 🔴 **NO** |

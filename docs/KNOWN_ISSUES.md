@@ -13,13 +13,13 @@
 
 | ID | Título | Prioridad | ¿Ha ocurrido ya? |
 |---|---|---|---|
-| P0-01 | Miembros duplicados: sin dedup en ninguna capa | 🔴 P0 | ✅ **Sí, 2 casos en producción** |
+| P0-01 | Miembros duplicados: sin dedup en ninguna capa | ✅ resuelto | ✅ **Verificado 11-sep-2026** |
 | P0-02 | Acceso a datos ajenos por (teléfono + email) desde `anon` | 🔴 P0 | ❓ desconocido |
 | P0-03 | `JoinFlow` muestra éxito sin esperar al webhook | 🔴 P0 | ❓ desconocido |
-| P0-04 | El PaymentIntent del checkout no es idempotente → holds duplicados | 🔴 P0 | ✅ **Consecuencia de P0-01** |
+| P0-04 | El PaymentIntent del checkout no es idempotente → holds duplicados | ✅ resuelto | ✅ **Verificado 11-sep-2026** |
 | P0-05 | `CRON_SECRET` ausente de `.env.local`; **presente en Vercel** | ✅ resuelto | ✅ **Verificado 11-sep-2026** |
-| P1-01 | Deriva producción ↔ repositorio en 7 funciones SQL | 🟠 P1 | ✅ Sí |
-| P1-02 | `supabase/prepare_join.sql` está corrupto y no parsea | 🟠 P1 | ✅ Sí |
+| P1-01 | Deriva producción ↔ repositorio en 5 funciones SQL | 🟠 P1 | ✅ Sí |
+| P1-02 | `supabase/prepare_join.sql` está corrupto y no parsea | ✅ resuelto | ✅ **Verificado 11-sep-2026** |
 | P1-03 | Multi-puja nunca ejecutada con dinero real (Gate G6) | 🟠 P1 | — |
 | P1-04 | Grupo atrapado en `closing` (excedente con segunda puja) | 🟠 P1 | ❌ nunca ejecutado |
 | P1-05 | Adjudicado sin email: sin instrucciones y sin alerta | 🟠 P1 | ❓ desconocido |
@@ -46,14 +46,42 @@
 
 ## 🔴 P0 — CRÍTICO
 
-### P0-01 · Miembros duplicados: sin deduplicación en ninguna capa
+### ✅ P0-01 · Miembros duplicados — RESUELTO (11-sep-2026)
 
-**Problema.** La misma persona puede ser miembro N veces del mismo grupo.
+> **REGLA DE PRODUCTO FIJADA:** 1 usuario + 1 grupo = **1 pedido único**. No existe ampliación
+> de pedido ni segunda participación. Si algún día se permite ampliar, será una decisión de
+> producto nueva y **no** debe resolverse creando una segunda fila.
+>
+> **RESOLUCIÓN** — migración `p001_one_membership_per_user_per_group`, en este orden:
+> 1. `confirm_join` — rama `ELSIF v_constraint = 'uniq_member_per_group_alive'` →
+>    `needs_release / already_member`, para que el webhook cancele el hold sobrante.
+> 2. Índice `uniq_member_per_group_alive` sobre `(group_id, user_id)` **parcial**
+>    (`WHERE payment_status IN ('authorized','instructed','paid')`).
+> 3. `prepare_join` — rechazo por **teléfono** antes de crear el hold.
+>
+> ⚠ **El orden no es opcional.** Crear el índice sin la rama de `confirm_join` convierte este
+> bug en uno peor: la `unique_violation` cae en `ELSE→RAISE`, el webhook devuelve 500, Stripe
+> reintenta indefinidamente y el hold **nunca se cancela** (7 días de dinero retenido).
+>
+> **VERIFICADO** 22/22 pruebas sobre BD sintética (incluido `INSERT` directo saltándose
+> `confirm_join` → rechazado por el índice) + prueba real en producción: compra con tarjeta de
+> test y segundo intento bloqueado con el mensaje correcto, 1 fila, 0 duplicados.
+>
+> **LÍMITE CONOCIDO.** La identidad se resuelve por **email** (`ON CONFLICT (email)`). La misma
+> persona con dos emails distintos son dos `user_id` y el índice los ve como legítimos.
+> `prepare_join` tapa parcialmente ese hueco comprobando por teléfono. El cierre real depende de
+> la unificación de identidad → **P0-02**.
+>
+> Los **3 pares duplicados históricos** (no 2, como decía esta ficha) están todos en el grupo
+> de test `a0000000-…-000000000001`, todas las filas en `cancelled` y con `captured_amount = 0`:
+> el mecanismo era real, pero **nunca cobró de más a nadie**. El índice parcial los ignora.
+
+**Problema (histórico).** La misma persona puede ser miembro N veces del mismo grupo.
 
 **Archivos / funciones.**
 - `public.prepare_join` (producción) — el check de duplicado **fue eliminado**.
 - `public.confirm_join` (producción) — el check por `(phone OR email)` **fue eliminado**.
-- Tabla `group_members` — **no existe UNIQUE `(group_id, user_id)`**.
+- Tabla `group_members` — **no existía UNIQUE `(group_id, user_id)`** (hoy sí: `uniq_member_per_group_alive`).
 - `src/app/api/join/create-intent/route.ts` — no comprueba membresía previa.
 
 **Causa.** Tres capas fallando a la vez. Los checks **sí están** en
@@ -143,9 +171,28 @@ el bucle de `completeSuccess`.
 
 ---
 
-### P0-04 · El PaymentIntent del checkout no es idempotente → holds duplicados
+### ✅ P0-04 · PaymentIntent no idempotente — RESUELTO (11-sep-2026)
 
-**Problema.** Ni `create-intent` ni `checkout/lock` usan `idempotencyKey` de Stripe.
+> **RESOLUCIÓN** — commits `015f467` y `7c9798e`. La clave de idempotencia **se deriva del
+> payload real** (SHA-256 de los parámetros enviados), mediante `idempotencyKeyFor()` en
+> `src/lib/stripe.ts`. Aplicada en `create-intent` (PaymentIntent **y** `customers.create`) y en
+> `checkout/lock`.
+>
+> **POR QUÉ DERIVADA Y NO ESCRITA A MANO.** El primer intento usó una clave compuesta a mano
+> (`grupo + teléfono + cantidad`) y **falló en producción**: Stripe exige que una misma clave se
+> use siempre con los mismos parámetros, y para un **invitado** `customers.create` generaba un
+> Customer nuevo en cada intento → `piParams.customer` cambiaba → Stripe rechazaba la segunda
+> petición con *"Keys for idempotent requests can only be used with the same parameters"*.
+> Protegía el dinero por accidente, rompiendo el checkout. Derivando la clave del payload,
+> "misma clave" y "mismos parámetros" no pueden contradecirse nunca.
+>
+> Efecto lateral positivo: el `customers.create` idempotente elimina un defecto anterior — cada
+> intento de compra de un invitado creaba un Customer nuevo en Stripe.
+>
+> **VERIFICADO en producción:** dos peticiones idénticas a `/api/join/create-intent` devolvieron
+> el mismo PaymentIntent (`pi_3UEaFzA114rXo3Ka0trWudSg`).
+
+**Problema (histórico).** Ni `create-intent` ni `checkout/lock` usan `idempotencyKey` de Stripe.
 
 **Archivos.** `src/app/api/join/create-intent/route.ts:167` ·
 `src/app/api/checkout/lock/route.ts:156`.
@@ -190,7 +237,7 @@ remitente de placeholder (`"Gropo Envios (test)"`, `Carrer de Prova 1`, `envios@
 
 ## 🟠 P1 — ALTO
 
-### P1-01 · Deriva producción ↔ repositorio en 7 funciones SQL
+### P1-01 · Deriva producción ↔ repositorio en 5 funciones SQL
 
 **Problema.** Los ficheros `supabase/*.sql` **no son migraciones** y no reflejan lo desplegado.
 
@@ -198,8 +245,8 @@ remitente de placeholder (`"Gropo Envios (test)"`, `Carrer de Prova 1`, `envios@
 |---|---|---|
 | `compute_price` | `(uuid, integer)`, single-bid, `next_price` v1 | `(uuid, integer, numeric)`, multi-puja, `next_price` v2 |
 | `tier_demand` | single-bid, sin fusión | escalera fusionada con mínimo acumulado |
-| `prepare_join` | con dedup, guard con `total_units`, **corrupto** | sin dedup, guard con unidades comprometidas |
-| `confirm_join` | con dedup | sin dedup, discrimina `CONSTRAINT_NAME` |
+| ~~`prepare_join`~~ | ✅ **sincronizado 11-sep-2026** | espejo del cuerpo vivo |
+| ~~`confirm_join`~~ | ✅ **sincronizado 11-sep-2026** | espejo del cuerpo vivo |
 | `close_group` | v1 single-bid, PMA solo esperadores | v2 multi-puja, **PMA universal** |
 | `get_my_groups` | `(p_phone)` — **1 argumento** | `(p_phone, p_email)` — 2 argumentos |
 | `create_petition` | v1 | v3 (anti-spam 5/h + upsert no destructivo) |
@@ -211,14 +258,22 @@ Además `supabase/revoke_join_group.sql` revoca `join_group(uuid,text,text,text,
 **razonará sobre un algoritmo que ya no existe**. Reconstruir la BD desde estos ficheros
 produciría un sistema funcionalmente distinto y peor.
 
-**Ficheros que SÍ coinciden:** `shipping_columns.sql` y `event_type_add_petition_created.sql`
-(DDL aditivo idempotente).
+**Ficheros que SÍ coinciden:** `shipping_columns.sql`, `event_type_add_petition_created.sql`
+(DDL aditivo idempotente) y, desde el 11-sep-2026, `prepare_join.sql`, `confirm_join.sql` y
+`p001_unique_member_per_group.sql`.
+
+**Quedan 5 con deriva:** `compute_price`, `tier_demand`, `close_group`, `get_my_groups`,
+`create_petition`.
 
 ---
 
-### P1-02 · `supabase/prepare_join.sql` está corrupto
+### ✅ P1-02 · `supabase/prepare_join.sql` corrupto — RESUELTO (11-sep-2026)
 
-**Problema.** En la línea 78 del fichero aparece:
+> **RESOLUCIÓN.** El fichero se ha reescrito por completo como espejo del cuerpo vivo en
+> producción, con cabecera que indica la fecha y cómo comparar con `pg_get_functiondef`.
+> Ya es SQL válido y ejecutable.
+
+**Problema (histórico).** En la línea 78 del fichero aparece:
 ```
 $function$;R REPLACE FUNCTION public.prepare_join(
 ```

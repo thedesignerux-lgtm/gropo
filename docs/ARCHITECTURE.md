@@ -204,8 +204,10 @@ eliminada de la base de datos**.
 de `/api/join/status` (y el bug P0-03, que es su ausencia en `JoinFlow`).
 
 ### ADR-04 · `stripe_payment_intent_id` UNIQUE como clave de idempotencia
-**Consecuencias:** ✅ nunca se duplica un miembro **por el mismo PI**. ❌ No impide dos PIs
-distintos del mismo usuario (P0-04).
+**Consecuencias:** ✅ nunca se duplica un miembro **por el mismo PI**. ❌ No impedía dos PIs
+distintos del mismo usuario (P0-04) — cerrado el 11-sep-2026 por dos vías: `idempotencyKey`
+derivada del payload en los dos emisores, y el índice parcial `uniq_member_per_group_alive`
+sobre `(group_id, user_id)`, que es la barrera final independientemente del PI.
 
 ### ADR-05 · `total_units` = demanda FIRME, no contador de stock
 **Motivo:** nació de un bug de overselling real (comentario en `confirm_join`).
