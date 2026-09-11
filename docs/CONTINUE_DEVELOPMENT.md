@@ -1,9 +1,11 @@
 # CONTINUE_DEVELOPMENT.md — Gropo
 
-# READ THIS BEFORE MODIFYING THE PROJECT.
+# GUÍA OPERATIVA — se aplica DESPUÉS de haber leído `AI_HANDOFF.md`.
 
 Este es el manual de operación para cualquier IA (o persona) que vaya a tocar Gropo.
-Léelo entero antes de escribir una sola línea. Está redactado a partir de una auditoría
+**No es el punto de entrada del proyecto: ese es `AI_HANDOFF.md`.**
+Una vez leído aquel, léelo entero antes de escribir una sola línea.
+Está redactado a partir de una auditoría
 realizada el **6 de septiembre de 2026** contra el código (`main @ 7c49ef3`) y contra la base de
 datos de producción `xpktkuozspreuxucnguh`.
 
@@ -211,7 +213,8 @@ configuradas en Vercel. Requieren acceso a esos paneles. Ver `PAYMENTS.md` §12.
 
 | Necesito saber… | Documento |
 |---|---|
-| Qué es el proyecto, por dónde empezar, qué no asumir | `PROJECT_KNOWLEDGE_PACK.md` |
+| Qué es el proyecto y por dónde empezar | ⭐ **`AI_HANDOFF.md`** — punto de entrada |
+| Panorama, invariantes, jerarquía de fuentes, qué no asumir | `PROJECT_KNOWLEDGE_PACK.md` (anexo) |
 | Cómo funciona el precio, la adjudicación y el cierre | **`ALGORITHM.md`** |
 | Qué tablas, columnas, constraints, índices, RLS y funciones existen | `DATABASE.md` |
 | Cómo funciona el dinero, los holds, el webhook, la idempotencia | `PAYMENTS.md` |
@@ -228,6 +231,7 @@ configuradas en Vercel. Requieren acceso a esos paneles. Ver `PAYMENTS.md` §12.
 ## ANTES DE EMPEZAR CUALQUIER TAREA — CHECKLIST
 
 ```
+[ ] He leído AI_HANDOFF.md entero.
 [ ] He leído PROJECT_KNOWLEDGE_PACK.md § SOURCE OF TRUTH y § DO NOT ASSUME
 [ ] He ejecutado los comandos de § FIRST THINGS TO CHECK
 [ ] Si toco SQL: he extraído la definición real con pg_get_functiondef

@@ -1,7 +1,8 @@
 # AI_HANDOFF.md — Gropo
 
-> **Punto de entrada operativo para una IA que va a continuar desarrollando Gropo.**
-> Léeme primero. **No sustituyo a la documentación detallada**: doy el mapa, lo roto, lo que no
+> **ÚNICO punto de entrada operativo para una IA que va a continuar desarrollando Gropo.**
+> Léeme primero: ningún otro documento de `docs/` sustituye a este como punto de partida.
+> **No sustituyo a la documentación detallada**: doy el mapa, lo roto, lo que no
 > debes asumir y cómo trabajar. El detalle está en los otros 12 documentos de `docs/`.
 >
 > Base: repo `main @ 7c49ef3` + base de datos de producción `xpktkuozspreuxucnguh`, auditada en

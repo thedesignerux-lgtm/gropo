@@ -1,6 +1,9 @@
 # PROJECT KNOWLEDGE PACK — Gropo
 
-> **Índice maestro y punto de entrada de la documentación técnica del proyecto.**
+> **ANEXO ESTRUCTURAL de la documentación técnica del proyecto.**
+>
+> **No es el punto de entrada ni una fuente de verdad independiente.**
+> El punto de entrada es **`AI_HANDOFF.md`**; este documento se lee después, como anexo.
 >
 > Auditoría realizada el **6 de septiembre de 2026** (segunda pasada) contra:
 > - el repositorio local `/Users/benjamin/Desktop/kuorum` en **`main @ 7c49ef3`**
@@ -9,8 +12,8 @@
 >   `pg_get_functiondef`, `has_function_privilege`, `pg_proc`, `pg_constraint`, `pg_indexes`,
 >   `pg_policy`, `pg_type`/`pg_enum` y consultas de datos reales.
 >
-> Este documento **no repite** el contenido de los módulos. Contiene lo que hay que leer
-> **antes** de abrir cualquiera de ellos.
+> Este documento **no repite** el contenido de los módulos. Reúne la jerarquía de fuentes, los
+> invariantes, el mapa de dependencias y lo que no debe asumirse al abrir cualquiera de ellos.
 
 ---
 
@@ -58,6 +61,7 @@ Cuando producción y repositorio difieren en una función SQL:
 
 | Documento | Es la fuente de verdad de… |
 |---|---|
+| **`AI_HANDOFF.md`** ⭐ | **ÚNICO punto de entrada. Léelo primero: identidad, realidad actual, mapa del sistema, invariantes y protocolo** |
 | **`ALGORITHM.md`** ⭐ | El motor: `compute_price`, `tier_demand`, `prepare_join`, `confirm_join`, `close_group`, multi-puja, PMA, tramos, unidades, adjudicación |
 | **`DATABASE.md`** | Esquema real: 11 tablas, 7 enums, 21 funciones, constraints, índices, RLS, relaciones, datos de producción |
 | **`PAYMENTS.md`** | Hold-then-capture, los 3 emisores de PaymentIntent, el webhook, estados de pago, idempotencia, capturas, reembolsos |
@@ -68,7 +72,7 @@ Cuando producción y repositorio difieren en una función SQL:
 | **`ARCHITECTURE.md`** | Cómo está montado el sistema y **por qué** (16 ADR), stack real, frontera de confianza |
 | **`KNOWN_ISSUES.md`** | 28 problemas priorizados P0–P3, con evidencia |
 | **`TECHNICAL_DEBT.md`** | 19 elementos de deuda estructural y su coste |
-| **`CONTINUE_DEVELOPMENT.md`** ⭐ | **Manual de operación. Empieza por aquí si vas a modificar algo** |
+| **`CONTINUE_DEVELOPMENT.md`** | **Guía operativa: protocolo, comandos y checklist. Se aplica DESPUÉS de `AI_HANDOFF.md`** |
 
 ---
 
@@ -515,5 +519,6 @@ cabecera), `seed.sql`, `seed_groups.sql`, `test_close_group.sql`.
 
 ---
 
-*Punto de entrada para modificar el proyecto: **`CONTINUE_DEVELOPMENT.md`**.*
-*Punto de entrada para entender el motor: **`ALGORITHM.md`**.*
+*Punto de entrada del proyecto: **`AI_HANDOFF.md`**.*
+*Protocolo y comandos para modificar el proyecto: **`CONTINUE_DEVELOPMENT.md`**.*
+*Para entender el motor: **`ALGORITHM.md`**.*
