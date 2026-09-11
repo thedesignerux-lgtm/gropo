@@ -758,6 +758,9 @@ function InnerForm({
   const [s, setS] = useState({ line1: '', postal_code: '', city: '', province: '' });
   const [billingSame, setBillingSame] = useState(true);
   const [loading, setLoading] = useState(false);
+  // P0-03 · El hold ya esta autorizado pero la membresia la crea el WEBHOOK.
+  // Mientras la confirmamos no volvemos al boton ni cantamos exito.
+  const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const datosRef = useRef<HTMLElement>(null);
   // Precarga: si el usuario ya compró antes, no debe volver a teclear sus datos
@@ -893,6 +896,28 @@ function InnerForm({
       return;
     }
 
+    // ── P0-03 · NO cantar exito antes de tiempo ────────────────────────────
+    // El banco ya ha autorizado la retencion, pero la fila de group_members la
+    // crea el WEBHOOK de Stripe, que en serverless tarda unos segundos. Si
+    // confirm_join acaba devolviendo needs_release (grupo cerrado, sin stock,
+    // ya eres miembro), el hold se cancela — y hasta ahora el usuario ya estaba
+    // viendo la pantalla de exito. Mismo bucle que FastCheckoutModal.
+    //
+    // El pi_id NO hay que pedirlo a la API: ya viaja dentro del clientSecret.
+    const piId = String(clientSecret).split('_secret')[0];
+    setConfirming(true);
+    if (piId.startsWith('pi_')) {
+      for (let i = 0; i < 18; i++) {
+        try {
+          const r = await fetch(`/api/join/status?pi=${encodeURIComponent(piId)}`);
+          if ((await r.json())?.joined === true) break;
+        } catch { /* red: reintenta */ }
+        await new Promise(res => setTimeout(res, 1000));
+      }
+    }
+    // Agotado el margen seguimos adelante igualmente: la retencion esta
+    // aceptada y volver al boton inicial daria la falsa impresion de que no
+    // paso nada — que es una mentira peor que la que arreglamos aqui.
     window.location.href = `/grupo/${group.id}/unido`;
   }
 
@@ -993,10 +1018,12 @@ function InnerForm({
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={loading || !stripe}
+            disabled={loading || confirming || !stripe}
             className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand text-[15px] font-semibold text-white transition-colors hover:bg-brand-dark disabled:opacity-50"
           >
-            {loading ? (
+            {confirming ? (
+              'Confirmando tu plaza…'
+            ) : loading ? (
               'Procesando…'
             ) : (
               <>
