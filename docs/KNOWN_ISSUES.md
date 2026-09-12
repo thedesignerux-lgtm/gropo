@@ -15,9 +15,10 @@
 |---|---|---|---|
 | P0-01 | Miembros duplicados: sin dedup en ninguna capa | ✅ resuelto | ✅ **Verificado 11-sep-2026** |
 | P0-02 | Acceso a datos ajenos por (teléfono + email) desde `anon` | 🔴 P0 | ❓ desconocido |
-| P0-03 | `JoinFlow` muestra éxito sin esperar al webhook | 🔴 P0 | ❓ desconocido |
+| P0-03 | `JoinFlow` muestra éxito sin esperar al webhook | ✅ resuelto | ✅ **Verificado 12-sep-2026** |
 | P0-04 | El PaymentIntent del checkout no es idempotente → holds duplicados | ✅ resuelto | ✅ **Verificado 11-sep-2026** |
 | P0-05 | `CRON_SECRET` ausente de `.env.local`; **presente en Vercel** | ✅ resuelto | ✅ **Verificado 11-sep-2026** |
+| P0-06 | El checkout se cuelga al tocar el selector de unidades | 🟠 no reproducible · mitigado | ⚠️ **Una vez, 11-sep-2026. No reproducible desde entonces** |
 | P1-01 | Deriva producción ↔ repositorio en 5 funciones SQL | 🟠 P1 | ✅ Sí |
 | P1-02 | `supabase/prepare_join.sql` está corrupto y no parsea | ✅ resuelto | ✅ **Verificado 11-sep-2026** |
 | P1-03 | Multi-puja nunca ejecutada con dinero real (Gate G6) | 🟠 P1 | — |
@@ -25,6 +26,7 @@
 | P1-05 | Adjudicado sin email: sin instrucciones y sin alerta | 🟠 P1 | ❓ desconocido |
 | P1-06 | Cero tests automatizados | 🟠 P1 | — |
 | P1-07 | `users_phone_key` no existe: rama de código inalcanzable | 🟠 P1 | ✅ 2 teléfonos duplicados |
+| P1-08 | Apple Pay y Google Pay se anuncian pero no funcionan | 🟠 P1 | ✅ **Sí, en producción** |
 | P2-01 | El stock restante mostrado en el checkout sobreestima | 🟡 P2 | ❓ |
 | P2-02 | Adjudicación sin relleno: un pedido grande bloquea a los posteriores | 🟡 P2 | ❌ (0 cierres) |
 | P2-03 | `rate_limits` crece sin límite y no tiene primary key | 🟡 P2 | ❓ |
@@ -143,9 +145,20 @@ verifiquen la sesión (patrón de `/api/my-groups`), y después revocar `EXECUTE
 
 ---
 
-### P0-03 · `JoinFlow` muestra la pantalla de éxito sin esperar al webhook
+### ✅ P0-03 · `JoinFlow` muestra la pantalla de éxito sin esperar al webhook — RESUELTO (12-sep-2026)
 
-**Problema.** El checkout principal redirige a `/unido` inmediatamente tras
+> **RESOLUCIÓN** — commit `1185b83`. `JoinFlow` hace ahora el mismo polling contra
+> `/api/join/status` que `FastCheckoutModal`: hasta 18 intentos de 1 s antes de redirigir, con un
+> estado propio (`confirming`, botón *"Confirmando tu plaza…"*) que impide volver al botón inicial
+> mientras tanto. Agotado el margen se continúa igualmente, porque la retención **sí** está
+> aceptada y devolver al comprador al punto de partida sería una mentira peor.
+>
+> **EL OBSTÁCULO TÉCNICO NO EXISTÍA.** No hizo falta tocar `create-intent` para que devolviera
+> `pi_id`: el identificador ya viaja dentro del `clientSecret`
+> (`String(clientSecret).split('_secret')[0]`), que es como `FastCheckoutModal` lo obtiene desde
+> julio. Cero cambios en backend y cero contratos de API rotos.
+
+**Problema (histórico).** El checkout principal redirige a `/unido` inmediatamente tras
 `stripe.confirmPayment`, sin comprobar que la membresía exista.
 
 **Archivo.** `src/app/grupo/[id]/unirme/JoinFlow.tsx:896`
@@ -163,11 +176,9 @@ producto — se quedó sin el arreglo.
 ya está viendo la pantalla de éxito mientras su hold se cancela. Es exactamente el bug que esos
 commits pretendían cerrar.
 
-**Obstáculo técnico.** `create-intent` **no devuelve `pi_id`** (solo `clientSecret`), así que
-`JoinFlow` no dispone del identificador que `/api/join/status` necesita.
-
-**Solución potencial (descriptiva).** Devolver también `pi_id` desde `create-intent` y replicar
-el bucle de `completeSuccess`.
+**Obstáculo técnico (creído, y falso).** Se dio por hecho que `create-intent` **no devolvía
+`pi_id`** y que por tanto `JoinFlow` no tenía el identificador que `/api/join/status` necesita.
+El `pi_id` estaba todo el tiempo dentro del `clientSecret`.
 
 ---
 
@@ -282,6 +293,122 @@ ejecutar.**
 
 **Impacto.** Además de la deriva de P1-01, es un fichero irrecuperable tal cual: no sirve ni
 como referencia histórica fiable.
+
+---
+
+### 🟠 P0-06 · El checkout se cuelga al tocar el selector de unidades — NO REPRODUCIBLE, MITIGADO
+
+> **ESTADO (12-sep-2026).** Ocurrió una vez, en producción, el 11-sep. **No se ha vuelto a
+> reproducir en siete configuraciones distintas.** La causa sigue siendo **UNKNOWN**. El síntoma
+> está mitigado (commit `ed80b1c`), pero mitigar no es arreglar: si vuelve a aparecer, esta
+> sección es el punto de partida y hay que empezar por lo que ya está descartado.
+>
+> **Siete configuraciones probadas el 12-sep, ninguna se colgó:**
+>
+> | # | Configuración | `elements.submit()` |
+> |---|---|---|
+> | 1 | Página aislada, cambio de importe, sin tarjeta | 26 ms |
+> | 2 | Página aislada, cambio de importe, **con tarjeta** | 33 ms |
+> | 3 | `/unirme` real, sin tarjeta, tras cambiar la cantidad | 41 ms |
+> | 4 | `/unirme` real, **con tarjeta**, tras cambiar la cantidad | 37 ms · siguió a `create-intent` |
+> | 5 | `update()` disparado **con `submit()` en vuelo** (0 / 10 / 200 ms) | 54 / 53 / 34 ms |
+> | 6 | Doble `update()` por **cruce de tramo** (200 € → 160 €, confeti incluido) | 44 ms |
+> | 7 | **Build de producción sobre HTTPS** (preview de Vercel), grupo abierto real, cruce de tramo, tarjeta real | **compra completada de extremo a extremo** |
+>
+> **Hipótesis descartadas con evidencia — no volver a plantearlas sin datos nuevos:**
+>
+> 1. ~~`capture_method` / `setup_future_usage` en snake_case son claves inválidas~~ →
+>    **son válidas**: `@stripe/stripe-js` v9.8 declara ambas grafías en `StripeElementsOptionsMode`.
+> 2. ~~`<Elements>` recibe un cambio de opción no soportado~~ → **no ocurre**:
+>    `extractAllowedOptionsUpdates` (react-stripe-js v6.6, `dist/react-stripe.js:299`) compara con
+>    igualdad profunda y solo pasa `{amount}`. Por eso nunca apareció el warning esperado.
+> 3. ~~`submit()` se cuelga después de `update({amount})`~~ → configuraciones 1-4 y 6.
+> 4. ~~Carrera: el quote actualiza el importe con `submit()` en vuelo~~ → configuración 5.
+>
+> **Dato que descarta el "se arregló por el camino":** el commit `1185b83` (P0-03) solo añadió
+> polling **después** de `confirmPayment`. El camino del cliente hasta `create-intent` es idéntico
+> al que estaba vivo el 11-sep. Es el mismo código, y no se cuelga.
+>
+> **MITIGACIÓN aplicada** (commit `ed80b1c`, `JoinFlow.tsx`):
+> - **El pedido se congela** al pulsar el botón: el importe que ve Stripe deja de seguir al precio
+>   en vivo (`frozenAmount`) y el selector de unidades se deshabilita (`checkoutBusy`). Cierra por
+>   construcción cualquier discrepancia entre lo que Stripe cree y lo que el servidor cobra.
+> - **Reloj de seguridad de 20 s** sobre `elements.submit()`: si no responde, el botón vuelve con
+>   un mensaje claro en lugar de dejar al comprador atrapado. Seguro por construcción — ocurre
+>   antes de `create-intent`, así que no existe ninguna retención y reintentar no puede duplicar
+>   nada.
+>
+> **Qué falta por probar si reaparece:** móvil real · modo *esperar* · doble pulsación rápida del
+> botón · sesión de navegador con Stripe.js cacheado o extensiones activas.
+
+**Descripción original del 11-sep-2026:**
+
+**Problema.** En `/grupo/[id]/unirme`, si el usuario **cambia la cantidad** antes de comprar, al
+pulsar el botón el checkout se queda en *"Procesando…"* indefinidamente (>1 minuto observado) y
+**no llega a salir ninguna petición del navegador**.
+
+**Evidencia — experimento controlado del 11-sep-2026.** Tres intentos consecutivos del mismo
+usuario sobre el mismo grupo:
+
+| # | Pantalla | Tocó el selector | Resultado |
+|---|---|---|---|
+| 1 | `/unirme` | **Sí** | 🔴 **Colgado.** Cero filas en `rate_limits`: `create-intent` nunca se llamó |
+| 2 | Panel rápido (1-Click) | — | ✅ OK · `checkout-lock` a las 23:07:43 → miembro 3 s después |
+| 3 | `/unirme` | **No** | ✅ OK · `create-intent` a las 23:11:27 → miembro 3 s después |
+
+Misma pantalla y mismo código en 1 y 3. La única variable es haber tocado el selector.
+Una vez la petición llega al servidor, todo tarda **3 segundos**: el problema es **íntegramente
+del lado del navegador, antes de enviar nada**.
+
+**Localización.** El único paso entre pulsar el botón y la llamada a `create-intent` es
+`await elements.submit()` en `JoinFlow.tsx` (`handleSubmit`, tras `setLoading(true)`).
+
+**Sospecha (NO CONFIRMADA).** `src/app/grupo/[id]/unirme/JoinFlow.tsx:673`
+
+```tsx
+const elementsOptions = useMemo(() => ({ mode, amount: amountCents, currency,
+  capture_method, setup_future_usage, paymentMethodTypes, appearance }), [amountCents]);
+<Elements stripe={stripePromise} options={elementsOptions}>
+```
+
+Cambiar la cantidad recrea el objeto de opciones. `mode`, `currency`, `capture_method`,
+`setup_future_usage` y `paymentMethodTypes` son **inmutables** tras crear la instancia; el
+importe se cambia con `elements.update({ amount })`.
+
+❓ **UNKNOWN.** Al reproducirlo con la consola abierta **NO apareció** ningún
+`Unsupported prop change` de Stripe.js. La hipótesis **no está confirmada** y no debe
+implementarse un arreglo basándose en ella sin más evidencia.
+
+**Siguiente paso de diagnóstico.** Pulsar `+` con la consola abierta y observar **si el
+formulario de la tarjeta parpadea, se queda en blanco o se recarga**. Eso distingue entre
+"Stripe se reinicializa mal" y "el problema está en otro sitio".
+
+**Impacto.** Bloquea por completo la compra en el camino principal con un gesto que hace
+cualquier comprador normal: elegir cuántas unidades quiere. **Bloquea el Ensayo 3 / Gate G6**:
+con varias personas reales uniéndose, sería el primer punto de caída.
+
+---
+
+### P1-08 · Apple Pay y Google Pay se anuncian en el checkout pero no funcionan
+
+**Problema.** El pie del checkout muestra los logos de **VISA · Mastercard · Apple Pay · G Pay**,
+pero los dos monederos están **inoperativos**: el dominio no está registrado ni verificado en
+Stripe.
+
+**Evidencia.** Consola de producción en `/unirme`, 11-sep-2026:
+```
+[Stripe.js] You have not registered or verified the domain, so the following
+payment methods are not enabled in the Payment Element: – apple_pay
+Unable to download payment manifest "https://www.google.com/pay"   (×2)
+```
+
+**Impacto.** Anunciar un método de pago que no funciona es peor que no anunciarlo: el comprador
+que busca Apple Pay no lo encuentra y abandona. Afecta a conversión y a confianza, justo en la
+pantalla donde más importan.
+
+**Solución potencial (descriptiva).** Registrar y verificar el dominio en Stripe
+(*Payment method domains*), o retirar esos dos logos del pie hasta que esté hecho.
+Ver `LAUNCH_CHECKLIST.md`.
 
 ---
 

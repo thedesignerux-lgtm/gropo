@@ -140,7 +140,7 @@ PULSE:  watching → accepted (SetupIntent 0 €) → 🔴 pulse_check_and_lock(
 | `runPulseTrigger` | TS | `src/lib/pulse.ts:57` | **Cobra off-session, sin el usuario delante** | `ALGORITHM.md` §6 |
 | `closeGroup` | Server action | `admin/grupos/[id]/actions.ts:22` | Orquestador único del cierre (admin + cron) | `API.md` §3 |
 | `withdrawBid` | Server action | `admin/grupos/[id]/actions.ts:140` | Retira una puja con rollback manual, **sin lock** | `BUSINESS_RULES.md` RULE-041 |
-| `JoinFlow.tsx` | Componente | `grupo/[id]/unirme/JoinFlow.tsx` | Checkout principal. 🔴 **Éxito sin esperar al webhook** | `KNOWN_ISSUES.md` P0-03 |
+| `JoinFlow.tsx` | Componente | `grupo/[id]/unirme/JoinFlow.tsx` | Checkout principal. Espera al webhook (P0-03 ✅) · pedido congelado + reloj de 20 s (P0-06 mitigado) | `KNOWN_ISSUES.md` P0-03, P0-06 |
 | `FastCheckoutModal.tsx` | Componente | `components/checkout/` | 1-Click. **Sí** hace confirmación honesta (18 s) | `PAYMENTS.md` §7.1 |
 | `useTierDemand` | Hook | `src/hooks/useTierDemand.ts` | Realtime; su `nextTier` usa criterio **distinto** al motor | `TECHNICAL_DEBT.md` DT-07 |
 
@@ -255,13 +255,13 @@ redirección de un paquete físico. · **LOCATION** `_profile_uid`, `get_my_grou
 `address_*`, `radar_prefs_save` · **STATUS** 🔴 Activo (en `CLAUDE.md` como *"decisión aplazada"*)
 · **RELATED** `SECURITY.md` SEC-01
 
-### 🔴 P0-03 · El checkout principal muestra éxito sin esperar al webhook
-**PROBLEM** `JoinFlow` redirige a `/unido` justo tras `confirmPayment`. · **CURRENT** Si
-`confirm_join` devuelve `needs_release`, el usuario ve éxito mientras su hold se cancela. ·
-**ROOT CAUSE** Los commits `b1e5229` y `fc1ce4a` pusieron el polling **solo en
-`FastCheckoutModal`**; además `create-intent` **no devuelve `pi_id`**. · **IMPACT** El usuario
-cree que ha comprado y no ha comprado. · **LOCATION** `grupo/[id]/unirme/JoinFlow.tsx:896` ·
-**STATUS** 🔴 Activo · **RELATED** `PAYMENTS.md` §7
+### ✅ P0-03 · El checkout principal muestra éxito sin esperar al webhook — RESUELTO (12-sep-2026)
+**RESOLUCIÓN** commit `1185b83`: `JoinFlow` hace el mismo polling contra `/api/join/status` que
+`FastCheckoutModal` (18 intentos de 1 s, estado `confirming`, botón *"Confirmando tu plaza…"*). ·
+**EL OBSTÁCULO ERA FALSO** no hizo falta que `create-intent` devolviera `pi_id`: ya viaja dentro
+del `clientSecret` (`String(cs).split('_secret')[0]`). Cero cambios en backend. ·
+**LOCATION** `grupo/[id]/unirme/JoinFlow.tsx` · **STATUS** ✅ Resuelto ·
+**RELATED** `PAYMENTS.md` §7
 
 ### ✅ P0-04 · PaymentIntent sin idempotencia — RESUELTO (11-sep-2026)
 **RESOLUTION** Commits `015f467` y `7c9798e`. La clave **se deriva del payload real** (SHA-256 de
@@ -360,8 +360,11 @@ Pulse (advisory lock + `idempotencyKey` + verificación del SetupIntent).
 Customer (`idempotencyKeyFor`, clave derivada del payload — P0-04) · ✅ dedup de membresía
 (índice parcial `uniq_member_per_group_alive` + rama `already_member` que libera el hold — P0-01).
 
+**HAY protección, desde el 12-sep-2026, también en:** ✅ `JoinFlow` espera al webhook antes de
+cantar éxito (P0-03, polling 18 s, igual que `FastCheckoutModal`) · ✅ el pedido queda congelado
+durante el checkout y `elements.submit()` tiene un límite de 20 s (P0-06 mitigado).
+
 **NO la hay en:**
-🔴 `JoinFlow` no espera al webhook (P0-03; `FastCheckoutModal` **sí**, polling 18 s) ·
 ⚠️ PIs abandonados quedan huérfanos · ⚠️ `captureIdempotent` acepta un PI ya `succeeded` **sin
 verificar el importe** · 🔴 **no existe ningún mecanismo de reembolso**.
 
@@ -571,8 +574,9 @@ perder datos o generar costes. **Nunca toques `.git/`.**
 | Priority | Issue | Why | Status | Dependencies |
 |---|---|---|---|---|
 | — | P0-01 Miembros duplicados | Rompía INV-020: doble cobro, doble envío | ✅ **RESUELTO** 11-sep-2026 | Ninguna |
+| P1 | P0-06 Checkout colgado al cambiar la cantidad | Atrapaba al comprador en "Procesando…" | 🟠 **No reproducible** (7 configuraciones, 12-sep) · **síntoma mitigado** `ed80b1c` | Causa UNKNOWN. Ver `KNOWN_ISSUES.md` P0-06 antes de tocarlo: cuatro hipótesis ya descartadas |
 | P0 | P0-02 Acceso a datos ajenos | Rompe INV-027; redirección de envíos | 🔴 Activo | Migrar antes los **9 puntos de llamada** |
-| P0 | P0-03 Éxito sin esperar al webhook | El usuario cree que compró y no compró | 🔴 Activo | Ninguna — el `pi_id` **ya** está dentro del `clientSecret`: `String(cs).split('_secret')[0]`, como hace `FastCheckoutModal` |
+| — | P0-03 Éxito sin esperar al webhook | El usuario creía que compró y no compró | ✅ **RESUELTO** 12-sep-2026 (`1185b83`) | Ninguna |
 | — | P0-04 PaymentIntent sin idempotencia | Era la causa directa de P0-01 | ✅ **RESUELTO** 11-sep-2026 | Ninguna |
 | — | P0-05 `CRON_SECRET` en Vercel | Sin ella los grupos no se cerrarían | ✅ **RESUELTO** 11-sep-2026 | Ninguna |
 | P1 | P1-01 Deriva producción ↔ repo (quedan **5**) | Se razona sobre un algoritmo inexistente | 🟠 Parcial — `prepare_join` y `confirm_join` sincronizados 11-sep | Ninguna |
@@ -581,6 +585,7 @@ perder datos o generar costes. **Nunca toques `.git/`.**
 | P1 | P1-04 Grupo atrapado en `closing` | Holds caducando sin salida | 🟠 Latente | **OD-05** |
 | P1 | P1-05 Adjudicado sin email ni alerta | Nunca sabe que debe pagar | 🟠 Activo | Ninguna |
 | P1 | P1-06 Cero tests | Sin red de seguridad con dinero real | 🟠 Estructural | Ninguna |
+| P1 | **P1-08 Apple Pay / G Pay anunciados y no operativos** | Se muestran logos de métodos que no funcionan: conversión y confianza | 🔴 Activo | Registrar el dominio en Stripe |
 | P1 | P1-07 `users_phone_key` inexistente | Rompe INV-021; la rama que lo cita en `confirm_join` es **código muerto** | 🟠 Activo | Ninguna (P0-01 ya no depende de él) |
 | P2 | P2-01…P2-08 | Stock sobreestimado · sin relleno · `rate_limits` · copy obsoleto · PIs huérfanos · nadie avisa · fail-open · cookie de admin | 🟡 Activos | P2-02 → **OD-03**; P2-06 → **OD-04** |
 | P3 | P3-01…P3-08 | Huérfanos · rebranding · `price_mode` · 75% · enums muertos · `lang="en"` · fallback · README | 🔵 Cosméticos | Ninguna |

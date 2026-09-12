@@ -29,6 +29,8 @@
 
 | Bloqueante | Estado |
 |---|---|
+| P0-06 · checkout colgado al cambiar la cantidad | 🟠 **YA NO ES BLOQUEANTE** — no reproducible en 7 configuraciones (12-sep) y síntoma mitigado (`ed80b1c`). Causa UNKNOWN: vigilar en el Ensayo 3 |
+| Éxito sin esperar al webhook (P0-03) | ✅ **Cerrado 12-sep-2026** (`1185b83`) |
 | **Ensayo con esperadores reales** (Gate G6 / "Ensayo 3") | 🔴 **PENDIENTE — bloqueante** |
 | **Rotación de claves de Sendcloud** (expuestas en chat) | 🔴 **PENDIENTE — bloqueante de seguridad** |
 | **Cutover de Stripe test → live** | 🔴 **PENDIENTE** |
@@ -36,9 +38,17 @@
 | **Custom SMTP en Supabase Auth** | 🔴 Pendiente — el SMTP integrado limita a ~2-4 emails/h **para toda la app** |
 | Webhook Stripe → Gropo | ✅ **Verificado 11-sep-2026** (ver `PAYMENTS.md` §12) |
 | `CRON_SECRET` en Vercel | ✅ **Verificado 11-sep-2026** — el cierre automático está armado |
-| Limpieza de datos de prueba en producción | 🟠 Parcial — grupo `TEST · Algoritmo precio` cancelado el 11-sep |
+| **Dominio registrado en Stripe** (Apple Pay / Google Pay) | 🔴 Pendiente — los logos se anuncian y **no funcionan** (P1-08) |
+| Miembros duplicados (P0-01) | ✅ **Cerrado y verificado 11-sep-2026** |
+| Idempotencia del PaymentIntent (P0-04) | ✅ **Cerrado y verificado 11-sep-2026** |
+| Limpieza de datos de prueba en producción | ✅ **Completada 11-sep-2026** — 0 grupos abiertos, 0 holds vivos, 0 duplicados vivos |
 
-**Conclusión: NO abrir pagos reales** hasta cerrar los tres bloqueantes en rojo.
+**Conclusión: NO abrir pagos reales** hasta cerrar los bloqueantes en rojo.
+
+> **El Ensayo 3 es ahora el primero de la lista.** P0-06 dejó de bloquearlo el 12-sep: no se
+> reproduce y su síntoma está mitigado. Pero su causa sigue siendo UNKNOWN, así que durante el
+> ensayo hay que vigilar expresamente si alguien se queda en "Procesando…" tras tocar el selector
+> de unidades.
 
 ---
 
