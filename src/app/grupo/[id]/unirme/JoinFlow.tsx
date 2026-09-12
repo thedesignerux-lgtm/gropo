@@ -323,13 +323,13 @@ export default function JoinFlow({
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                           </div>
                         ) : isTarget ? (
-                          <div className="grid h-[22px] w-[22px] animate-pulse place-items-center rounded-full border-[3px] border-[#e8890c] bg-white">
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#e8890c" strokeWidth="2.6"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+                          <div className="grid h-[22px] w-[22px] animate-pulse place-items-center rounded-full border-[3px] border-accent-dark bg-white">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#B24A00" strokeWidth="2.6"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
                           </div>
                         ) : (
                           <div className="mt-0.5 h-4 w-4 rounded-full border-[2.5px] border-black/[0.18] bg-white" />
                         )}
-                        <div className={`mt-2 text-[15px] font-extrabold ${isTarget && !youReached ? 'text-[#e8890c]' : groupReached ? 'text-neutral-900' : youReached ? 'text-brand' : 'text-neutral-400'}`}>{eur(t.price)}</div>
+                        <div className={`mt-2 text-[15px] font-extrabold ${isTarget && !youReached ? 'text-accent-dark' : groupReached ? 'text-neutral-900' : youReached ? 'text-brand' : 'text-neutral-400'}`}>{eur(t.price)}</div>
                         <div className="text-xs font-medium text-neutral-400">{t.minUnits} uds</div>
                       </div>
                     );
@@ -337,7 +337,7 @@ export default function JoinFlow({
                 </div>
               </div>
               {missingToTarget > 0 ? (
-                <div className="mt-1 text-center text-xs font-medium text-neutral-500">Faltan <b className="text-[#e8890c]">{missingToTarget} {missingToTarget === 1 ? 'unidad' : 'unidades'}</b> para llegar a tu objetivo</div>
+                <div className="mt-1 text-center text-xs font-medium text-neutral-500">Faltan <b className="text-accent-dark">{missingToTarget} {missingToTarget === 1 ? 'unidad' : 'unidades'}</b> para llegar a tu objetivo</div>
               ) : (
                 <div className="mt-1 text-center text-xs font-bold text-[#0B7B44]">Tu precio objetivo ya está desbloqueado 🎉</div>
               )}
@@ -466,13 +466,13 @@ export default function JoinFlow({
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                           </div>
                         ) : isGoal ? (
-                          <div className="grid h-[22px] w-[22px] animate-pulse place-items-center rounded-full border-[3px] border-[#e8890c] bg-white">
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#e8890c" strokeWidth="2.6"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+                          <div className="grid h-[22px] w-[22px] animate-pulse place-items-center rounded-full border-[3px] border-accent-dark bg-white">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#B24A00" strokeWidth="2.6"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
                           </div>
                         ) : (
                           <div className="mt-0.5 h-4 w-4 rounded-full border-[2.5px] border-black/[0.18] bg-white" />
                         )}
-                        <div className={`mt-2 text-[15px] font-extrabold ${isGoal && !youReached ? 'text-[#e8890c]' : (groupReached || youReached) ? 'text-neutral-900' : 'text-neutral-400'}`}>{eur(t.price)}</div>
+                        <div className={`mt-2 text-[15px] font-extrabold ${isGoal && !youReached ? 'text-accent-dark' : (groupReached || youReached) ? 'text-neutral-900' : 'text-neutral-400'}`}>{eur(t.price)}</div>
                         <div className="text-xs font-medium text-neutral-400">{t.minUnits} uds</div>
                         {isMine && <div className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-brand">tu precio</div>}
                       </div>
@@ -481,7 +481,7 @@ export default function JoinFlow({
                 </div>
               </div>
               {comprarGoalIdx >= 0 ? (
-                <div className="mt-1 text-center text-xs font-medium text-neutral-500">Faltan <b className="text-[#e8890c]">{sorted[comprarGoalIdx].minUnits - projected} {sorted[comprarGoalIdx].minUnits - projected === 1 ? 'unidad' : 'unidades'}</b> para bajar al siguiente tramo: {eur(sorted[comprarGoalIdx].price)}</div>
+                <div className="mt-1 text-center text-xs font-medium text-neutral-500">Faltan <b className="text-accent-dark">{sorted[comprarGoalIdx].minUnits - projected} {sorted[comprarGoalIdx].minUnits - projected === 1 ? 'unidad' : 'unidades'}</b> para bajar al siguiente tramo: {eur(sorted[comprarGoalIdx].price)}</div>
               ) : (
                 <div className="mt-1 text-center text-xs font-bold text-[#0B7B44]">Ya estás en el mejor precio 🎉</div>
               )}
@@ -617,13 +617,13 @@ export default function JoinFlow({
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                           </div>
                         ) : isGoal ? (
-                          <div className="grid h-[22px] w-[22px] animate-pulse place-items-center rounded-full border-[3px] border-[#e8890c] bg-white">
-                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#e8890c" strokeWidth="2.6"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+                          <div className="grid h-[22px] w-[22px] animate-pulse place-items-center rounded-full border-[3px] border-accent-dark bg-white">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#B24A00" strokeWidth="2.6"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
                           </div>
                         ) : (
                           <div className="mt-0.5 h-4 w-4 rounded-full border-[2.5px] border-black/[0.18] bg-white" />
                         )}
-                        <div className={`mt-2 text-[15px] font-extrabold ${isGoal && !youReached ? 'text-[#e8890c]' : groupReached ? 'text-neutral-900' : youReached ? 'text-brand' : 'text-neutral-400'}`}>{eur(t.price)}</div>
+                        <div className={`mt-2 text-[15px] font-extrabold ${isGoal && !youReached ? 'text-accent-dark' : groupReached ? 'text-neutral-900' : youReached ? 'text-brand' : 'text-neutral-400'}`}>{eur(t.price)}</div>
                         <div className="text-xs font-medium text-neutral-400">{t.minUnits} uds</div>
                       </div>
                     );
@@ -633,7 +633,7 @@ export default function JoinFlow({
               {projIdx > lastUnlockedIdx ? (
                 <div className="mt-1 text-center text-xs font-bold text-[#0B7B44]">Tus {quantity} {quantity === 1 ? 'unidad desbloquea' : 'uds desbloquean'} {eur(sorted[projIdx].price)} 🎉</div>
               ) : comprarGoalIdx >= 0 ? (
-                <div className="mt-1 text-center text-xs font-medium text-neutral-500">Faltan <b className="text-[#e8890c]">{sorted[comprarGoalIdx].minUnits - projected} {sorted[comprarGoalIdx].minUnits - projected === 1 ? 'unidad' : 'unidades'}</b> para desbloquear {eur(sorted[comprarGoalIdx].price)}</div>
+                <div className="mt-1 text-center text-xs font-medium text-neutral-500">Faltan <b className="text-accent-dark">{sorted[comprarGoalIdx].minUnits - projected} {sorted[comprarGoalIdx].minUnits - projected === 1 ? 'unidad' : 'unidades'}</b> para desbloquear {eur(sorted[comprarGoalIdx].price)}</div>
               ) : (
                 <div className="mt-1 text-center text-xs font-bold text-[#0B7B44]">Mejor precio ya desbloqueado 🎉</div>
               )}

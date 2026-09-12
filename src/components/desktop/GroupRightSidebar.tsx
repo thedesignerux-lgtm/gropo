@@ -104,7 +104,7 @@ export default function GroupRightSidebar({
   const avatarCount = Math.min(totalParticipants, AVATAR_LETTERS.length)
   const extraCount = totalParticipants - avatarCount
 
-  const accent = confirmed ? '#024947' : '#E8944A'
+  const accent = confirmed ? '#024947' : '#B24A00'
   const accentShadow = confirmed ? 'rgba(2, 73, 71,.35)' : 'rgba(232,148,74,.35)'
 
   return (

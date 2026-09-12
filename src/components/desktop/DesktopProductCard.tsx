@@ -70,7 +70,7 @@ export default function DesktopProductCard({ product, isFavorited = false, isAut
   const { data: pulseData } = usePulse(isComplete ? null : product.id)
   const selectedPrice = detents.length > 0 ? detents[selIdx].price : currentPrice
   const confirmed = selIdx <= curIdx
-  const accent = confirmed ? '#024947' : '#E8944A'
+  const accent = confirmed ? '#024947' : '#B24A00'
 
   const handleCheckout = () => {
     if (!confirmed && isAuthed) {

@@ -201,7 +201,7 @@ function FeaturedGropoCard({ x, isFavorited, isAuthed, onOpenSheet }: { x: Price
 
   const selectedPrice = detents.length > 0 ? detents[selIdx].price : currentPrice
   const confirmed = selIdx <= curIdx
-  const accent = confirmed ? '#024947' : '#E8944A'
+  const accent = confirmed ? '#024947' : '#B24A00'
 
   const handlePrimary = () => {
     if (!confirmed && isAuthed) {
@@ -242,8 +242,8 @@ function FeaturedGropoCard({ x, isFavorited, isAuthed, onOpenSheet }: { x: Price
             Precio asegurado
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1.5 rounded-full text-[11.5px] font-bold whitespace-nowrap" style={{ background: '#FCEEE0', color: '#E8944A', padding: '3px 10px 3px 4px' }}>
-            <span className="grid place-items-center rounded-full text-white text-[9px] font-black" style={{ width: 16, height: 16, background: '#E8944A' }}>↗</span>
+          <span className="inline-flex items-center gap-1.5 rounded-full text-[11.5px] font-bold whitespace-nowrap" style={{ background: '#FCEEE0', color: '#B24A00', padding: '3px 10px 3px 4px' }}>
+            <span className="grid place-items-center rounded-full text-white text-[9px] font-black" style={{ width: 16, height: 16, background: '#B24A00' }}>↗</span>
             Objetivo: {fmt(selectedPrice)}
           </span>
         )}

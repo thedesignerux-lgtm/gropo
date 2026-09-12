@@ -72,7 +72,7 @@ export default function GroupLiveSection2c({
   const effectiveSelected = detents[selIdx]?.price ?? displayPrice
   const confirmed = selIdx <= curIdx
   const isEsperar = !confirmed
-  const accent = confirmed ? '#024947' : '#E8944A'
+  const accent = confirmed ? '#024947' : '#B24A00'
 
   const handleCheckout = () => {
     if (isEsperar && authed) {

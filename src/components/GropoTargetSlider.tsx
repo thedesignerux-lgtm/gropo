@@ -139,7 +139,7 @@ export default function GropoTargetSlider({
   useEffect(() => { wasLockedRef.current = locked }, [locked])
 
   const confirmed = selIdx <= curIdx
-  const accent = confirmed ? '#024947' : '#E8944A'
+  const accent = confirmed ? '#024947' : '#B24A00'
   const accentShadow = confirmed ? 'rgba(2, 73, 71,.28)' : 'rgba(232,148,74,.28)'
   const nextIdx = curIdx < n - 1 ? curIdx + 1 : null
   // Rastro del track:
@@ -158,7 +158,7 @@ export default function GropoTargetSlider({
     ? Math.max(0, Math.min(tickGap, (currentUnits ?? detents[curIdx].uds) - detents[curIdx].uds))
     : 0
   const projW = showProj && projEndIdx != null && n > 1 ? ((projEndIdx - curIdx) / (n - 1)) * 86 + '%' : '0%'
-  const projColor = esperarTrail ? '#E8944A' : '#CFE5E4'
+  const projColor = esperarTrail ? '#B24A00' : '#CFE5E4'
   // Copy (Gropo: elegir por debajo del actual = esperador válido)
   const selP = detents[selIdx]?.price ?? 0
   const curP = detents[curIdx]?.price ?? 0
@@ -277,7 +277,7 @@ export default function GropoTargetSlider({
         {/* Tooltip naranja "Faltan X uds" sobre el tier seleccionado */}
         {selIdx > curIdx && faltanSel > 0 && (
           <div style={{ position: 'absolute', top: -34, left: pos(selIdx), transform: tipShift, transition: 'left .22s cubic-bezier(.34,1.56,.64,1), opacity .5s ease', opacity: faltanTipOn ? 1 : 0, zIndex: 7, pointerEvents: 'none' }}>
-            <div style={{ background: '#E8944A', color: '#fff', fontSize: mini ? 11 : 12.5, fontWeight: 700, padding: mini ? '4px 10px' : '5px 13px', borderRadius: 20, whiteSpace: 'nowrap', boxShadow: '0 4px 12px -4px rgba(232,148,74,.4)' }}>
+            <div style={{ background: '#B24A00', color: '#fff', fontSize: mini ? 11 : 12.5, fontWeight: 700, padding: mini ? '4px 10px' : '5px 13px', borderRadius: 20, whiteSpace: 'nowrap', boxShadow: '0 4px 12px -4px rgba(232,148,74,.4)' }}>
               {faltanSel === 1 ? 'Falta 1 ud' : `Faltan ${faltanSel} uds`}
             </div>
           </div>

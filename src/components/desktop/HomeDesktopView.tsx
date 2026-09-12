@@ -287,7 +287,7 @@ function useCardState(product: GroupProduct, isAuthed: boolean) {
   const [selIdx, setSelIdx] = useState(curIdx)
   const selectedPrice = detents.length > 0 ? detents[selIdx].price : currentPrice
   const confirmed = selIdx <= curIdx
-  const accent = confirmed ? '#024947' : '#E8944A'
+  const accent = confirmed ? '#024947' : '#B24A00'
   const ctaBg = confirmed ? 'rgba(2, 73, 71,.10)' : 'rgba(232,148,74,.12)'
   const ctaText = confirmed
     ? `Bloquear precio · ${fmt(selectedPrice)}`

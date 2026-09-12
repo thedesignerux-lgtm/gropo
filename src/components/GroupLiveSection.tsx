@@ -75,7 +75,7 @@ export default function GroupLiveSection({
   const effectiveSelected = detents[selIdx]?.price ?? displayPrice
   const confirmed = selIdx <= curIdx
   const isEsperar = !confirmed
-  const accent = confirmed ? '#024947' : '#E8944A'
+  const accent = confirmed ? '#024947' : '#B24A00'
   const statusLabel = confirmed ? 'Confirmado' : 'En espera'
   const statusBg = confirmed ? '#DEEDEC' : '#FCEEE0'
 
