@@ -21,7 +21,7 @@ function getFromAddress() {
     city: process.env.SENDCLOUD_FROM_CITY ?? 'Barcelona',
     country_code: process.env.SENDCLOUD_FROM_COUNTRY ?? 'ES',
     phone_number: process.env.SENDCLOUD_FROM_PHONE ?? '+34600000000',
-    email: process.env.SENDCLOUD_FROM_EMAIL ?? 'envios@vonda.es',
+    email: process.env.SENDCLOUD_FROM_EMAIL ?? 'envios@gropo.es',
   };
 }
 function authHeader(): string {

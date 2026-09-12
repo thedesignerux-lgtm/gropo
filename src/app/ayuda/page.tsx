@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import DesktopNavbar from '@/components/desktop/DesktopNavbar'
 import BottomNav from '@/components/BottomNav'
+import { CONTACT_EMAIL } from '@/lib/site'
 
 const FAQS = [
   { q: '¿Me cobráis al unirme a un grupo?', a: 'No. Al asegurar tu precio hacemos una retención en tu tarjeta (un “hold”), no un cobro. Solo se procesa el pago si el grupo alcanza su objetivo al cerrar. Si no lo alcanza, la retención se libera y no se te cobra nada.' },
@@ -56,7 +57,7 @@ export default function AyudaPage() {
               <h3 className="text-[14.5px] font-bold text-neutral-900">¿No encuentras tu respuesta?</h3>
               <p className="text-[13px] text-neutral-500 mt-0.5">Escríbenos y te ayudamos lo antes posible.</p>
             </div>
-            <a href="mailto:hola@vonda.es" className="bg-brand text-white font-bold text-sm rounded-xl px-5 py-2.5 text-center shrink-0">Contactar</a>
+            <a href={`mailto:${CONTACT_EMAIL}`} className="bg-brand text-white font-bold text-sm rounded-xl px-5 py-2.5 text-center shrink-0">Contactar</a>
           </div>
 
           <p className="text-center text-[13px] text-neutral-400 mt-8">

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { toggleFavorite } from '@/app/favoritos/actions'
+import { SITE_URL } from '@/lib/site'
 
 interface Props {
   groupId: string
@@ -26,7 +27,7 @@ export default function RadarCardMenu({ groupId }: Props) {
 
   function handleShare() {
     setOpen(false)
-    const url = `https://www.vonda.es/grupo/${groupId}`
+    const url = `${SITE_URL}/grupo/${groupId}`
     if (navigator.share) {
       navigator.share({ title: 'Gropo', url })
     } else {

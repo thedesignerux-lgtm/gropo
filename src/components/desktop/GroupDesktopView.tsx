@@ -4,6 +4,7 @@ import GroupRightSidebar from './GroupRightSidebar'
 import GroupCountdown from '@/components/GroupCountdown'
 import FavoriteButton from '@/components/FavoriteButton'
 import DesktopNavbar from '@/components/desktop/DesktopNavbar'
+import { SITE_URL } from '@/lib/site'
 
 interface Tier { minUnits: number; price: number }
 
@@ -50,7 +51,7 @@ export default function GroupDesktopView({
   tiers, maxStock, closesAt,
 }: Props) {
   function handleShare() {
-    const url = `https://www.vonda.es/grupo/${groupId}`
+    const url = `${SITE_URL}/grupo/${groupId}`
     if (navigator.share) { navigator.share({ title: name, url }) }
     else { navigator.clipboard.writeText(url) }
   }

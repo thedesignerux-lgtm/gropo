@@ -17,9 +17,10 @@
 import { Resend } from 'resend'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { pulseReachableEmail } from '@/lib/emails/pulseReachable'
+import { SITE_URL } from './site'
 
 const FROM = process.env.RESEND_FROM ?? 'Gropo <no-reply@gropo.es>'
-const BASE_URL = 'https://www.vonda.es'
+const BASE_URL = SITE_URL
 
 interface PulseStateRow {
   min_units: number

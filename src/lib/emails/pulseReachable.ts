@@ -6,7 +6,7 @@ export interface PulseReachableEmailData {
   nombre?: string
   productName: string
   tierPrice: number
-  groupUrl: string // enlace a Mi Radar o al grupo (siempre www.vonda.es)
+  groupUrl: string // enlace a Mi Radar o al grupo (siempre el host canónico, ver lib/site.ts)
 }
 
 function fmtPrice(n: number): string {
