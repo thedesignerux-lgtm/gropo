@@ -229,6 +229,45 @@ código muerto: su funcionalidad se reimplementó en `GropoTargetSlider`, `Group
 
 ---
 
+## 9-bis. SISTEMA DE COLOR — teal (12-sep-2026)
+
+> La marca pasó de morado a teal. Los valores viven en `tailwind.config.ts`; **usa los tokens, no
+> hexadecimales sueltos.** Es exactamente así como se llegó a tener dos morados, tres verdes y
+> tres naranjas conviviendo sin que nadie lo decidiera.
+
+| Token | Valor | Contraste con blanco | Para qué |
+|---|---|---|---|
+| `brand.dark` | `#013230` | 14,00:1 | hover, pressed |
+| `brand` | `#024947` | **10,26:1** | color de acción |
+| `brand.light` | `#04817E` | 4,72:1 | secundario |
+| `brand.tint` | `#F0F7F7` | — | fondos |
+| `brand.tint2` | `#DEEDEC` | — | bordes |
+| `accent` | `#FF6A00` | 2,87:1 ❌ | solo como FONDO, con texto casi negro |
+| `accent.dark` | `#B24A00` | 5,42:1 | naranja para TEXTO o borde sobre blanco |
+| `brand-green` | `#0B7B44` | 5,34:1 | éxito y ahorro |
+
+**La regla del naranja, que es la única que tiene truco:**
+- **Fondo** → `accent` (`#FF6A00`) con texto casi negro → **6,58:1**
+- **Texto o borde sobre blanco** → `accent.dark` (`#B24A00`) → **5,42:1**
+- `accent` con texto claro **nunca**: 2,87:1, no pasa AA
+
+Así el naranja se mantiene vivo como en el logo donde es una mancha de color, y solo se oscurece
+donde tiene que leerse.
+
+**Logos** (`public/`): `logo.png` es el wordmark; `logo-light.png` es su versión clara y hay que
+usarla en cualquier fondo oscuro — el teal desaparece sobre el sidebar de escritorio;
+`logo-mark.png` es el isotipo, para espacios cuadrados. El host canónico y el buzón de contacto
+están centralizados en `src/lib/site.ts`.
+
+**Lo que el rebranding arregló de paso:** cuatro elementos incumplían AA desde antes — el ahorro
+en verde (3,51:1), el aviso "faltan N unidades" (2,62:1), el chip de objetivo (2,10:1) y los
+bordes del selector de tramos. Los cuatro cumplen ahora.
+
+**Pendiente:** a 16 px el favicon no se lee, el isotipo tiene demasiado detalle para ese tamaño.
+Y no existe SVG de los logos, solo PNG; hará falta el día que se haga BIMI.
+
+---
+
 ## 10. CONVENCIONES DE UX OBSERVADAS
 
 - **Todo en castellano**, tuteando.
