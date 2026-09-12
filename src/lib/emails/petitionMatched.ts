@@ -2,6 +2,8 @@
 // Se envía al peticionario cuando el admin asigna el primer vendedor
 // (primera puja) a la petición. Remitente visible: Gropo.
 
+import { emailBrandHeader } from './brand'
+
 export interface PetitionMatchedData {
   nombre?: string
   productName: string
@@ -36,7 +38,7 @@ Cuantos más seáis, mejor precio para todos.
     <tr><td align="center">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #eaeaea;">
         <tr><td style="padding:28px 28px 0 28px;">
-          <p style="margin:0;font-size:18px;font-weight:700;color:#111111;">Gropo</p>
+          ${emailBrandHeader(34)}
         </td></tr>
         <tr><td style="padding:20px 28px 8px 28px;">
           <p style="margin:0 0 16px 0;font-size:15px;color:#333333;line-height:1.5;">${saludo}</p>

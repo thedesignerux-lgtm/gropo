@@ -139,8 +139,8 @@ export default function GropoTargetSlider({
   useEffect(() => { wasLockedRef.current = locked }, [locked])
 
   const confirmed = selIdx <= curIdx
-  const accent = confirmed ? '#6C4BF4' : '#E8944A'
-  const accentShadow = confirmed ? 'rgba(108,75,244,.28)' : 'rgba(232,148,74,.28)'
+  const accent = confirmed ? '#024947' : '#E8944A'
+  const accentShadow = confirmed ? 'rgba(2, 73, 71,.28)' : 'rgba(232,148,74,.28)'
   const nextIdx = curIdx < n - 1 ? curIdx + 1 : null
   // Rastro del track:
   //  · selIdx > curIdx (esperar) → rastro NARANJA de curIdx→selIdx (en todo contexto)
@@ -158,7 +158,7 @@ export default function GropoTargetSlider({
     ? Math.max(0, Math.min(tickGap, (currentUnits ?? detents[curIdx].uds) - detents[curIdx].uds))
     : 0
   const projW = showProj && projEndIdx != null && n > 1 ? ((projEndIdx - curIdx) / (n - 1)) * 86 + '%' : '0%'
-  const projColor = esperarTrail ? '#E8944A' : '#C9BEF6'
+  const projColor = esperarTrail ? '#E8944A' : '#CFE5E4'
   // Copy (Gropo: elegir por debajo del actual = esperador válido)
   const selP = detents[selIdx]?.price ?? 0
   const curP = detents[curIdx]?.price ?? 0
@@ -190,9 +190,9 @@ export default function GropoTargetSlider({
       `Ahora está en ${fmt(curP)}; cada persona que entra acerca ese precio.`
   }
   const statusLabel = confirmed ? 'Confirmado' : 'En espera'
-  const statusBg = confirmed ? '#EDE9FB' : '#FCEEE0'
-  const nudgeBg = confirmed ? '#F4F1FE' : '#FCF4EA'
-  const nudgeBr = confirmed ? '#E4DCFB' : '#F3E3CC'
+  const statusBg = confirmed ? '#DEEDEC' : '#FCEEE0'
+  const nudgeBg = confirmed ? '#F5FAFA' : '#FCF4EA'
+  const nudgeBr = confirmed ? '#E6F1F1' : '#F3E3CC'
 
   // ── GROPO PULSE ──────────────────────────────────────────────
   // Capas de actividad en vivo mapeadas al sistema de posiciones del slider
@@ -318,7 +318,7 @@ export default function GropoTargetSlider({
             </div>
           )}
 
-          <div className="ts-wave" style={{ position: 'absolute', left: 0, width: pos(curIdx), top: '50%', transform: 'translateY(-50%)', height: 8, borderRadius: 999, backgroundImage: 'repeating-linear-gradient(115deg,#8A6BF7 0 8px,#6C4BF4 8px 15px)', backgroundSize: '26px 100%', zIndex: 1 }} />
+          <div className="ts-wave" style={{ position: 'absolute', left: 0, width: pos(curIdx), top: '50%', transform: 'translateY(-50%)', height: 8, borderRadius: 999, backgroundImage: 'repeating-linear-gradient(115deg,#04817E 0 8px,#024947 8px 15px)', backgroundSize: '26px 100%', zIndex: 1 }} />
 
           {/* Ticks "los que faltan" — tramo curIdx→siguiente */}
           {showTicks && nextIdx != null && (() => {
@@ -331,7 +331,7 @@ export default function GropoTargetSlider({
                   const center = segStart + (k + 0.5) * slice
                   const isFilled = k < tickFilled
                   return (
-                    <span key={k} style={{ position: 'absolute', left: `${center}%`, top: '50%', transform: 'translate(-50%,-50%)', width: `${w}%`, height: 10, borderRadius: 2.5, background: isFilled ? '#6C4BF4' : '#fff', border: isFilled ? 'none' : '1.5px solid #CFCADE', boxSizing: 'border-box', boxShadow: isFilled ? '0 1px 3px -1px rgba(108,75,244,.5)' : 'none' }} />
+                    <span key={k} style={{ position: 'absolute', left: `${center}%`, top: '50%', transform: 'translate(-50%,-50%)', width: `${w}%`, height: 10, borderRadius: 2.5, background: isFilled ? '#024947' : '#fff', border: isFilled ? 'none' : '1.5px solid #CADEDD', boxSizing: 'border-box', boxShadow: isFilled ? '0 1px 3px -1px rgba(2, 73, 71,.5)' : 'none' }} />
                   )
                 })}
               </div>
@@ -345,7 +345,7 @@ export default function GropoTargetSlider({
             const ringIntensity = achieved ? 0 : (isSurgeNode ? 3 : Math.min(1, pp?.marked ?? 0))
             const activePulse = ringIntensity > 0
             return (
-              <div key={i} style={{ position: 'absolute', top: '50%', left: pos(i), transform: 'translate(-50%,-50%)', width: ui.dot, height: ui.dot, borderRadius: '50%', background: achieved ? '#6C4BF4' : '#fff', border: `2.5px solid ${achieved ? '#6C4BF4' : (activePulse ? '#6C3CE1' : '#CFCADE')}`, display: 'grid', placeItems: 'center', color: '#fff', fontSize: 9, fontWeight: 900, lineHeight: 1, zIndex: 2, boxShadow: '0 2px 6px -2px rgba(30,20,60,.35)', pointerEvents: 'none' }}>
+              <div key={i} style={{ position: 'absolute', top: '50%', left: pos(i), transform: 'translate(-50%,-50%)', width: ui.dot, height: ui.dot, borderRadius: '50%', background: achieved ? '#024947' : '#fff', border: `2.5px solid ${achieved ? '#024947' : (activePulse ? '#024947' : '#CADEDD')}`, display: 'grid', placeItems: 'center', color: '#fff', fontSize: 9, fontWeight: 900, lineHeight: 1, zIndex: 2, boxShadow: '0 2px 6px -2px rgba(30,20,60,.35)', pointerEvents: 'none' }}>
                 {ringIntensity > 0 && <PulseRings tone="purple" intensity={ringIntensity as 1 | 2 | 3} />}
                 {achieved ? '✓' : ''}
               </div>
@@ -378,7 +378,7 @@ export default function GropoTargetSlider({
         <div style={{ position: 'relative', height: 40, marginTop: 12 }}>
           {detents.map((d, i) => {
             const achieved = i <= curIdx
-            const priceColor = i === selIdx ? accent : (achieved ? '#6C4BF4' : '#9a97a2')
+            const priceColor = i === selIdx ? accent : (achieved ? '#024947' : '#9a97a2')
             return (
               <div key={i} style={{ position: 'absolute', left: pos(i), top: 0, transform: 'translateX(-50%)', textAlign: 'center' }}>
                 <div style={{ fontSize: ui.priceFont, fontWeight: 800, color: priceColor, whiteSpace: 'nowrap' }}>{fmt(d.price)}</div>

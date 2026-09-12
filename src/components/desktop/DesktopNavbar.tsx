@@ -32,7 +32,7 @@ export default function DesktopNavbar() {
                 href={link.href}
                 className={`text-[15px] transition-colors ${active ? 'font-semibold text-neutral-900' : 'font-medium text-neutral-500 hover:text-neutral-900'}`}
               >
-                {active && <span className="mr-1.5" style={{ color: '#6C4BF4' }}>•</span>}
+                {active && <span className="mr-1.5" style={{ color: '#024947' }}>•</span>}
                 {link.label}
               </Link>
             )
@@ -50,7 +50,7 @@ export default function DesktopNavbar() {
           <Link
             href="/perfil"
             className="w-9 h-9 rounded-full grid place-items-center text-sm font-extrabold"
-            style={{ background: '#EDE9FB', color: '#6C4BF4' }}
+            style={{ background: '#DEEDEC', color: '#024947' }}
           >
             V
           </Link>

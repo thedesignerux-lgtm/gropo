@@ -23,12 +23,12 @@ const COLORS: Record<WaveColorScheme, WaveColors> = {
     halo: 'rgba(249, 115, 22, 0.12)',
   },
   brand: {
-    fill: '#7C3AED',
-    fillEnd: '#DDD6FE',
-    stroke: '#6C3CE1',
-    bgFill: '#F5F3FF',
-    dot: '#6C3CE1',
-    halo: 'rgba(108, 60, 225, 0.12)',
+    fill: '#024947',
+    fillEnd: '#E4F0F0',
+    stroke: '#024947',
+    bgFill: '#F7FBFB',
+    dot: '#024947',
+    halo: 'rgba(2, 73, 71, 0.12)',
   },
   green: {
     fill: '#059669',

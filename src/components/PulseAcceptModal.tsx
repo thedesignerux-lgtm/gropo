@@ -86,7 +86,7 @@ export default function PulseAcceptModal({ groupId, productName, tierPrice, quan
         </div>
 
         {/* La promesa central del Pulse, sin letra pequeña */}
-        <div className="mt-4 rounded-xl px-4 py-3 text-[13.5px] leading-snug" style={{ background: '#F6F3FE', color: '#4C1D95' }}>
+        <div className="mt-4 rounded-xl px-4 py-3 text-[13.5px] leading-snug" style={{ background: '#F6F3FE', color: '#013230' }}>
           <b>Hoy no se retiene nada (0 €).</b> Solo si el grupo alcanza los <b>{fmt(tierPrice)}</b>,
           retendremos <b>{fmt(tierPrice * quantity)}</b>{quantity > 1 ? ` (${quantity} uds)` : ''} y tu plaza quedará asegurada.
           Si el grupo no llega, no pagas nada.
@@ -116,7 +116,7 @@ export default function PulseAcceptModal({ groupId, productName, tierPrice, quan
               disabled={!formOk || loading}
               onClick={startCard}
               className="w-full mt-4 rounded-xl py-3.5 text-sm font-bold text-white disabled:opacity-40"
-              style={{ background: '#6C3CE1' }}
+              style={{ background: '#024947' }}
             >
               {loading ? 'Un momento…' : 'Continuar con la tarjeta'}
             </button>
@@ -132,7 +132,7 @@ export default function PulseAcceptModal({ groupId, productName, tierPrice, quan
             width: 100%; border: 1px solid #e5e5e5; border-radius: 12px;
             padding: 11px 14px; font-size: 14px; color: #171717; background: #fff;
           }
-          .pulse-inp:focus { outline: none; border-color: #6C3CE1; }
+          .pulse-inp:focus { outline: none; border-color: #024947; }
         `}</style>
       </div>
     </div>,
@@ -192,8 +192,8 @@ function CardStep({ groupId, form, tierPrice, quantity, onClose }: {
   if (done) {
     return (
       <div className="mt-5 text-center py-6">
-        <div className="w-12 h-12 mx-auto rounded-full flex items-center justify-center" style={{ background: '#EDE9FE' }}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#6C3CE1" strokeWidth="3"><path d="M5 12l5 5 9-11" /></svg>
+        <div className="w-12 h-12 mx-auto rounded-full flex items-center justify-center" style={{ background: '#F0F7F7' }}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#024947" strokeWidth="3"><path d="M5 12l5 5 9-11" /></svg>
         </div>
         <p className="text-[15px] font-bold text-neutral-900 mt-3">Compromiso activado</p>
         <p className="text-[13px] text-neutral-500 mt-1">
@@ -211,7 +211,7 @@ function CardStep({ groupId, form, tierPrice, quantity, onClose }: {
         disabled={!stripe || saving}
         onClick={submit}
         className="w-full mt-4 rounded-xl py-3.5 text-sm font-bold text-white disabled:opacity-40"
-        style={{ background: '#6C3CE1' }}
+        style={{ background: '#024947' }}
       >
         {saving ? 'Guardando…' : 'Activar mi compromiso (0 € hoy)'}
       </button>

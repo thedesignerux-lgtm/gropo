@@ -75,9 +75,9 @@ export default function GroupLiveSection({
   const effectiveSelected = detents[selIdx]?.price ?? displayPrice
   const confirmed = selIdx <= curIdx
   const isEsperar = !confirmed
-  const accent = confirmed ? '#6C4BF4' : '#E8944A'
+  const accent = confirmed ? '#024947' : '#E8944A'
   const statusLabel = confirmed ? 'Confirmado' : 'En espera'
-  const statusBg = confirmed ? '#EDE9FB' : '#FCEEE0'
+  const statusBg = confirmed ? '#DEEDEC' : '#FCEEE0'
 
   const [lockPhase, setLockPhase] = useState(0) // 0=idle, 1=spinning, 2=locked
   const handleCheckout = () => {
@@ -125,7 +125,7 @@ export default function GroupLiveSection({
               <div className="flex items-center flex-wrap gap-2.5 mt-1">
                 <span className="text-3xl font-extrabold leading-none text-neutral-900 tabular-nums">{fmt(displayPrice)}</span>
                 {savings > 0.01 && (
-                  <span className="inline-flex items-center gap-1 text-xs font-bold text-[#157F52] bg-[#E6F4EC] rounded-full px-2.5 py-1.5">
+                  <span className="inline-flex items-center gap-1 text-xs font-bold text-[#0B7B44] bg-[#E6F4EC] rounded-full px-2.5 py-1.5">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" /><line x1="7" y1="7" x2="7.01" y2="7" /></svg>
                     Ahorras {fmt(savings)}
                   </span>
@@ -183,7 +183,7 @@ export default function GroupLiveSection({
           disabled={lockPhase > 0}
           className="w-full h-12 rounded-xl font-bold text-[14.5px] active:scale-[0.98] transition-all whitespace-nowrap"
           style={lockPhase >= 2
-            ? { border: '2px solid #157F52', background: '#E8F5E9', color: '#157F52' }
+            ? { border: '2px solid #0B7B44', background: '#E8F5E9', color: '#0B7B44' }
             : { border: `2px solid ${accent}`, background: `${accent}14`, color: accent }}
         >
           {lockPhase >= 2 ? '✓ Precio bloqueado' : (isEsperar ? `Bloquear precio · Máx. ${fmt(effectiveSelected)}` : `Bloquear precio · ${fmt(effectiveSelected)}`)}

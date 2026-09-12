@@ -92,7 +92,7 @@ export default function HomeDesktopView({ products, favoriteIds = [], isAuthed =
             <h1 className="font-serif leading-[1.02] text-neutral-900" style={{ fontFamily: 'var(--font-instrument-serif), Georgia, serif', fontSize: 'clamp(44px, 4.4vw, 64px)' }}>
               Cuantos más seamos,
               <br />
-              <span className="italic" style={{ color: '#6C4BF4' }}>menos pagamos.</span>
+              <span className="italic" style={{ color: '#024947' }}>menos pagamos.</span>
             </h1>
 
             {/* Search bar card */}
@@ -111,7 +111,7 @@ export default function HomeDesktopView({ products, favoriteIds = [], isAuthed =
                 type="button"
                 aria-label="Buscar"
                 className="shrink-0 w-12 h-12 rounded-full grid place-items-center transition-transform active:scale-95"
-                style={{ background: '#6C4BF4' }}
+                style={{ background: '#024947' }}
               >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><line x1="16.5" y1="16.5" x2="21" y2="21" /></svg>
               </button>
@@ -119,72 +119,72 @@ export default function HomeDesktopView({ products, favoriteIds = [], isAuthed =
 
             {/* Section heading */}
             <h2 className="mt-10 text-[13px] font-bold tracking-tight text-neutral-900">
-              Tú decides el límite. <span style={{ color: '#6C4BF4' }}>Gropo baja el precio.</span>
+              Tú decides el límite. <span style={{ color: '#024947' }}>Gropo baja el precio.</span>
             </h2>
 
             {/* Step progress line: 1 → 2 → 3 */}
             <div className="flex items-center gap-0 mt-5 mb-5">
               <StepCircle n={1} />
-              <div className="flex-1 h-[2px] mx-1" style={{ background: '#D8D2F0' }} />
+              <div className="flex-1 h-[2px] mx-1" style={{ background: '#D8EAE9' }} />
               <StepCircle n={2} />
-              <div className="flex-1 h-[2px] mx-1" style={{ background: '#D8D2F0' }} />
+              <div className="flex-1 h-[2px] mx-1" style={{ background: '#D8EAE9' }} />
               <StepCircle n={3} />
             </div>
 
             {/* 3 Step cards */}
             <div className="grid grid-cols-3 gap-3">
               {/* Step 1 */}
-              <div className="rounded-xl p-4 flex flex-col" style={{ border: '1.5px dashed #D8D2F0', background: '#fff' }}>
-                <div className="w-10 h-10 rounded-full grid place-items-center mb-3" style={{ background: '#EDE9FB' }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6C4BF4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+              <div className="rounded-xl p-4 flex flex-col" style={{ border: '1.5px dashed #D8EAE9', background: '#fff' }}>
+                <div className="w-10 h-10 rounded-full grid place-items-center mb-3" style={{ background: '#DEEDEC' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#024947" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
                 </div>
                 <h3 className="text-[14px] font-extrabold text-neutral-900 tracking-tight">Tú decides el máximo</h3>
                 <p className="text-[12px] text-neutral-500 mt-1.5 leading-relaxed">
                   Elige hasta cuánto pagarías.
                 </p>
                 <div className="mt-auto pt-3">
-                  <div className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ background: '#F9F8FC', border: '1px solid #ECEAF2' }}>
+                  <div className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ background: '#F9F8FC', border: '1px solid #E6EDEC' }}>
                     <span className="text-[11px] text-neutral-500">Tu límite</span>
-                    <span className="text-[14px] font-extrabold ml-auto" style={{ color: '#6C4BF4' }}>30 €</span>
+                    <span className="text-[14px] font-extrabold ml-auto" style={{ color: '#024947' }}>30 €</span>
                   </div>
                 </div>
               </div>
 
               {/* Step 2 */}
-              <div className="rounded-xl p-4 flex flex-col" style={{ border: '1.5px dashed #D8D2F0', background: '#fff' }}>
-                <div className="relative w-10 h-10 rounded-full grid place-items-center mb-3" style={{ background: '#EDE9FB' }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6C4BF4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-                  <div className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full grid place-items-center text-white text-[9px] font-bold" style={{ background: '#6C4BF4' }}>+</div>
+              <div className="rounded-xl p-4 flex flex-col" style={{ border: '1.5px dashed #D8EAE9', background: '#fff' }}>
+                <div className="relative w-10 h-10 rounded-full grid place-items-center mb-3" style={{ background: '#DEEDEC' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#024947" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+                  <div className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full grid place-items-center text-white text-[9px] font-bold" style={{ background: '#024947' }}>+</div>
                 </div>
                 <h3 className="text-[14px] font-extrabold text-neutral-900 tracking-tight">Gropo baja el precio</h3>
                 <p className="text-[12px] text-neutral-500 mt-1.5 leading-relaxed">
                   Cada nueva persona acerca el siguiente precio.
                 </p>
                 <div className="mt-auto pt-3">
-                  <div className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ background: '#F9F8FC', border: '1px solid #ECEAF2' }}>
+                  <div className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ background: '#F9F8FC', border: '1px solid #E6EDEC' }}>
                     <span className="text-[11px] text-neutral-500">Faltan 4 personas</span>
                     <span className="text-[11px] text-neutral-400 mx-1">↓</span>
-                    <span className="text-[14px] font-extrabold ml-auto" style={{ color: '#6C4BF4' }}>27 €</span>
+                    <span className="text-[14px] font-extrabold ml-auto" style={{ color: '#024947' }}>27 €</span>
                   </div>
                 </div>
               </div>
 
               {/* Step 3 */}
-              <div className="rounded-xl p-4 flex flex-col" style={{ border: '1.5px dashed #D8D2F0', background: '#fff' }}>
-                <div className="relative w-10 h-10 rounded-full grid place-items-center mb-3" style={{ background: '#EDE9FB' }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#6C4BF4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" /><line x1="7" y1="7" x2="7.01" y2="7" /></svg>
-                  <div className="absolute -top-0.5 -right-0.5 w-4 h-4 grid place-items-center text-[9px]" style={{ color: '#6C4BF4' }}>★</div>
+              <div className="rounded-xl p-4 flex flex-col" style={{ border: '1.5px dashed #D8EAE9', background: '#fff' }}>
+                <div className="relative w-10 h-10 rounded-full grid place-items-center mb-3" style={{ background: '#DEEDEC' }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#024947" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" /><line x1="7" y1="7" x2="7.01" y2="7" /></svg>
+                  <div className="absolute -top-0.5 -right-0.5 w-4 h-4 grid place-items-center text-[9px]" style={{ color: '#024947' }}>★</div>
                 </div>
                 <h3 className="text-[14px] font-extrabold text-neutral-900 tracking-tight">Pagas el mejor precio</h3>
                 <p className="text-[12px] text-neutral-500 mt-1.5 leading-relaxed">
                   Al cerrar el gropo, todos pagan el mejor precio alcanzado.
                 </p>
                 <div className="mt-auto pt-3">
-                  <div className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ background: '#F9F8FC', border: '1px solid #ECEAF2' }}>
+                  <div className="flex items-center gap-2 rounded-lg px-3 py-2" style={{ background: '#F9F8FC', border: '1px solid #E6EDEC' }}>
                     <span className="text-[14px] font-extrabold text-neutral-400">30 €</span>
                     <span className="text-[11px] text-neutral-400 mx-1">↓</span>
-                    <span className="text-[14px] font-extrabold" style={{ color: '#6C4BF4' }}>27 €</span>
-                    <div className="w-5 h-5 rounded-full grid place-items-center ml-auto" style={{ background: '#157F52' }}>
+                    <span className="text-[14px] font-extrabold" style={{ color: '#024947' }}>27 €</span>
+                    <div className="w-5 h-5 rounded-full grid place-items-center ml-auto" style={{ background: '#0B7B44' }}>
                       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
                     </div>
                   </div>
@@ -217,8 +217,8 @@ export default function HomeDesktopView({ products, favoriteIds = [], isAuthed =
                 className="text-[13.5px] font-semibold rounded-full px-4 py-2.5 transition-colors cursor-pointer"
                 style={
                   selectedCat === cat.key
-                    ? { background: '#6C4BF4', color: '#fff', border: '1px solid #6C4BF4' }
-                    : { background: '#fff', color: '#4a4a52', border: '1px solid #ECEAF2' }
+                    ? { background: '#024947', color: '#fff', border: '1px solid #024947' }
+                    : { background: '#fff', color: '#4a4a52', border: '1px solid #E6EDEC' }
                 }
               >
                 {cat.label}
@@ -230,7 +230,7 @@ export default function HomeDesktopView({ products, favoriteIds = [], isAuthed =
           <div className="flex items-center justify-between pt-8 pb-1">
             <div className="flex items-center gap-3">
               <h2 className="text-[26px] font-extrabold tracking-tight text-neutral-900">Grupos abiertos</h2>
-              <span className="text-[13px] font-bold rounded-full px-3 py-1" style={{ background: '#EDE9FB', color: '#6C4BF4' }}>
+              <span className="text-[13px] font-bold rounded-full px-3 py-1" style={{ background: '#DEEDEC', color: '#024947' }}>
                 {gridProducts.length} activo{gridProducts.length !== 1 ? 's' : ''}
               </span>
             </div>
@@ -259,7 +259,7 @@ export default function HomeDesktopView({ products, favoriteIds = [], isAuthed =
 
 function StepCircle({ n }: { n: number }) {
   return (
-    <div className="w-9 h-9 rounded-full grid place-items-center text-[14px] font-extrabold shrink-0" style={{ border: '2px solid #D8D2F0', color: '#6C4BF4', background: '#fff' }}>
+    <div className="w-9 h-9 rounded-full grid place-items-center text-[14px] font-extrabold shrink-0" style={{ border: '2px solid #D8EAE9', color: '#024947', background: '#fff' }}>
       {n}
     </div>
   )
@@ -287,8 +287,8 @@ function useCardState(product: GroupProduct, isAuthed: boolean) {
   const [selIdx, setSelIdx] = useState(curIdx)
   const selectedPrice = detents.length > 0 ? detents[selIdx].price : currentPrice
   const confirmed = selIdx <= curIdx
-  const accent = confirmed ? '#6C4BF4' : '#E8944A'
-  const ctaBg = confirmed ? 'rgba(108,75,244,.10)' : 'rgba(232,148,74,.12)'
+  const accent = confirmed ? '#024947' : '#E8944A'
+  const ctaBg = confirmed ? 'rgba(2, 73, 71,.10)' : 'rgba(232,148,74,.12)'
   const ctaText = confirmed
     ? `Bloquear precio · ${fmt(selectedPrice)}`
     : `Bloquear precio · Máx. ${fmt(selectedPrice)}`
@@ -392,7 +392,7 @@ function GridCard({ product, isFavorited, isAuthed }: { product: GroupProduct; i
   const s = useCardState(product, isAuthed)
 
   return (
-    <div className="rounded-[18px] overflow-hidden bg-white flex flex-col" style={{ border: '1px solid #ECEAF2' }}>
+    <div className="rounded-[18px] overflow-hidden bg-white flex flex-col" style={{ border: '1px solid #E6EDEC' }}>
       {/* Image with gradient overlay */}
       <Link href={s.href} className="relative block w-full overflow-hidden group" style={{ aspectRatio: '1 / 0.85', background: '#1a1a1f' }}>
         {product.imageUrl ? (
@@ -401,7 +401,7 @@ function GridCard({ product, isFavorited, isAuthed }: { product: GroupProduct; i
           <div className="absolute inset-0 bg-gradient-to-br from-brand/20 to-brand/5" />
         )}
 
-        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-extrabold" style={{ background: 'rgba(255,255,255,.94)', color: '#6C4BF4', boxShadow: '0 4px 14px -6px rgba(30,20,60,.4)' }}>
+        <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-extrabold" style={{ background: 'rgba(255,255,255,.94)', color: '#024947', boxShadow: '0 4px 14px -6px rgba(30,20,60,.4)' }}>
           {s.isComplete ? '✓ Mejor precio' : s.missing === 1 ? '↓ Falta 1 ud' : `↓ Faltan ${s.missing} uds`}
         </div>
 

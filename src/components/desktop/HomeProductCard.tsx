@@ -63,8 +63,8 @@ export default function HomeProductCard({ product, isFavorited = false, isAuthed
   const selectedPrice = detents.length > 0 ? detents[selIdx].price : currentPrice
   const confirmed = selIdx <= curIdx
 
-  const accent = confirmed ? '#6C4BF4' : '#E8944A'
-  const ctaBg = confirmed ? 'rgba(108,75,244,.10)' : 'rgba(232,148,74,.12)'
+  const accent = confirmed ? '#024947' : '#E8944A'
+  const ctaBg = confirmed ? 'rgba(2, 73, 71,.10)' : 'rgba(232,148,74,.12)'
   const ctaText = confirmed
     ? `Asegurar plaza · ${fmt(selectedPrice)}`
     : `Reservar plaza · Máx. ${fmt(selectedPrice)}`
@@ -100,7 +100,7 @@ export default function HomeProductCard({ product, isFavorited = false, isAuthed
   return (
     <div className="flex-shrink-0 w-[300px] rounded-2xl bg-white border border-neutral-200 overflow-hidden flex flex-col transition-shadow hover:shadow-lg">
       {/* Image */}
-      <Link href={href} className="relative block w-full overflow-hidden group" style={{ aspectRatio: '1 / 0.72', background: '#F1EEFA' }}>
+      <Link href={href} className="relative block w-full overflow-hidden group" style={{ aspectRatio: '1 / 0.72', background: '#F1F7F7' }}>
         <img
           src={imageUrl}
           alt={product.name}
@@ -137,7 +137,7 @@ export default function HomeProductCard({ product, isFavorited = false, isAuthed
             )}
           </div>
           {savings > 0 && (
-            <div className="text-xs font-bold text-[#157F52] mt-2">Ahorra {fmt(savings)}</div>
+            <div className="text-xs font-bold text-[#0B7B44] mt-2">Ahorra {fmt(savings)}</div>
           )}
         </Link>
 
@@ -155,7 +155,7 @@ export default function HomeProductCard({ product, isFavorited = false, isAuthed
           type="button"
           onClick={handleCheckout}
           className="w-full mt-auto font-extrabold text-[13px] rounded-xl cursor-pointer transition-colors active:scale-[0.99] whitespace-nowrap"
-          style={{ border: `2px solid ${accent}`, background: ctaBg, color: accent, padding: '12px 10px', marginTop: 14, boxShadow: `0 12px 26px -14px ${confirmed ? 'rgba(108,75,244,.28)' : 'rgba(232,148,74,.28)'}` }}
+          style={{ border: `2px solid ${accent}`, background: ctaBg, color: accent, padding: '12px 10px', marginTop: 14, boxShadow: `0 12px 26px -14px ${confirmed ? 'rgba(2, 73, 71,.28)' : 'rgba(232,148,74,.28)'}` }}
         >
           {ctaText}
         </button>

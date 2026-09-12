@@ -6,7 +6,7 @@ export type PulseTone = 'orange' | 'purple'
 
 const TONE: Record<PulseTone, string> = {
   orange: '#F0531F', // energía latente (Mi Radar observando)
-  purple: '#6C3CE1', // compromisos activos empujando
+  purple: '#024947', // compromisos activos empujando
 }
 
 // intensidad → velocidad y nº de anillos (1 suave · 2 medio · 3 fuerte)

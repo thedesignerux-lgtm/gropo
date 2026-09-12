@@ -108,11 +108,11 @@ export default function HomeSidebar({
           `}</style>
           <svg viewBox="0 0 118 100" className="w-[110px] h-[92px] mx-auto mb-2" aria-hidden="true">
             <g transform="translate(59 46)">
-              <circle r="42" fill="none" stroke="rgba(148,130,230,.28)" strokeWidth="1.3" />
-              <circle r="30" fill="none" stroke="rgba(148,130,230,.28)" strokeWidth="1.3" />
-              <circle r="18" fill="none" stroke="rgba(148,130,230,.28)" strokeWidth="1.3" />
-              <circle className="radar-mini-pulse" r="16" fill="#6C3CE1" opacity=".45" />
-              <circle r="6" fill="#8B76F0" />
+              <circle r="42" fill="none" stroke="rgba(4, 129, 126,.28)" strokeWidth="1.3" />
+              <circle r="30" fill="none" stroke="rgba(4, 129, 126,.28)" strokeWidth="1.3" />
+              <circle r="18" fill="none" stroke="rgba(4, 129, 126,.28)" strokeWidth="1.3" />
+              <circle className="radar-mini-pulse" r="16" fill="#024947" opacity=".45" />
+              <circle r="6" fill="#04817E" />
               <circle cx="30" cy="-28" r="4.5" fill="#0E1220" stroke="#F0531F" strokeWidth="2.2" />
             </g>
           </svg>

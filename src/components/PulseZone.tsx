@@ -19,8 +19,8 @@ import PulseAcceptModal from '@/components/PulseAcceptModal'
 import { usePulse } from '@/hooks/usePulse'
 
 const fmt = (n: number) => (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
-const PURPLE = '#6C3CE1'
-const GREEN = '#0F9D58'
+const PURPLE = '#024947'
+const GREEN = '#0B7B44'
 
 interface Props {
   groupId: string
@@ -81,7 +81,7 @@ export default function PulseZone({
     lockTimers.current.push(setTimeout(() => setLockPhase(2), 1000))
     lockTimers.current.push(setTimeout(action, 1800))
   }
-  const lockedCtaStyle = { border: '2px solid #157F52', background: '#E8F5E9', color: '#157F52' }
+  const lockedCtaStyle = { border: '2px solid #0B7B44', background: '#E8F5E9', color: '#0B7B44' }
 
   async function upsertPledge(price: number, quantity: number) {
     setBusy(true); setError(null)
@@ -218,7 +218,7 @@ export default function PulseZone({
     } else if (mine?.status === 'accepted') {
       statusLine = (
         <div className="flex items-center justify-between text-[12px]">
-          <span className="inline-flex items-center gap-1.5 font-bold" style={{ color: '#6D28D9' }}>
+          <span className="inline-flex items-center gap-1.5 font-bold" style={{ color: '#013230' }}>
             <Dot color={PURPLE} />
             Compromiso activo · {fmt(mine.tier_price)} — 0 € hasta que haya grupo
           </span>
@@ -231,7 +231,7 @@ export default function PulseZone({
       // cambiar la cantidad antes de comprometerse).
       statusLine = (
         <div className="flex items-center justify-between text-[12px]">
-          <span className="inline-flex items-center gap-2 font-bold" style={{ color: '#6D28D9' }}>
+          <span className="inline-flex items-center gap-2 font-bold" style={{ color: '#013230' }}>
             <Dot color={PURPLE} />
             Tu ancla: {fmt(mine.tier_price)}
             <span className="inline-flex items-center gap-1.5 font-semibold text-neutral-500">
@@ -246,7 +246,7 @@ export default function PulseZone({
     } else if (mine == null && markable && steps.some((s) => !s.reached)) {
       statusLine = (
         <p className="hidden lg:block text-[12px] text-neutral-400">
-          Toca el <b style={{ color: '#6D28D9' }}>precio que esperas</b> — sin tarjeta, sin compromiso.
+          Toca el <b style={{ color: '#013230' }}>precio que esperas</b> — sin tarjeta, sin compromiso.
         </p>
       )
     }
@@ -324,13 +324,13 @@ export default function PulseZone({
       // Masa alcanzada para tu precio anclado → leyenda morada + UNA CTA de aceptar
       boxed = (
         <>
-          <div className="flex items-start gap-2.5 rounded-2xl mt-3.5" style={{ background: '#EEEAFB', border: '1px solid #E0D8FA', padding: '12px 14px' }}>
-            <MedalIcon color="#6C4BF4" />
+          <div className="flex items-start gap-2.5 rounded-2xl mt-3.5" style={{ background: '#EFF6F6', border: '1px solid #E2F0EF', padding: '12px 14px' }}>
+            <MedalIcon color="#024947" />
             <div>
-              <p className="text-[13px] leading-snug" style={{ color: '#5B3BD1' }}>
+              <p className="text-[13px] leading-snug" style={{ color: '#024947' }}>
                 ¡Ya sois suficientes! Tu precio de <b>{fmt(mine.tier_price)}</b> puede hacerse realidad.
               </p>
-              <p className="text-[12px] leading-snug mt-1.5" style={{ color: '#7A64C4' }}>
+              <p className="text-[12px] leading-snug mt-1.5" style={{ color: '#024947' }}>
                 Solo añades tu tarjeta: <b>hoy no se te cobra ni se retiene nada</b>. Si el resto
                 también fija su precio y este se activa, se retiene el importe y se cobra al cerrar
                 el grupo el domingo.
@@ -344,7 +344,7 @@ export default function PulseZone({
           <button
             onClick={(e) => { stop(e); setModal(true) }}
             className="w-full mt-3 rounded-[12px] py-3.5 text-sm font-bold transition-[filter] hover:brightness-95 active:scale-[0.99]"
-            style={{ background: '#6C4BF4', color: '#fff' }}
+            style={{ background: '#024947', color: '#fff' }}
           >
             Ya sois suficientes → Aceptar {fmt(mine.tier_price)}
           </button>
@@ -363,9 +363,9 @@ export default function PulseZone({
     } else if (curActive) {
       boxed = (
         <>
-          <div className="flex items-start gap-2.5 rounded-2xl mt-3.5" style={{ background: '#EEEAFB', border: '1px solid #E0D8FA', padding: '12px 14px' }}>
-            <MedalIcon color="#6C4BF4" />
-            <p className="text-[13px] leading-snug" style={{ color: '#5B3BD1' }}>
+          <div className="flex items-start gap-2.5 rounded-2xl mt-3.5" style={{ background: '#EFF6F6', border: '1px solid #E2F0EF', padding: '12px 14px' }}>
+            <MedalIcon color="#024947" />
+            <p className="text-[13px] leading-snug" style={{ color: '#024947' }}>
               Este precio ya está disponible. <b>¡Desbloquéalo ahora!</b>
             </p>
           </div>
@@ -373,7 +373,7 @@ export default function PulseZone({
             onClick={(e) => startLock(e, () => router.push(`/grupo/${groupId}/unirme`))}
             disabled={lockPhase === 1}
             className="w-full mt-3 rounded-[12px] py-3.5 text-sm font-bold transition-[filter] hover:brightness-95 active:scale-[0.99]"
-            style={lockPhase >= 2 ? lockedCtaStyle : { background: '#6C4BF4', color: '#fff' }}
+            style={lockPhase >= 2 ? lockedCtaStyle : { background: '#024947', color: '#fff' }}
           >
             {lockPhase >= 2 ? '✓ Precio bloqueado' : <>Desbloquear precio a {fmt(currentPrice)}</>}
           </button>

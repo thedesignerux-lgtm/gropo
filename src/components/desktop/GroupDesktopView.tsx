@@ -37,7 +37,7 @@ const TRUST = [
 
 function ImagePlaceholder({ label }: { label: string }) {
   return (
-    <div className="w-full h-full bg-[#F1EEFA] flex flex-col items-center justify-center gap-2 text-neutral-400">
+    <div className="w-full h-full bg-[#F1F7F7] flex flex-col items-center justify-center gap-2 text-neutral-400">
       <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" />
       </svg>
@@ -60,7 +60,7 @@ export default function GroupDesktopView({
     <div className="min-h-screen" style={{ background: '#FBFAF8' }}>
       <DesktopNavbar />
       <div className="py-8 px-6">
-      <div className="max-w-[1080px] mx-auto bg-white rounded-[30px] border border-[#ECEAF2] overflow-hidden px-[38px] py-[34px]" style={{ boxShadow: '0 40px 90px -50px rgba(30,20,60,.35)' }}>
+      <div className="max-w-[1080px] mx-auto bg-white rounded-[30px] border border-[#E6EDEC] overflow-hidden px-[38px] py-[34px]" style={{ boxShadow: '0 40px 90px -50px rgba(30,20,60,.35)' }}>
 
         {/* ── Header: breadcrumb + share/save ── */}
         <div className="flex items-center justify-between mb-1.5">
@@ -147,8 +147,8 @@ export default function GroupDesktopView({
           </p>
           <div className="grid grid-cols-3 gap-4 mt-6">
             {STEPS.map(s => (
-              <div key={s.n} className="rounded-2xl border border-[#ECEAF2] p-[18px]">
-                <div className="w-[30px] h-[30px] rounded-[9px] bg-[#EDE9FB] flex items-center justify-center text-sm font-extrabold text-brand">{s.n}</div>
+              <div key={s.n} className="rounded-2xl border border-[#E6EDEC] p-[18px]">
+                <div className="w-[30px] h-[30px] rounded-[9px] bg-[#DEEDEC] flex items-center justify-center text-sm font-extrabold text-brand">{s.n}</div>
                 <h3 className="text-[14.5px] font-bold text-neutral-900 mt-3">{s.title}</h3>
                 <p className="text-[12.5px] text-[#8A8794] leading-relaxed mt-1">{s.body}</p>
               </div>
@@ -160,7 +160,7 @@ export default function GroupDesktopView({
         <div className="flex gap-11 mt-[30px] pt-[26px] border-t border-[#F1EFF5]">
           {TRUST.map(t => (
             <div key={t.title} className="flex items-center gap-[11px]">
-              <div className="w-[34px] h-[34px] rounded-full bg-[#EDE9FB] flex-shrink-0" />
+              <div className="w-[34px] h-[34px] rounded-full bg-[#DEEDEC] flex-shrink-0" />
               <div>
                 <p className="text-[13.5px] font-bold text-neutral-900">{t.title}</p>
                 <p className="text-xs text-[#8A8794]">{t.body}</p>

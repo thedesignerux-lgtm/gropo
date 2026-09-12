@@ -77,7 +77,7 @@ function CompactCountdown({ closesAt }: { closesAt: string }) {
   return (
     <span
       className={`tabular-nums ${state.near ? 'text-lg font-extrabold' : 'text-[13px] font-bold'}`}
-      style={{ color: state.urgent ? '#D6452B' : state.near ? '#6C4BF4' : '#6B6B76' }}
+      style={{ color: state.urgent ? '#D6452B' : state.near ? '#024947' : '#6B6B76' }}
     >
       {state.label}
     </span>
@@ -91,7 +91,7 @@ function fireConfetti() {
     particleCount: 90,
     spread: 75,
     origin: { y: 0.75 },
-    colors: ['#6C3CE1', '#8B63E8', '#F3F0FF'],
+    colors: ['#024947', '#04817E', '#F5FAFA'],
   });
 }
 
@@ -192,7 +192,7 @@ export default function JoinFlow({
       // rechaza la confirmación en modo diferido con "setup_future_usage mismatch".
       setup_future_usage: 'on_session' as const,
       paymentMethodTypes: ['card'],
-      appearance: { theme: 'stripe' as const, variables: { colorPrimary: '#6C3CE1' } },
+      appearance: { theme: 'stripe' as const, variables: { colorPrimary: '#024947' } },
     }),
     [effectiveAmount],
   );
@@ -253,16 +253,16 @@ export default function JoinFlow({
                 </div>
               </div>
               <div className="mt-[13px] flex items-center gap-2">
-                <div className="flex h-[34px] items-center gap-2.5 rounded-[11px] border border-black/[0.08] bg-[#F5F3F9] px-1.5">
+                <div className="flex h-[34px] items-center gap-2.5 rounded-[11px] border border-black/[0.08] bg-[#F2F7F7] px-1.5">
                   <button type="button" onClick={() => setQuantity((q) => Math.max(1, q - 1))} disabled={quantity <= 1 || checkoutBusy} aria-label="Quitar una unidad" className="grid h-6 w-6 place-items-center text-[17px] leading-none text-neutral-600 disabled:text-neutral-300">−</button>
                   <span className="min-w-[22px] text-center text-[15px] font-bold tabular-nums text-neutral-900">{quantity}</span>
                   <button type="button" onClick={() => setQuantity((q) => Math.min(maxQty, q + 1))} disabled={quantity >= maxQty || checkoutBusy} aria-label="Añadir una unidad" className="grid h-6 w-6 place-items-center text-[17px] leading-none text-neutral-600 disabled:text-neutral-300">+</button>
                 </div>
-                <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#F5F3F9] px-2.5 py-1.5 text-xs font-semibold text-neutral-500">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6C3CE1" strokeWidth="2"><rect x="1" y="6" width="14" height="10" rx="1.5" /><path d="M15 9h4l3 3v4h-7" /><circle cx="6" cy="18" r="2" /><circle cx="18" cy="18" r="2" /></svg>
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#F2F7F7] px-2.5 py-1.5 text-xs font-semibold text-neutral-500">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#024947" strokeWidth="2"><rect x="1" y="6" width="14" height="10" rx="1.5" /><path d="M15 9h4l3 3v4h-7" /><circle cx="6" cy="18" r="2" /><circle cx="18" cy="18" r="2" /></svg>
                   Entrega gratis
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#E6F5EC] px-2.5 py-1.5 text-xs font-bold text-[#0F8A4D]">
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#E6F5EC] px-2.5 py-1.5 text-xs font-bold text-[#0B7B44]">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                   En stock
                 </span>
@@ -277,13 +277,13 @@ export default function JoinFlow({
                 <div className="text-xs font-semibold text-neutral-500">Precio actual del grupo</div>
                 <div className="ml-auto text-[22px] font-extrabold leading-none tracking-tight tabular-nums text-neutral-900">{eur(pricePerUnit)}</div>
               </div>
-              <div className="flex items-center rounded-[14px] border-[1.5px] px-3.5 py-3" style={{ background: '#F4F0FE', borderColor: '#6C3CE1' }}>
-                <div className="mr-[11px] grid h-[34px] w-[34px] flex-none place-items-center rounded-[10px]" style={{ background: '#6C3CE1' }}>
+              <div className="flex items-center rounded-[14px] border-[1.5px] px-3.5 py-3" style={{ background: '#F5F9F9', borderColor: '#024947' }}>
+                <div className="mr-[11px] grid h-[34px] w-[34px] flex-none place-items-center rounded-[10px]" style={{ background: '#024947' }}>
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4.5" /><circle cx="12" cy="12" r="1" /></svg>
                 </div>
                 <div>
                   <div className="text-[15px] font-bold text-brand">Tu precio objetivo</div>
-                  <div className="mt-px text-xs font-medium" style={{ color: '#8A72D6' }}>al que compras si el grupo lo alcanza</div>
+                  <div className="mt-px text-xs font-medium" style={{ color: '#024947' }}>al que compras si el grupo lo alcanza</div>
                 </div>
                 <div className="ml-auto text-[22px] font-extrabold leading-none tracking-tight tabular-nums text-brand">{eur(efectiveTargetPrice)}</div>
               </div>
@@ -296,7 +296,7 @@ export default function JoinFlow({
               <div className="flex items-center">
                 <div className="flex-1 text-[15px] font-extrabold text-neutral-900">Progreso del grupo</div>
                 <div className="flex items-center gap-1 text-xs font-semibold text-neutral-500">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6C3CE1" strokeWidth="2.2"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" strokeLinecap="round" /></svg>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#024947" strokeWidth="2.2"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" strokeLinecap="round" /></svg>
                   <span>Cierra en</span> <CompactCountdown closesAt={group.closes_at} />
                 </div>
               </div>
@@ -315,11 +315,11 @@ export default function JoinFlow({
                     return (
                       <div key={i} className="flex w-14 flex-col items-center">
                         {groupReached ? (
-                          <div className="grid h-5 w-5 place-items-center rounded-full border-[3px] border-[#faf9fc] bg-brand" style={{ boxShadow: '0 0 0 1.5px #6C3CE1' }}>
+                          <div className="grid h-5 w-5 place-items-center rounded-full border-[3px] border-[#faf9fc] bg-brand" style={{ boxShadow: '0 0 0 1.5px #024947' }}>
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                           </div>
                         ) : youReached ? (
-                          <div className="grid h-5 w-5 place-items-center rounded-full border-[3px] border-[#faf9fc]" style={{ background: '#6C3CE1', boxShadow: '0 0 0 1.5px #6C3CE1' }}>
+                          <div className="grid h-5 w-5 place-items-center rounded-full border-[3px] border-[#faf9fc]" style={{ background: '#024947', boxShadow: '0 0 0 1.5px #024947' }}>
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                           </div>
                         ) : isTarget ? (
@@ -339,7 +339,7 @@ export default function JoinFlow({
               {missingToTarget > 0 ? (
                 <div className="mt-1 text-center text-xs font-medium text-neutral-500">Faltan <b className="text-[#e8890c]">{missingToTarget} {missingToTarget === 1 ? 'unidad' : 'unidades'}</b> para llegar a tu objetivo</div>
               ) : (
-                <div className="mt-1 text-center text-xs font-bold text-[#0F8A4D]">Tu precio objetivo ya está desbloqueado 🎉</div>
+                <div className="mt-1 text-center text-xs font-bold text-[#0B7B44]">Tu precio objetivo ya está desbloqueado 🎉</div>
               )}
             </div>
           </section>
@@ -347,7 +347,7 @@ export default function JoinFlow({
           {/* Banner verde: compra automática (money-critical: importe retenido) */}
           <section className="px-4 pt-3.5">
             <div className="flex gap-[11px] rounded-2xl border border-[#CFEADA] bg-[#EEF8F1] p-[13px]">
-              <svg width="19" height="19" className="mt-px flex-none" viewBox="0 0 24 24" fill="none" stroke="#0F8A4D" strokeWidth="2"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11z" /><path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              <svg width="19" height="19" className="mt-px flex-none" viewBox="0 0 24 24" fill="none" stroke="#0B7B44" strokeWidth="2"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11z" /><path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" /></svg>
               <div className="text-xs font-semibold leading-[1.5] text-[#0D6B3D]">
                 <b>Tu compra automática a {eur(efectiveTargetPrice)}.</b> Se retendrán {eur(efectiveTargetPrice * quantity)} ({eur(efectiveTargetPrice)}/ud × {quantity}). Si el grupo alcanza este precio antes del cierre, tu compra se confirma automáticamente. Si no, se libera sin cargo.{' '}
                 <button type="button" onClick={() => setPayInfoOpen(true)} className="font-extrabold underline">Cómo funciona</button>
@@ -405,16 +405,16 @@ export default function JoinFlow({
                 </div>
               </div>
               <div className="mt-[13px] flex items-center gap-2">
-                <div className="flex h-[34px] items-center gap-2.5 rounded-[11px] border border-black/[0.08] bg-[#F5F3F9] px-1.5">
+                <div className="flex h-[34px] items-center gap-2.5 rounded-[11px] border border-black/[0.08] bg-[#F2F7F7] px-1.5">
                   <button type="button" onClick={() => setQuantity((q) => Math.max(1, q - 1))} disabled={quantity <= 1 || checkoutBusy} aria-label="Quitar una unidad" className="grid h-6 w-6 place-items-center text-[17px] leading-none text-neutral-600 disabled:text-neutral-300">−</button>
                   <span className="min-w-[22px] text-center text-[15px] font-bold tabular-nums text-neutral-900">{quantity}</span>
                   <button type="button" onClick={() => setQuantity((q) => Math.min(maxQty, q + 1))} disabled={quantity >= maxQty || checkoutBusy} aria-label="Añadir una unidad" className="grid h-6 w-6 place-items-center text-[17px] leading-none text-neutral-600 disabled:text-neutral-300">+</button>
                 </div>
-                <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#F5F3F9] px-2.5 py-1.5 text-xs font-semibold text-neutral-500">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6C3CE1" strokeWidth="2"><rect x="1" y="6" width="14" height="10" rx="1.5" /><path d="M15 9h4l3 3v4h-7" /><circle cx="6" cy="18" r="2" /><circle cx="18" cy="18" r="2" /></svg>
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#F2F7F7] px-2.5 py-1.5 text-xs font-semibold text-neutral-500">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#024947" strokeWidth="2"><rect x="1" y="6" width="14" height="10" rx="1.5" /><path d="M15 9h4l3 3v4h-7" /><circle cx="6" cy="18" r="2" /><circle cx="18" cy="18" r="2" /></svg>
                   Entrega gratis
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#E6F5EC] px-2.5 py-1.5 text-xs font-bold text-[#0F8A4D]">
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#E6F5EC] px-2.5 py-1.5 text-xs font-bold text-[#0B7B44]">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                   En stock
                 </span>
@@ -424,13 +424,13 @@ export default function JoinFlow({
 
           {/* Tarjeta objetivo conseguido */}
           <section className="px-4 pt-3.5">
-            <div className="flex items-center rounded-[18px] border-[1.5px] px-3.5 py-3.5" style={{ background: '#F4F0FE', borderColor: '#6C3CE1' }}>
-              <div className="mr-[11px] grid h-[34px] w-[34px] flex-none place-items-center rounded-[10px]" style={{ background: '#6C3CE1' }}>
+            <div className="flex items-center rounded-[18px] border-[1.5px] px-3.5 py-3.5" style={{ background: '#F5F9F9', borderColor: '#024947' }}>
+              <div className="mr-[11px] grid h-[34px] w-[34px] flex-none place-items-center rounded-[10px]" style={{ background: '#024947' }}>
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4.5" /><circle cx="12" cy="12" r="1" /></svg>
               </div>
               <div>
                 <div className="text-[15px] font-bold text-brand">¡Objetivo conseguido! Compras a {eur(displayPricePerUnit)}</div>
-                <div className="mt-px text-xs font-medium" style={{ color: '#8A72D6' }}>al reservar, tu compra se confirma automáticamente</div>
+                <div className="mt-px text-xs font-medium" style={{ color: '#024947' }}>al reservar, tu compra se confirma automáticamente</div>
               </div>
               <div className="ml-auto text-[22px] font-extrabold leading-none tracking-tight tabular-nums text-brand">{eur(displayPricePerUnit)}</div>
             </div>
@@ -442,7 +442,7 @@ export default function JoinFlow({
               <div className="flex items-center">
                 <div className="flex-1 text-[15px] font-extrabold text-neutral-900">Progreso del grupo</div>
                 <div className="flex items-center gap-1 text-xs font-semibold text-neutral-500">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6C3CE1" strokeWidth="2.2"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" strokeLinecap="round" /></svg>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#024947" strokeWidth="2.2"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" strokeLinecap="round" /></svg>
                   <span>Cierra en</span> <CompactCountdown closesAt={group.closes_at} />
                 </div>
               </div>
@@ -462,7 +462,7 @@ export default function JoinFlow({
                     return (
                       <div key={i} className="flex w-14 flex-col items-center">
                         {groupReached || youReached ? (
-                          <div className="grid h-5 w-5 place-items-center rounded-full border-[3px] border-[#faf9fc] bg-brand" style={{ boxShadow: '0 0 0 1.5px #6C3CE1' }}>
+                          <div className="grid h-5 w-5 place-items-center rounded-full border-[3px] border-[#faf9fc] bg-brand" style={{ boxShadow: '0 0 0 1.5px #024947' }}>
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                           </div>
                         ) : isGoal ? (
@@ -483,7 +483,7 @@ export default function JoinFlow({
               {comprarGoalIdx >= 0 ? (
                 <div className="mt-1 text-center text-xs font-medium text-neutral-500">Faltan <b className="text-[#e8890c]">{sorted[comprarGoalIdx].minUnits - projected} {sorted[comprarGoalIdx].minUnits - projected === 1 ? 'unidad' : 'unidades'}</b> para bajar al siguiente tramo: {eur(sorted[comprarGoalIdx].price)}</div>
               ) : (
-                <div className="mt-1 text-center text-xs font-bold text-[#0F8A4D]">Ya estás en el mejor precio 🎉</div>
+                <div className="mt-1 text-center text-xs font-bold text-[#0B7B44]">Ya estás en el mejor precio 🎉</div>
               )}
             </div>
           </section>
@@ -491,7 +491,7 @@ export default function JoinFlow({
           {/* Banner verde: compra confirmada al reservar (money-critical: cargo al cierre) */}
           <section className="px-4 pt-3.5">
             <div className="flex gap-[11px] rounded-2xl border border-[#CFEADA] bg-[#EEF8F1] p-[13px]">
-              <svg width="19" height="19" className="mt-px flex-none" viewBox="0 0 24 24" fill="none" stroke="#0F8A4D" strokeWidth="2"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11z" /><path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              <svg width="19" height="19" className="mt-px flex-none" viewBox="0 0 24 24" fill="none" stroke="#0B7B44" strokeWidth="2"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11z" /><path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" /></svg>
               <div className="text-xs font-semibold leading-[1.5] text-[#0D6B3D]">
                 <b>Compra confirmada al reservar.</b> El grupo ya alcanzó tu precio, así que tu compra a {eur(displayPricePerUnit)} queda asegurada. Se retiene el importe y el cargo se hace al cierre del grupo.{' '}
                 <button type="button" onClick={() => setPayInfoOpen(true)} className="font-extrabold underline">Cómo funciona</button>
@@ -550,16 +550,16 @@ export default function JoinFlow({
                 </div>
               </div>
               <div className="mt-[13px] flex items-center gap-2">
-                <div className="flex h-[34px] items-center gap-2.5 rounded-[11px] border border-black/[0.08] bg-[#F5F3F9] px-1.5">
+                <div className="flex h-[34px] items-center gap-2.5 rounded-[11px] border border-black/[0.08] bg-[#F2F7F7] px-1.5">
                   <button type="button" onClick={() => setQuantity((q) => Math.max(1, q - 1))} disabled={quantity <= 1 || checkoutBusy} aria-label="Quitar una unidad" className="grid h-6 w-6 place-items-center text-[17px] leading-none text-neutral-600 disabled:text-neutral-300">−</button>
                   <span className="min-w-[22px] text-center text-[15px] font-bold tabular-nums text-neutral-900">{quantity}</span>
                   <button type="button" onClick={() => setQuantity((q) => Math.min(maxQty, q + 1))} disabled={quantity >= maxQty || checkoutBusy} aria-label="Añadir una unidad" className="grid h-6 w-6 place-items-center text-[17px] leading-none text-neutral-600 disabled:text-neutral-300">+</button>
                 </div>
-                <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#F5F3F9] px-2.5 py-1.5 text-xs font-semibold text-neutral-500">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6C3CE1" strokeWidth="2"><rect x="1" y="6" width="14" height="10" rx="1.5" /><path d="M15 9h4l3 3v4h-7" /><circle cx="6" cy="18" r="2" /><circle cx="18" cy="18" r="2" /></svg>
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#F2F7F7] px-2.5 py-1.5 text-xs font-semibold text-neutral-500">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#024947" strokeWidth="2"><rect x="1" y="6" width="14" height="10" rx="1.5" /><path d="M15 9h4l3 3v4h-7" /><circle cx="6" cy="18" r="2" /><circle cx="18" cy="18" r="2" /></svg>
                   Entrega gratis
                 </span>
-                <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#E6F5EC] px-2.5 py-1.5 text-xs font-bold text-[#0F8A4D]">
+                <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#E6F5EC] px-2.5 py-1.5 text-xs font-bold text-[#0B7B44]">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                   En stock
                 </span>
@@ -569,18 +569,18 @@ export default function JoinFlow({
 
           {/* Tarjeta de precio: una sola fila resaltada (el precio que aseguras hoy) */}
           <section className="px-4 pt-3.5">
-            <div className="flex items-center rounded-[18px] border-[1.5px] px-3.5 py-3.5" style={{ background: '#F4F0FE', borderColor: '#6C3CE1' }}>
-              <div className="mr-[11px] grid h-[34px] w-[34px] flex-none place-items-center rounded-[10px]" style={{ background: '#6C3CE1' }}>
+            <div className="flex items-center rounded-[18px] border-[1.5px] px-3.5 py-3.5" style={{ background: '#F5F9F9', borderColor: '#024947' }}>
+              <div className="mr-[11px] grid h-[34px] w-[34px] flex-none place-items-center rounded-[10px]" style={{ background: '#024947' }}>
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11z" /><path d="M9 12l2 2 4-4" /></svg>
               </div>
               <div>
                 <div className="text-[15px] font-bold text-brand">Precio de tu plaza</div>
-                <div className="mt-px text-xs font-medium" style={{ color: '#8A72D6' }}>bajará si entran más compradores</div>
+                <div className="mt-px text-xs font-medium" style={{ color: '#024947' }}>bajará si entran más compradores</div>
               </div>
               <div className="ml-auto text-[22px] font-extrabold leading-none tracking-tight tabular-nums text-brand">{eur(displayPricePerUnit)}</div>
             </div>
             {savingsPerUnit > 0.01 && (
-              <p className="mt-2 px-1 text-[12px] font-semibold text-[#0F8A4D]">Ahorras {eur(savingsPerUnit * quantity)} frente al precio de tienda</p>
+              <p className="mt-2 px-1 text-[12px] font-semibold text-[#0B7B44]">Ahorras {eur(savingsPerUnit * quantity)} frente al precio de tienda</p>
             )}
           </section>
 
@@ -590,7 +590,7 @@ export default function JoinFlow({
               <div className="flex items-center">
                 <div className="flex-1 text-[15px] font-extrabold text-neutral-900">Progreso del grupo</div>
                 <div className="flex items-center gap-1 text-xs font-semibold text-neutral-500">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6C3CE1" strokeWidth="2.2"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" strokeLinecap="round" /></svg>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#024947" strokeWidth="2.2"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" strokeLinecap="round" /></svg>
                   <span>Cierra en</span> <CompactCountdown closesAt={group.closes_at} />
                 </div>
               </div>
@@ -609,11 +609,11 @@ export default function JoinFlow({
                     return (
                       <div key={i} className="flex w-14 flex-col items-center">
                         {groupReached ? (
-                          <div className="grid h-5 w-5 place-items-center rounded-full border-[3px] border-[#faf9fc] bg-brand" style={{ boxShadow: '0 0 0 1.5px #6C3CE1' }}>
+                          <div className="grid h-5 w-5 place-items-center rounded-full border-[3px] border-[#faf9fc] bg-brand" style={{ boxShadow: '0 0 0 1.5px #024947' }}>
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                           </div>
                         ) : youReached ? (
-                          <div className="grid h-5 w-5 place-items-center rounded-full border-[3px] border-[#faf9fc]" style={{ background: '#6C3CE1', boxShadow: '0 0 0 1.5px #6C3CE1' }}>
+                          <div className="grid h-5 w-5 place-items-center rounded-full border-[3px] border-[#faf9fc]" style={{ background: '#024947', boxShadow: '0 0 0 1.5px #024947' }}>
                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                           </div>
                         ) : isGoal ? (
@@ -631,11 +631,11 @@ export default function JoinFlow({
                 </div>
               </div>
               {projIdx > lastUnlockedIdx ? (
-                <div className="mt-1 text-center text-xs font-bold text-[#0F8A4D]">Tus {quantity} {quantity === 1 ? 'unidad desbloquea' : 'uds desbloquean'} {eur(sorted[projIdx].price)} 🎉</div>
+                <div className="mt-1 text-center text-xs font-bold text-[#0B7B44]">Tus {quantity} {quantity === 1 ? 'unidad desbloquea' : 'uds desbloquean'} {eur(sorted[projIdx].price)} 🎉</div>
               ) : comprarGoalIdx >= 0 ? (
                 <div className="mt-1 text-center text-xs font-medium text-neutral-500">Faltan <b className="text-[#e8890c]">{sorted[comprarGoalIdx].minUnits - projected} {sorted[comprarGoalIdx].minUnits - projected === 1 ? 'unidad' : 'unidades'}</b> para desbloquear {eur(sorted[comprarGoalIdx].price)}</div>
               ) : (
-                <div className="mt-1 text-center text-xs font-bold text-[#0F8A4D]">Mejor precio ya desbloqueado 🎉</div>
+                <div className="mt-1 text-center text-xs font-bold text-[#0B7B44]">Mejor precio ya desbloqueado 🎉</div>
               )}
             </div>
           </section>
@@ -643,7 +643,7 @@ export default function JoinFlow({
           {/* Banner verde: aseguras tu plaza hoy sin pagar */}
           <section className="px-4 pt-3.5">
             <div className="flex gap-[11px] rounded-2xl border border-[#CFEADA] bg-[#EEF8F1] p-[13px]">
-              <svg width="19" height="19" className="mt-px flex-none" viewBox="0 0 24 24" fill="none" stroke="#0F8A4D" strokeWidth="2"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11z" /><path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              <svg width="19" height="19" className="mt-px flex-none" viewBox="0 0 24 24" fill="none" stroke="#0B7B44" strokeWidth="2"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11z" /><path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" /></svg>
               <div className="text-xs font-semibold leading-[1.5] text-[#0D6B3D]">
                 <b>Aseguras tu plaza hoy sin pagar.</b> Retenemos el importe en tu tarjeta y solo se cobra al cierre del grupo, al mejor precio alcanzado. Si el grupo no se completa, se libera sin cargo.{' '}
                 <button type="button" onClick={() => setPayInfoOpen(true)} className="font-extrabold underline">¿Cómo funciona el pago?</button>
