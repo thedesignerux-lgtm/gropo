@@ -21,8 +21,9 @@
 | P0-06 | El checkout se cuelga al tocar el selector de unidades | 🟠 no reproducible · mitigado | ⚠️ **Una vez, 11-sep-2026. No reproducible desde entonces** |
 | P1-01 | Deriva producción ↔ repositorio en 5 funciones SQL | 🟠 P1 | ✅ Sí |
 | P1-02 | `supabase/prepare_join.sql` está corrupto y no parsea | ✅ resuelto | ✅ **Verificado 11-sep-2026** |
-| P1-03 | Multi-puja nunca ejecutada con dinero real (Gate G6) | 🟠 P1 | — |
-| P1-04 | Grupo atrapado en `closing` (excedente con segunda puja) | 🟠 P1 | ❌ nunca ejecutado |
+| P1-03 | Multi-puja nunca ejecutada con dinero real (Gate G6) | ⚪ FUERA DEL MVP | — |
+| P1-04 | Grupo atrapado en `closing` (excedente con segunda puja) | ⚪ Inalcanzable en el MVP | ❌ nunca ejecutado |
+| P0-08 | Next congelaba las lecturas de Supabase: ficha y checkout con datos fósiles | ✅ resuelto | ✅ **Sí, en producción 12-sep-2026** |
 | P1-05 | Adjudicado sin email: sin instrucciones y sin alerta | 🟠 P1 | ❓ desconocido |
 | P1-06 | Cero tests automatizados | 🟠 P1 | — |
 | P1-07 | `users_phone_key` no existe: rama de código inalcanzable | 🟠 P1 | ✅ 2 teléfonos duplicados |
@@ -389,6 +390,46 @@ con varias personas reales uniéndose, sería el primer punto de caída.
 
 ---
 
+### ✅ P0-08 · Next.js congelaba las lecturas de Supabase — RESUELTO (12-sep-2026)
+
+> **RESOLUCIÓN** — `no-store` en el `fetch` de `supabase-admin.ts` y `supabase-server.ts`, el
+> mismo patrón que `supabase.ts` (el cliente anon) ya tenía desde antes. Verificado en producción
+> con un grupo sonda: leer → cambiar la fila → releer, y ahora el segundo valor cambia.
+
+**Problema.** Las páginas de servidor `/grupo/[id]` (ficha) y `/grupo/[id]/unirme` (checkout)
+servían **los datos de su primer render, indefinidamente**. En un producto cuya promesa entera es
+que el precio baja en vivo, la ficha podía anunciar un precio que ya no existía.
+
+**Cómo se descubrió.** Durante el Ensayo 3, a partir de tres incoherencias de interfaz en el
+checkout que no cuadraban entre sí. Las tres resultaron ser el mismo bug: a `JoinFlow` le llegaba
+`group.total_units` congelado en 0, y de ese número dependen `projected`, `projIdx`,
+`lastUnlockedIdx`, `comprarGoalIdx` y `missingToTarget`. La cabecera de precio sí era correcta
+porque viene del endpoint `quote`, pedido desde el navegador. Un dato vivo y uno fósil en la misma
+pantalla.
+
+**Evidencia (dos grupos sonda, creados y borrados el mismo día):**
+
+| Paso | La BD decía | Lo que servía la página |
+|---|---|---|
+| 1ª lectura | 111 € · 0 uds | 111 € · 0 uds |
+| se cambia la fila | 88 € · 7 uds | **111 € · 0 uds** |
+| se cambian los tramos | 222/99 | **111/88** |
+
+Se congelaba **todo** lo leído por servidor: el `select` de `groups` y también los RPC
+`compute_price` y `tier_demand`. `export const dynamic = 'force-dynamic'`, que sí estaba puesto,
+**no lo impedía**. Las rutas de API no estaban afectadas: llevan además `revalidate = 0`.
+
+**Por qué no era money-critical.** El precio se calcula server-side en el momento de cobrar, y
+`create-intent` y `close_group` leen en vivo. Era un fallo de lo que se muestra, no de lo que se
+cobra. Aun así se trató como P0: anunciar un precio que ya no existe destruye la confianza en el
+único mecanismo que define el producto.
+
+**Efecto lateral de seguridad.** El mismo arreglo se aplicó a `supabase-server.ts`, el cliente que
+lee con la sesión del usuario. Ahí una lectura cacheada no es un precio viejo: es servir datos de
+una persona a otra.
+
+---
+
 ### P1-08 · Apple Pay y Google Pay se anuncian en el checkout pero no funcionan
 
 **Problema.** El pie del checkout muestra los logos de **VISA · Mastercard · Apple Pay · G Pay**,
@@ -412,7 +453,20 @@ Ver `LAUNCH_CHECKLIST.md`.
 
 ---
 
-### P1-03 · La maquinaria multi-puja nunca se ha ejecutado con dinero real
+### ⚪ P1-03 · La maquinaria multi-puja nunca se ha ejecutado con dinero real — FUERA DEL MVP
+
+> **DECISIÓN DE PRODUCTO (12-sep-2026, Benjamin).** La competencia entre vendedores queda fuera
+> del MVP: **un grupo, una puja activa**. P1-03 deja de ser bloqueante de lanzamiento y pasa a
+> FUTURE. El motor multi-puja sigue desplegado dentro de `close_group` v2, pero con una sola puja
+> activa sus ramas no se alcanzan.
+>
+> **Regla operativa mientras dure el MVP: no crear una segunda puja activa en un grupo.** No hay
+> ningún guard en base de datos que lo impida — es disciplina operativa. Si se quisiera blindar,
+> sería un índice único parcial sobre `bids (group_id) WHERE status='active'`; no implementado.
+>
+> Antes de abrir multi-puja hay que ejecutar el Gate G6 de verdad y resolver P1-04.
+
+**Descripción original:**
 
 **Problema.** Todo el motor multi-puja está implementado (`compute_price`, `tier_demand`,
 `close_group` v2, `addBidToGroup`, `withdrawBid`, RLS de `bids`) pero **nunca ha corrido con más
@@ -429,7 +483,13 @@ puja, ramas de excedente — **no tienen ninguna validación empírica**.
 
 ---
 
-### P1-04 · Grupo atrapado permanentemente en `closing`
+### ⚪ P1-04 · Grupo atrapado permanentemente en `closing` — INALCANZABLE EN EL MVP
+
+> **12-sep-2026.** Esta rama exige `v_has_second`, es decir **una segunda puja activa**. Con la
+> regla del MVP (un grupo, una puja) no se puede alcanzar. **No está arreglada**: sigue siendo
+> deuda bloqueante para el día que se abra la multi-puja.
+
+**Descripción original:**
 
 **Problema.** `close_group` rama 9B-b: si hay excedente **y** existe una segunda puja activa, el
 grupo se queda en `status='closing'` a propósito (esperando decisión del admin), pero

@@ -31,7 +31,9 @@
 |---|---|
 | P0-06 · checkout colgado al cambiar la cantidad | 🟠 **YA NO ES BLOQUEANTE** — no reproducible en 7 configuraciones (12-sep) y síntoma mitigado (`ed80b1c`). Causa UNKNOWN: vigilar en el Ensayo 3 |
 | Éxito sin esperar al webhook (P0-03) | ✅ **Cerrado 12-sep-2026** (`1185b83`) |
-| **Ensayo con esperadores reales** (Gate G6 / "Ensayo 3") | 🔴 **PENDIENTE — bloqueante** |
+| **Ensayo con esperadores reales** ("Ensayo 3") | ✅ **VERDE 12-sep-2026** — liquidación a 80 €, dos capturas parciales, un esperador cobrado y otro liberado; Stripe y BD coinciden |
+| Gate G6 multi-puja (dos vendedores compitiendo) | ⚪ **FUERA DEL MVP** (decisión de Benjamin, 12-sep). Un grupo = una puja activa |
+| Caché de Next congelaba ficha y checkout | ✅ **Cerrado 12-sep-2026** — `no-store` en los clientes Supabase de servidor, verificado en producción con grupo sonda |
 | **Rotación de claves de Sendcloud** (expuestas en chat) | 🔴 **PENDIENTE — bloqueante de seguridad** |
 | **Cutover de Stripe test → live** | 🔴 **PENDIENTE** |
 | Vendedor real con tramos confirmados | 🔴 Pendiente |
@@ -45,10 +47,12 @@
 
 **Conclusión: NO abrir pagos reales** hasta cerrar los bloqueantes en rojo.
 
-> **El Ensayo 3 es ahora el primero de la lista.** P0-06 dejó de bloquearlo el 12-sep: no se
-> reproduce y su síntoma está mitigado. Pero su causa sigue siendo UNKNOWN, así que durante el
-> ensayo hay que vigilar expresamente si alguien se queda en "Procesando…" tras tocar el selector
-> de unidades.
+> **El Ensayo 3 quedó en verde el 12-sep-2026.** Los bloqueantes que quedan **no son de código**:
+> rotación de claves de Sendcloud, cutover de Stripe a live, Custom SMTP en Supabase Auth y
+> conseguir un vendedor real.
+>
+> Durante el ensayo se tocó el selector de unidades varias veces sin reproducir P0-06. Su causa
+> sigue siendo UNKNOWN: seguir vigilándolo en cada compra real.
 
 ---
 
@@ -81,10 +85,28 @@
 
 ---
 
-## FASE 2 — Ensayo con esperadores reales (BLOQUEANTE)
+## FASE 2 — Ensayo con esperadores reales — ✅ VERDE (12-sep-2026)
 
-El gate G6 de la especificación multi-puja, que absorbe el antiguo "Ensayo 3". **No se lanza sin
-esto en verde.**
+> **EJECUTADO Y VERIFICADO.** Grupo `a0000000-0000-4000-8000-000000000007`, cinco participantes de
+> una unidad, tramos 1→100 € · 3→80 € · 6→60 €, mínimo de ejecución 2, stock 50. Cierre manual
+> desde el panel. Precio de liquidación **80 €**, predicho antes de ejecutar y confirmado después.
+>
+> | # | Modo | PMA | Retenido | Stripe | BD |
+> |---|---|---|---|---|---|
+> | 1 | comprar | 100 € | 100 € | cobrados **80 €** · succeeded | `paid` · final 80 € |
+> | 2 | comprar | 100 € | 100 € | cobrados **80 €** · succeeded | `paid` · final 80 € |
+> | 3 | **esperar** | 80 € | 80 € | cobrados **80 €** · succeeded | `paid` · final 80 € |
+> | 4 | comprar | 80 € | 80 € | cobrados **80 €** · succeeded | `paid` · final 80 € |
+> | 5 | **esperar** | 60 € | 60 € | **canceled · 0 €** | `released` |
+>
+> Capturado 320 € · liberado 60 €. Evento `group_closed` con `new_price: 80`, `gross_units: 5`,
+> `total_units: 4`. Puja → `winner`. **Cero desviaciones entre Stripe y la base de datos.**
+>
+> **Lo que este ensayo NO prueba:** la competencia entre vendedores. Solo había una puja activa.
+> Esa parte (el Gate G6 de la especificación multi-puja) queda **fuera del MVP** por decisión de
+> producto del 12-sep-2026.
+
+Guion original, conservado por si hay que repetirlo:
 
 - [ ] **[CLAUDE]** Preparar el guion: 1 grupo de test desechable, compradores "ahora" + al menos
       un esperador con PMA, holds reales en modo test, cierre manual desde el panel de admin, y

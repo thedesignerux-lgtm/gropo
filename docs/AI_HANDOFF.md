@@ -286,8 +286,8 @@ automático dominical está armado y se dispara. · **LOCATION**
 |---|---|---|
 | P1-01 | Deriva producción ↔ repositorio en 7 funciones | 🔴 Activo |
 | P1-02 | `prepare_join.sql` **corrupto** (línea 78 `$function$;R REPLACE FUNCTION`) | 🔴 Activo |
-| P1-03 | Multi-puja **nunca ejecutada con dinero real** (Gate G6) | 🟠 Sin validación |
-| P1-04 | Grupo **atrapado en `closing`**; `second_price_at_n` siempre NULL | 🟠 Latente |
+| P1-03 | Multi-puja **nunca ejecutada con dinero real** (Gate G6) | ⚪ Fuera del MVP (12-sep) — un grupo, una puja |
+| P1-04 | Grupo **atrapado en `closing`**; `second_price_at_n` siempre NULL | ⚪ Inalcanzable con una sola puja |
 | P1-05 | Adjudicado sin email: sin instrucciones y **sin alerta** | 🟠 Activo |
 | P1-06 | **Cero tests**; sin script `test` | 🟠 Estructural |
 | P1-07 | `users_phone_key` **no existe** → código inalcanzable; 2 teléfonos duplicados | 🟠 Activo |
@@ -581,8 +581,8 @@ perder datos o generar costes. **Nunca toques `.git/`.**
 | — | P0-05 `CRON_SECRET` en Vercel | Sin ella los grupos no se cerrarían | ✅ **RESUELTO** 11-sep-2026 | Ninguna |
 | P1 | P1-01 Deriva producción ↔ repo (quedan **5**) | Se razona sobre un algoritmo inexistente | 🟠 Parcial — `prepare_join` y `confirm_join` sincronizados 11-sep | Ninguna |
 | — | P1-02 `prepare_join.sql` corrupto | No parseaba ni como referencia | ✅ **RESUELTO** 11-sep-2026 | Ninguna |
-| P1 | P1-03 Multi-puja sin ensayo real (G6) | Sin validación empírica | 🟠 Pendiente | 2º vendedor + ensayo en test |
-| P1 | P1-04 Grupo atrapado en `closing` | Holds caducando sin salida | 🟠 Latente | **OD-05** |
+| — | P1-03 Multi-puja sin ensayo real (G6) | Sin validación empírica | ⚪ **FUERA DEL MVP** (decisión 12-sep) | Reabrir antes de permitir 2 pujas activas |
+| — | P1-04 Grupo atrapado en `closing` | Holds caducando sin salida | ⚪ Inalcanzable con una puja activa | **OD-05** · reabrir con multi-puja |
 | P1 | P1-05 Adjudicado sin email ni alerta | Nunca sabe que debe pagar | 🟠 Activo | Ninguna |
 | P1 | P1-06 Cero tests | Sin red de seguridad con dinero real | 🟠 Estructural | Ninguna |
 | P1 | **P1-08 Apple Pay / G Pay anunciados y no operativos** | Se muestran logos de métodos que no funcionan: conversión y confianza | 🔴 Activo | Registrar el dominio en Stripe |
