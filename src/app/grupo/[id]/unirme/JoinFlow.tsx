@@ -173,10 +173,19 @@ export default function JoinFlow({
     () => Math.max(50, Math.round(holdPricePerUnit * quantity * 100)),
     [holdPricePerUnit, quantity],
   );
+  // Una vez el comprador pulsa el boton, el pedido queda CONGELADO: ni el importe
+  // que ve Stripe ni la cantidad pueden cambiar mientras el checkout esta en
+  // marcha. Sin esto, la respuesta del quote puede llegar con submit() a medio
+  // ejecutar y dejar a Stripe y al servidor discutiendo sobre dos importes
+  // distintos. El selector de unidades se deshabilita a la vez (checkoutBusy).
+  const [frozenAmount, setFrozenAmount] = useState<number | null>(null);
+  const checkoutBusy = frozenAmount !== null;
+  const effectiveAmount = frozenAmount ?? amountCents;
+
   const elementsOptions = useMemo(
     () => ({
       mode: 'payment' as const,
-      amount: amountCents,
+      amount: effectiveAmount,
       currency: 'eur',
       capture_method: 'manual' as const,
       // Debe COINCIDIR con la PaymentIntent del servidor (create-intent), o Stripe
@@ -185,7 +194,7 @@ export default function JoinFlow({
       paymentMethodTypes: ['card'],
       appearance: { theme: 'stripe' as const, variables: { colorPrimary: '#6C3CE1' } },
     }),
-    [amountCents],
+    [effectiveAmount],
   );
 
   const [payInfoOpen, setPayInfoOpen] = useState(false);
@@ -245,9 +254,9 @@ export default function JoinFlow({
               </div>
               <div className="mt-[13px] flex items-center gap-2">
                 <div className="flex h-[34px] items-center gap-2.5 rounded-[11px] border border-black/[0.08] bg-[#F5F3F9] px-1.5">
-                  <button type="button" onClick={() => setQuantity((q) => Math.max(1, q - 1))} disabled={quantity <= 1} aria-label="Quitar una unidad" className="grid h-6 w-6 place-items-center text-[17px] leading-none text-neutral-600 disabled:text-neutral-300">−</button>
+                  <button type="button" onClick={() => setQuantity((q) => Math.max(1, q - 1))} disabled={quantity <= 1 || checkoutBusy} aria-label="Quitar una unidad" className="grid h-6 w-6 place-items-center text-[17px] leading-none text-neutral-600 disabled:text-neutral-300">−</button>
                   <span className="min-w-[22px] text-center text-[15px] font-bold tabular-nums text-neutral-900">{quantity}</span>
-                  <button type="button" onClick={() => setQuantity((q) => Math.min(maxQty, q + 1))} disabled={quantity >= maxQty} aria-label="Añadir una unidad" className="grid h-6 w-6 place-items-center text-[17px] leading-none text-neutral-600 disabled:text-neutral-300">+</button>
+                  <button type="button" onClick={() => setQuantity((q) => Math.min(maxQty, q + 1))} disabled={quantity >= maxQty || checkoutBusy} aria-label="Añadir una unidad" className="grid h-6 w-6 place-items-center text-[17px] leading-none text-neutral-600 disabled:text-neutral-300">+</button>
                 </div>
                 <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#F5F3F9] px-2.5 py-1.5 text-xs font-semibold text-neutral-500">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6C3CE1" strokeWidth="2"><rect x="1" y="6" width="14" height="10" rx="1.5" /><path d="M15 9h4l3 3v4h-7" /><circle cx="6" cy="18" r="2" /><circle cx="18" cy="18" r="2" /></svg>
@@ -397,9 +406,9 @@ export default function JoinFlow({
               </div>
               <div className="mt-[13px] flex items-center gap-2">
                 <div className="flex h-[34px] items-center gap-2.5 rounded-[11px] border border-black/[0.08] bg-[#F5F3F9] px-1.5">
-                  <button type="button" onClick={() => setQuantity((q) => Math.max(1, q - 1))} disabled={quantity <= 1} aria-label="Quitar una unidad" className="grid h-6 w-6 place-items-center text-[17px] leading-none text-neutral-600 disabled:text-neutral-300">−</button>
+                  <button type="button" onClick={() => setQuantity((q) => Math.max(1, q - 1))} disabled={quantity <= 1 || checkoutBusy} aria-label="Quitar una unidad" className="grid h-6 w-6 place-items-center text-[17px] leading-none text-neutral-600 disabled:text-neutral-300">−</button>
                   <span className="min-w-[22px] text-center text-[15px] font-bold tabular-nums text-neutral-900">{quantity}</span>
-                  <button type="button" onClick={() => setQuantity((q) => Math.min(maxQty, q + 1))} disabled={quantity >= maxQty} aria-label="Añadir una unidad" className="grid h-6 w-6 place-items-center text-[17px] leading-none text-neutral-600 disabled:text-neutral-300">+</button>
+                  <button type="button" onClick={() => setQuantity((q) => Math.min(maxQty, q + 1))} disabled={quantity >= maxQty || checkoutBusy} aria-label="Añadir una unidad" className="grid h-6 w-6 place-items-center text-[17px] leading-none text-neutral-600 disabled:text-neutral-300">+</button>
                 </div>
                 <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#F5F3F9] px-2.5 py-1.5 text-xs font-semibold text-neutral-500">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6C3CE1" strokeWidth="2"><rect x="1" y="6" width="14" height="10" rx="1.5" /><path d="M15 9h4l3 3v4h-7" /><circle cx="6" cy="18" r="2" /><circle cx="18" cy="18" r="2" /></svg>
@@ -542,9 +551,9 @@ export default function JoinFlow({
               </div>
               <div className="mt-[13px] flex items-center gap-2">
                 <div className="flex h-[34px] items-center gap-2.5 rounded-[11px] border border-black/[0.08] bg-[#F5F3F9] px-1.5">
-                  <button type="button" onClick={() => setQuantity((q) => Math.max(1, q - 1))} disabled={quantity <= 1} aria-label="Quitar una unidad" className="grid h-6 w-6 place-items-center text-[17px] leading-none text-neutral-600 disabled:text-neutral-300">−</button>
+                  <button type="button" onClick={() => setQuantity((q) => Math.max(1, q - 1))} disabled={quantity <= 1 || checkoutBusy} aria-label="Quitar una unidad" className="grid h-6 w-6 place-items-center text-[17px] leading-none text-neutral-600 disabled:text-neutral-300">−</button>
                   <span className="min-w-[22px] text-center text-[15px] font-bold tabular-nums text-neutral-900">{quantity}</span>
-                  <button type="button" onClick={() => setQuantity((q) => Math.min(maxQty, q + 1))} disabled={quantity >= maxQty} aria-label="Añadir una unidad" className="grid h-6 w-6 place-items-center text-[17px] leading-none text-neutral-600 disabled:text-neutral-300">+</button>
+                  <button type="button" onClick={() => setQuantity((q) => Math.min(maxQty, q + 1))} disabled={quantity >= maxQty || checkoutBusy} aria-label="Añadir una unidad" className="grid h-6 w-6 place-items-center text-[17px] leading-none text-neutral-600 disabled:text-neutral-300">+</button>
                 </div>
                 <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#F5F3F9] px-2.5 py-1.5 text-xs font-semibold text-neutral-500">
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6C3CE1" strokeWidth="2"><rect x="1" y="6" width="14" height="10" rx="1.5" /><path d="M15 9h4l3 3v4h-7" /><circle cx="6" cy="18" r="2" /><circle cx="18" cy="18" r="2" /></svg>
@@ -682,6 +691,8 @@ export default function JoinFlow({
           targetReached={targetReached}
           targetPrice={isEsperar ? efectiveTargetPrice : undefined}
           onOpenHow={() => setPayInfoOpen(true)}
+          onCheckoutStart={() => setFrozenAmount(amountCents)}
+          onCheckoutEnd={() => setFrozenAmount(null)}
         />
       </Elements>
 
@@ -739,6 +750,8 @@ function InnerForm({
   targetReached = false,
   targetPrice,
   onOpenHow,
+  onCheckoutStart,
+  onCheckoutEnd,
 }: {
   group: JoinGroup;
   quantity: number;
@@ -750,6 +763,10 @@ function InnerForm({
   targetReached?: boolean;
   targetPrice?: number;
   onOpenHow: () => void;
+  /** Congela el importe y el selector en cuanto arranca el checkout. */
+  onCheckoutStart: () => void;
+  /** Lo descongela si el checkout falla y el comprador vuelve al boton. */
+  onCheckoutEnd: () => void;
 }) {
   const stripe = useStripe();
   const elements = useElements();
@@ -823,12 +840,31 @@ function InnerForm({
     }
 
     setLoading(true);
+    onCheckoutStart();
     const fullName = `${c.nombre} ${c.apellidos}`.trim();
 
-    const { error: submitError } = await elements.submit();
+    // Reloj de seguridad (P0-06). El 11-sep-2026 se observo en produccion que
+    // elements.submit() podia no resolver nunca y dejar al comprador atrapado en
+    // "Procesando..." sin salida. No se ha logrado reproducir despues, asi que la
+    // causa sigue siendo UNKNOWN: esto no arregla el fallo, impide que sea letal.
+    // Es seguro: aqui todavia NO existe ninguna retencion — create-intent no se ha
+    // llamado — asi que reintentar no puede cobrar ni retener dos veces.
+    const submitOutcome = await Promise.race([
+      elements.submit(),
+      new Promise<'timeout'>((resolve) => setTimeout(() => resolve('timeout'), 20000)),
+    ]);
+    if (submitOutcome === 'timeout') {
+      setError('El formulario de pago no responde. Vuelve a pulsar el botón; si sigue igual, recarga la página. No se te ha cobrado ni retenido nada.');
+      setLoading(false);
+      onCheckoutEnd();
+      return;
+    }
+
+    const { error: submitError } = submitOutcome;
     if (submitError) {
       setError(submitError.message ?? 'Revisa los datos de la tarjeta');
       setLoading(false);
+      onCheckoutEnd();
       return;
     }
 
@@ -859,12 +895,14 @@ function InnerForm({
       if (!res.ok) {
         setError(data.error ?? 'No se pudo completar la compra');
         setLoading(false);
+        onCheckoutEnd();
         return;
       }
       clientSecret = data.clientSecret;
     } catch {
       setError('Error de conexión. Inténtalo de nuevo.');
       setLoading(false);
+      onCheckoutEnd();
       return;
     }
 
@@ -893,6 +931,7 @@ function InnerForm({
     if (confirmError) {
       setError(confirmError.message ?? 'No se pudo verificar el pago');
       setLoading(false);
+      onCheckoutEnd();
       return;
     }
 
