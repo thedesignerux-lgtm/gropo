@@ -11,6 +11,10 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
     {
       ...(opts ? { cookieOptions: opts } : {}),
+      // Mismo motivo que en `supabase.ts` y `supabase-admin.ts`: sin esto, Next
+      // puede servir desde su Data Cache lecturas hechas con la sesión de OTRA
+      // persona. Aquí no es solo un precio desactualizado, es privacidad.
+      global: { fetch: (input, init) => fetch(input, { ...init, cache: 'no-store' }) },
       cookies: {
         getAll() { return cookieStore.getAll() },
         setAll(cookiesToSet) {
