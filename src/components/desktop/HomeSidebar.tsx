@@ -56,8 +56,8 @@ export default function HomeSidebar({
     <aside className="hidden lg:flex w-[236px] flex-shrink-0 flex-col sticky top-0 h-screen px-4 py-5 bg-[#0E1220] text-slate-300">
       {/* Logo */}
       <Link href="/" className="flex items-center gap-2.5 px-2 pb-6" aria-label="Gropo - inicio">
-        <img src="/logo-mark.png" alt="Gropo" className="w-[34px] h-[34px] object-contain" />
-        <span className="text-[19px] font-bold text-white tracking-tight">Gropo</span>
+        {/* Versión clara: sobre el fondo oscuro del sidebar, el wordmark teal no se ve. */}
+        <img src="/logo-light.png" alt="Gropo" className="h-[26px] w-auto object-contain" />
       </Link>
 
       <nav className="flex flex-col gap-0.5">

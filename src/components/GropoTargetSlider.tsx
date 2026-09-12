@@ -277,7 +277,7 @@ export default function GropoTargetSlider({
         {/* Tooltip naranja "Faltan X uds" sobre el tier seleccionado */}
         {selIdx > curIdx && faltanSel > 0 && (
           <div style={{ position: 'absolute', top: -34, left: pos(selIdx), transform: tipShift, transition: 'left .22s cubic-bezier(.34,1.56,.64,1), opacity .5s ease', opacity: faltanTipOn ? 1 : 0, zIndex: 7, pointerEvents: 'none' }}>
-            <div style={{ background: '#B24A00', color: '#fff', fontSize: mini ? 11 : 12.5, fontWeight: 700, padding: mini ? '4px 10px' : '5px 13px', borderRadius: 20, whiteSpace: 'nowrap', boxShadow: '0 4px 12px -4px rgba(232,148,74,.4)' }}>
+            <div style={{ background: '#FF6A00', color: '#111111', fontSize: mini ? 11 : 12.5, fontWeight: 700, padding: mini ? '4px 10px' : '5px 13px', borderRadius: 20, whiteSpace: 'nowrap', boxShadow: '0 4px 12px -4px rgba(255,106,0,.35)' }}>
               {faltanSel === 1 ? 'Falta 1 ud' : `Faltan ${faltanSel} uds`}
             </div>
           </div>

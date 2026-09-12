@@ -20,9 +20,11 @@ const config: Config = {
           tint: "#F0F7F7",    // fondos — antes #F0EDFF
           tint2: "#DEEDEC",   // bordes y separadores
         },
-        // Naranja de marca. SOLO acento: sobre blanco da 2,87:1 y NO pasa AA.
-        // Nunca como fondo con texto claro ni como texto sobre blanco; para
-        // texto, `accent.dark` (5,42:1).
+        // Naranja de marca. La regla, en una línea:
+        //   FONDO  → `accent` (#FF6A00) con texto casi negro  → 6,58:1
+        //   TEXTO o borde sobre blanco → `accent.dark`        → 5,42:1
+        // Lo que NUNCA vale es `accent` con texto claro: 2,87:1, no pasa AA.
+        // Así el naranja se mantiene vivo como en el logo sin perder contraste.
         accent: {
           DEFAULT: "#FF6A00",
           dark: "#B24A00",

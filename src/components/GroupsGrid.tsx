@@ -81,8 +81,7 @@ export default function GroupsGrid({ products, favoriteIds = [], isAuthed = fals
       <header className="shrink-0 z-10" style={{ background: '#FBFAF8' }}>
         <div className="flex items-center justify-between px-[16px] py-1.5">
           <div className="flex items-center gap-[7px]">
-            <img src="/logo-mark.png" alt="Gropo" className="w-7 h-7 object-contain" />
-            <span className="text-[17px] font-extrabold text-[#1a1a1f]" style={{ letterSpacing: '-0.5px' }}>Gropo</span>
+            <img src="/logo.png" alt="Gropo" className="h-7 w-auto object-contain" />
           </div>
           <div className="flex items-center gap-2.5">
             <span className="text-[12px] font-semibold" style={{ color: '#6B6B76' }}>
@@ -243,7 +242,7 @@ function FeaturedGropoCard({ x, isFavorited, isAuthed, onOpenSheet }: { x: Price
           </span>
         ) : (
           <span className="inline-flex items-center gap-1.5 rounded-full text-[11.5px] font-bold whitespace-nowrap" style={{ background: '#FCEEE0', color: '#B24A00', padding: '3px 10px 3px 4px' }}>
-            <span className="grid place-items-center rounded-full text-white text-[9px] font-black" style={{ width: 16, height: 16, background: '#B24A00' }}>↗</span>
+            <span className="grid place-items-center rounded-full text-[#111111] text-[9px] font-black" style={{ width: 16, height: 16, background: '#FF6A00' }}>↗</span>
             Objetivo: {fmt(selectedPrice)}
           </span>
         )}
