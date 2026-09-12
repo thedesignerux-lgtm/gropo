@@ -17,9 +17,9 @@ function fmt(price: number): string {
 type Category = 'hot' | 'dropping' | 'complete'
 
 const THEME: Record<Category, { color: string; border: string; badgeBg: string; badgeTx: string }> = {
-  hot: { color: '#6D28D9', border: '#E9E4FB', badgeBg: '#FDEBE3', badgeTx: '#C2410C' },
-  dropping: { color: '#6D28D9', border: '#E9E4FB', badgeBg: '#EDE9FE', badgeTx: '#6D28D9' },
-  complete: { color: '#0F9D58', border: '#BBF0D8', badgeBg: '#E7F7EF', badgeTx: '#0B7B44' },
+  hot: { color: '#013230', border: '#EBF4F4', badgeBg: '#FDEBE3', badgeTx: '#C2410C' },
+  dropping: { color: '#013230', border: '#EBF4F4', badgeBg: '#F0F7F7', badgeTx: '#013230' },
+  complete: { color: '#0B7B44', border: '#BBF0D8', badgeBg: '#E7F7EF', badgeTx: '#0B7B44' },
 }
 
 function countdown(closesAt?: string): string | null {
@@ -70,7 +70,7 @@ export default function DesktopProductCard({ product, isFavorited = false, isAut
   const { data: pulseData } = usePulse(isComplete ? null : product.id)
   const selectedPrice = detents.length > 0 ? detents[selIdx].price : currentPrice
   const confirmed = selIdx <= curIdx
-  const accent = confirmed ? '#6C4BF4' : '#E8944A'
+  const accent = confirmed ? '#024947' : '#B24A00'
 
   const handleCheckout = () => {
     if (!confirmed && isAuthed) {

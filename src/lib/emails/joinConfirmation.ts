@@ -1,6 +1,8 @@
 // Plantilla del email de confirmación de unión a un grupo.
 // Remitente visible: Gropo.
 
+import { emailBrandHeader } from './brand'
+
 export interface JoinEmailData {
   nombre?: string
   productName: string
@@ -49,7 +51,7 @@ Cuantos más seáis, mejor precio para todos. Te avisaremos cuando el grupo cier
 
   // Saludo HTML: nombre en verde de marca; sin nombre, solo "Hola,".
   const saludoHtml = nombre
-    ? `Hola <span style="color:#0F9D58;font-weight:600;">${nombre}</span>,`
+    ? `Hola <span style="color:#0B7B44;font-weight:600;">${nombre}</span>,`
     : 'Hola,'
 
   // Fuente común para reutilizar en estilos inline.
@@ -62,8 +64,8 @@ Cuantos más seáis, mejor precio para todos. Te avisaremos cuando el grupo cier
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
 </head>
-<body style="margin:0;padding:0;background:#F0EDFF;font-family:${FONT};">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F0EDFF;">
+<body style="margin:0;padding:0;background:#F0F7F7;font-family:${FONT};">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F0F7F7;">
     <tr>
       <td align="center" style="padding:24px 12px;">
 
@@ -76,12 +78,7 @@ Cuantos más seáis, mejor precio para todos. Te avisaremos cuando el grupo cier
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td align="left" style="vertical-align:middle;">
-                    <table role="presentation" cellpadding="0" cellspacing="0" border="0">
-                      <tr>
-                        <td style="width:36px;height:36px;background:#6C3CE1;border-radius:18px;text-align:center;vertical-align:middle;color:#FFFFFF;font-family:${FONT};font-size:20px;font-weight:700;line-height:36px;">V</td>
-                        <td style="padding-left:10px;font-family:${FONT};font-size:22px;font-weight:700;color:#1A1A1A;vertical-align:middle;">Gropo</td>
-                      </tr>
-                    </table>
+                    ${emailBrandHeader(40)}
                   </td>
                   <td align="right" style="vertical-align:middle;">
                     <!-- ILUSTRACIÓN AQUÍ -->
@@ -102,7 +99,7 @@ Cuantos más seáis, mejor precio para todos. Te avisaremos cuando el grupo cier
           <!-- ============ TARJETA DE DATOS ============ -->
           <tr>
             <td style="padding:0 32px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F3F0FF;border-radius:12px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F5FAFA;border-radius:12px;">
                 <tr>
                   <td style="padding:24px;">
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
@@ -137,7 +134,7 @@ Cuantos más seáis, mejor precio para todos. Te avisaremos cuando el grupo cier
           <!-- ============ TARJETA DE COMUNIDAD ============ -->
           <tr>
             <td style="padding:16px 32px 0 32px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F3F0FF;border-radius:12px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F5FAFA;border-radius:12px;">
                 <tr>
                   <td style="padding:20px;">
                     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
@@ -159,7 +156,7 @@ Cuantos más seáis, mejor precio para todos. Te avisaremos cuando el grupo cier
           <tr>
             <td style="padding:24px 32px 32px 32px;">
               <p style="margin:0 0 4px 0;font-family:${FONT};font-size:15px;color:#1A1A1A;line-height:1.4;">¡Gracias por unirte!</p>
-              <p style="margin:0;font-family:${FONT};font-size:15px;font-weight:700;color:#6C3CE1;">— Gropo</p>
+              <p style="margin:0;font-family:${FONT};font-size:15px;font-weight:700;color:#024947;">— Gropo</p>
             </td>
           </tr>
 

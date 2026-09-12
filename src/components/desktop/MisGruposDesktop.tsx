@@ -31,9 +31,9 @@ type StateKey = 'encurso' | 'apunto' | 'meta' | 'noalc'
 const fmt = (n: number) => (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
 
 const THEME: Record<StateKey, { c: string; bg: string; tx: string; bd: string; finbg: string; secbg: string }> = {
-  encurso: { c: '#6C3CE1', bg: '#EDE9FE', tx: '#6D28D9', bd: '#DDD3FB', finbg: '#F6F3FE', secbg: '#F1EDFC' },
+  encurso: { c: '#024947', bg: '#F0F7F7', tx: '#013230', bd: '#E0EEEE', finbg: '#F6F3FE', secbg: '#F1F8F7' },
   apunto:  { c: '#F0531F', bg: '#FDEBE3', tx: '#C2410C', bd: '#FCD9C6', finbg: '#FEF4EE', secbg: '#FEF1EA' },
-  meta:    { c: '#0F9D58', bg: '#E7F7EF', tx: '#0B7B44', bd: '#BBF0D8', finbg: '#EEFAF3', secbg: '#E7F7EF' },
+  meta:    { c: '#0B7B44', bg: '#E7F7EF', tx: '#0B7B44', bd: '#BBF0D8', finbg: '#EEFAF3', secbg: '#E7F7EF' },
   noalc:   { c: '#94A3B8', bg: '#F1F5F9', tx: '#475569', bd: '#E2E8F0', finbg: '#F6F8FA', secbg: '#F1F5F9' },
 }
 
@@ -182,7 +182,7 @@ export function MgCard({ m, ladder, onOpen }: { m: Membership; ladder: LadderRow
         <div className="min-w-0 pt-0.5">
           <p className="text-[14.5px] font-bold text-neutral-900 leading-tight truncate">{m.product_name}</p>
           {m.product_spec && <p className="text-xs text-neutral-500 mt-1 truncate">{m.product_spec}</p>}
-          <p className="text-[11px] font-semibold mt-1 truncate" style={{ color: m.join_mode === 'esperar' ? '#D97706' : '#6C3CE1' }}>{m.join_mode === 'esperar' ? `Reserva a ${fmt(Number(m.target_price))}` : 'Compra directa'}</p>
+          <p className="text-[11px] font-semibold mt-1 truncate" style={{ color: m.join_mode === 'esperar' ? '#D97706' : '#024947' }}>{m.join_mode === 'esperar' ? `Reserva a ${fmt(Number(m.target_price))}` : 'Compra directa'}</p>
         </div>
       </div>
       {/* financiero */}
@@ -194,7 +194,7 @@ export function MgCard({ m, ladder, onOpen }: { m: Membership; ladder: LadderRow
           ) : d.state === 'noalc' ? (
             <><p className="text-[10px] font-bold uppercase tracking-wide text-neutral-500">Estado final</p><p className="text-[16px] font-extrabold mt-1 text-neutral-600">No alcanzado</p></>
           ) : (
-            <><p className="text-[10px] font-bold uppercase tracking-wide text-neutral-500">Estado actual</p><p className="text-[18px] font-extrabold mt-0.5 tabular-nums whitespace-nowrap" style={{ color: t.c }}>{fmt(d.cur)}</p>{saving > 0.005 && <p className="text-[11px] font-semibold mt-0.5" style={{ color: '#0F9D58' }}>Ahorras {fmt(saving)}</p>}</>
+            <><p className="text-[10px] font-bold uppercase tracking-wide text-neutral-500">Estado actual</p><p className="text-[18px] font-extrabold mt-0.5 tabular-nums whitespace-nowrap" style={{ color: t.c }}>{fmt(d.cur)}</p>{saving > 0.005 && <p className="text-[11px] font-semibold mt-0.5" style={{ color: '#0B7B44' }}>Ahorras {fmt(saving)}</p>}</>
           )}
         </div>
       </div>
@@ -264,7 +264,7 @@ export function Drawer({ m, ladder, onClose }: { m: Membership; ladder: LadderRo
           </div>
           <div className="flex gap-3 items-center">
             <div className="w-[52px] h-[52px] rounded-xl bg-neutral-100 shrink-0 overflow-hidden">{m.image_url && <img src={m.image_url} alt="" className="w-full h-full object-cover" />}</div>
-            <div><div className="text-base font-bold">{m.product_name}</div>{spec && <div className="text-[12.5px] text-neutral-500 mt-0.5">{spec}</div>}<div className="text-[11px] font-semibold mt-1" style={{ color: m.join_mode === 'esperar' ? '#D97706' : '#6C3CE1' }}>{m.join_mode === 'esperar' ? `Reserva a ${fmt(Number(m.target_price))}` : 'Compra directa'}</div></div>
+            <div><div className="text-base font-bold">{m.product_name}</div>{spec && <div className="text-[12.5px] text-neutral-500 mt-0.5">{spec}</div>}<div className="text-[11px] font-semibold mt-1" style={{ color: m.join_mode === 'esperar' ? '#D97706' : '#024947' }}>{m.join_mode === 'esperar' ? `Reserva a ${fmt(Number(m.target_price))}` : 'Compra directa'}</div></div>
           </div>
           <div className="flex gap-3 items-start rounded-2xl p-3.5 mt-4" style={{ background: t.secbg }}>
             <span className="w-[38px] h-[38px] rounded-xl flex items-center justify-center text-white shrink-0" style={{ background: t.c }}>{I.shield}</span>
@@ -273,7 +273,7 @@ export function Drawer({ m, ladder, onClose }: { m: Membership; ladder: LadderRo
           </div>
           <div className="flex justify-between gap-2 mt-[18px]">
             <div><div className="text-[11px] text-neutral-500">Mi compromiso</div><div className="text-[19px] font-extrabold mt-1 whitespace-nowrap">{fmt(d.commit)}</div></div>
-            <div className="text-center"><div className="text-[11px] text-neutral-500">Estado actual</div><div className="text-[19px] font-extrabold mt-1 whitespace-nowrap" style={{ color: '#0F9D58' }}>{fmt(d.cur)}</div>{saving > 0.005 && <div className="text-[11.5px] mt-0.5" style={{ color: '#0F9D58' }}>Estás ahorrando {fmt(saving)}</div>}</div>
+            <div className="text-center"><div className="text-[11px] text-neutral-500">Estado actual</div><div className="text-[19px] font-extrabold mt-1 whitespace-nowrap" style={{ color: '#0B7B44' }}>{fmt(d.cur)}</div>{saving > 0.005 && <div className="text-[11.5px] mt-0.5" style={{ color: '#0B7B44' }}>Estás ahorrando {fmt(saving)}</div>}</div>
             <div className="text-right"><div className="text-[11px] text-neutral-500">Próximo objetivo</div><div className="text-[19px] font-extrabold mt-1 whitespace-nowrap">{d.nextObj != null ? fmt(d.nextObj) : '—'}</div><div className="text-[11.5px] text-neutral-500 mt-0.5">{d.nextObj != null ? (d.missing === 1 ? 'Falta 1 ud' : `Faltan ${d.missing} uds`) : 'Precio mínimo'}</div></div>
           </div>
           <div className="flex items-center mt-4"><div className="flex-1 h-1.5 rounded-full bg-neutral-200 overflow-hidden mr-1"><div className="h-full rounded-full" style={{ width: `${d.pct}%`, background: t.c }} /></div><span className="w-4 h-4 rounded-full bg-white shrink-0" style={{ border: `2.5px solid ${t.c}` }} /></div>
@@ -295,7 +295,7 @@ export function Drawer({ m, ladder, onClose }: { m: Membership; ladder: LadderRo
         <div className="px-[22px] py-5 overflow-y-auto flex-1">
           <div className="flex gap-3 items-center mb-2">
             <div className="w-[52px] h-[52px] rounded-xl bg-neutral-100 shrink-0 overflow-hidden">{m.image_url && <img src={m.image_url} alt="" className="w-full h-full object-cover" />}</div>
-            <div><div className="text-base font-bold">{m.product_name}</div>{spec && <div className="text-[12.5px] text-neutral-500 mt-0.5">{spec}</div>}<div className="text-[11px] font-semibold mt-1" style={{ color: m.join_mode === 'esperar' ? '#D97706' : '#6C3CE1' }}>{m.join_mode === 'esperar' ? `Reserva a ${fmt(Number(m.target_price))}` : 'Compra directa'}</div></div>
+            <div><div className="text-base font-bold">{m.product_name}</div>{spec && <div className="text-[12.5px] text-neutral-500 mt-0.5">{spec}</div>}<div className="text-[11px] font-semibold mt-1" style={{ color: m.join_mode === 'esperar' ? '#D97706' : '#024947' }}>{m.join_mode === 'esperar' ? `Reserva a ${fmt(Number(m.target_price))}` : 'Compra directa'}</div></div>
           </div>
           <div className="border border-neutral-200 rounded-2xl p-4 mt-4">
             <h4 className="text-[11px] font-bold uppercase tracking-wide text-neutral-500 mb-3">Confirmación de compra</h4>
@@ -321,7 +321,7 @@ export function Drawer({ m, ladder, onClose }: { m: Membership; ladder: LadderRo
       <div className="px-[22px] py-5 overflow-y-auto flex-1">
         <div className="flex gap-3 items-center mb-2">
           <div className="w-[52px] h-[52px] rounded-xl bg-neutral-100 shrink-0 overflow-hidden">{m.image_url && <img src={m.image_url} alt="" className="w-full h-full object-cover" />}</div>
-          <div><div className="text-base font-bold">{m.product_name}</div>{spec && <div className="text-[12.5px] text-neutral-500 mt-0.5">{spec}</div>}<div className="text-[11px] font-semibold mt-1" style={{ color: m.join_mode === 'esperar' ? '#D97706' : '#6C3CE1' }}>{m.join_mode === 'esperar' ? `Reserva a ${fmt(Number(m.target_price))}` : 'Compra directa'}</div></div>
+          <div><div className="text-base font-bold">{m.product_name}</div>{spec && <div className="text-[12.5px] text-neutral-500 mt-0.5">{spec}</div>}<div className="text-[11px] font-semibold mt-1" style={{ color: m.join_mode === 'esperar' ? '#D97706' : '#024947' }}>{m.join_mode === 'esperar' ? `Reserva a ${fmt(Number(m.target_price))}` : 'Compra directa'}</div></div>
         </div>
         <div className="flex gap-2.5 rounded-2xl p-3.5 mt-4 text-[12.5px] leading-relaxed" style={{ background: '#EFF6FF', color: '#1E3A8A' }}>
           <span className="shrink-0">{I.shield}</span>

@@ -273,14 +273,14 @@ export default async function RadarPage() {
               <div className="text-[10.5px] font-bold tracking-[.14em] text-brand uppercase" style={{ fontFamily: "'Space Mono', monospace" }}>Guardados</div>
               <div className="flex items-baseline justify-between gap-2.5 mt-1.5">
                 <h1 className="text-[32px] tracking-tight text-[#1a1a1f]" style={{ fontFamily: 'var(--font-instrument-serif), serif', fontWeight: 400 }}>Mi Radar</h1>
-                <span className="text-xs font-bold text-brand rounded-full px-3 py-1.5" style={{ background: '#EDE9FB' }}>
+                <span className="text-xs font-bold text-brand rounded-full px-3 py-1.5" style={{ background: '#DEEDEC' }}>
                   {activeCount} guardado{activeCount !== 1 ? 's' : ''}
                 </span>
               </div>
             </div>
             {/* Filter chips */}
             <div className="flex gap-2 px-5 pt-2.5 pb-1">
-              <span className="text-[12.5px] font-bold text-white rounded-full px-3.5 py-2" style={{ background: '#6C4BF4' }}>Todos</span>
+              <span className="text-[12.5px] font-bold text-white rounded-full px-3.5 py-2" style={{ background: '#024947' }}>Todos</span>
               <span className="text-[12.5px] font-semibold text-[#57545e] bg-white rounded-full px-3.5 py-2" style={{ border: '1px solid #E4E1DA' }}>Con precio anclado</span>
             </div>
           </div>
@@ -319,7 +319,7 @@ function SmartFeed({
         <div className={gridCls}>
           {cats.hot.length > 0 && <Divider color="#F97316" title="Necesitan tu atención" n={cats.hot.length} />}
           {cats.hot.map(g => <OpportunityCard key={g.id} group={g} category="hot" />)}
-          {cats.dropping.length > 0 && <Divider color="#6C3CE1" title="Han bajado recientemente" n={cats.dropping.length} />}
+          {cats.dropping.length > 0 && <Divider color="#024947" title="Han bajado recientemente" n={cats.dropping.length} />}
           {cats.dropping.map(g => <OpportunityCard key={g.id} group={g} category="dropping" />)}
           {cats.secured.length > 0 && <Divider color="#059669" title="Plaza asegurada" n={cats.secured.length} />}
           {cats.secured.map(g => <SecuredCard key={g.id} group={g} />)}
@@ -363,10 +363,10 @@ function Divider({ color, title, n }: { color: string; title: string; n: number 
 // Estilo SOFT (mockup 12 jul): tarjetas lavanda; pill NARANJA solo si faltan <4
 // unidades para el siguiente tramo, DORADA en el resto, VERDE al precio mínimo.
 const THEME = {
-  hot: { border: '#E9E4FB', badgeBg: '#FDEBE3', badgeTx: '#C2410C', next: '#6D28D9', cta: '#6D28D9' },
+  hot: { border: '#EBF4F4', badgeBg: '#FDEBE3', badgeTx: '#C2410C', next: '#013230', cta: '#013230' },
   // Pill MORADA (≥4 uds): continuidad, no urgencia
-  dropping: { border: '#E9E4FB', badgeBg: '#EDE9FE', badgeTx: '#6D28D9', next: '#6D28D9', cta: '#6D28D9' },
-  complete: { border: '#BBF0D8', badgeBg: '#E7F7EF', badgeTx: '#0B7B44', next: '#0F9D58', cta: '#0F9D58' },
+  dropping: { border: '#EBF4F4', badgeBg: '#F0F7F7', badgeTx: '#013230', next: '#013230', cta: '#013230' },
+  complete: { border: '#BBF0D8', badgeBg: '#E7F7EF', badgeTx: '#0B7B44', next: '#0B7B44', cta: '#0B7B44' },
 } as const
 
 function OpportunityCard({ group: g }: { group: RadarGroup; category?: 'hot' | 'dropping' }) {
@@ -595,7 +595,7 @@ function MobileRadarCard({ group: g }: { group: RadarGroup }) {
   const saving = g.pvp > 0 && g.currentPrice < g.pvp ? g.pvp - g.currentPrice : 0
 
   return (
-    <div className="rounded-[18px] bg-white p-3.5 mb-3.5" style={{ border: '1px solid #ECEAF2', boxShadow: '0 12px 30px -26px rgba(30,20,60,.4)' }}>
+    <div className="rounded-[18px] bg-white p-3.5 mb-3.5" style={{ border: '1px solid #E6EDEC', boxShadow: '0 12px 30px -26px rgba(30,20,60,.4)' }}>
       {/* Compact row: thumbnail + name/price + heart */}
       <div className="flex gap-3 items-center">
         <Link href={`/grupo/${g.id}`} className="w-14 h-14 rounded-[13px] overflow-hidden shrink-0" style={{ background: '#1a1a1f' }}>
@@ -606,7 +606,7 @@ function MobileRadarCard({ group: g }: { group: RadarGroup }) {
             <div className="text-[14.5px] font-bold tracking-tight truncate">{g.name}</div>
             <div className="flex items-baseline gap-1.5 mt-0.5">
               <span className="text-base font-bold tabular-nums">{fmt(g.currentPrice)}</span>
-              {saving > 0 && <span className="text-[11.5px] font-bold text-[#157F52]">Ahorra {fmt(saving)}</span>}
+              {saving > 0 && <span className="text-[11.5px] font-bold text-[#0B7B44]">Ahorra {fmt(saving)}</span>}
             </div>
           </Link>
         </div>
@@ -649,22 +649,22 @@ function EmptyRadar() {
       <svg viewBox="0 0 420 300" className="w-[380px] max-w-[90%]" aria-hidden="true">
         <defs>
           <radialGradient id="radar-sw" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#6C3CE1" stopOpacity=".55" />
-            <stop offset="100%" stopColor="#6C3CE1" stopOpacity="0" />
+            <stop offset="0%" stopColor="#024947" stopOpacity=".55" />
+            <stop offset="100%" stopColor="#024947" stopOpacity="0" />
           </radialGradient>
         </defs>
         <g transform="translate(210 140)">
-          <circle r="120" fill="none" stroke="#E4E0F7" strokeWidth="1.5" />
-          <circle r="86" fill="none" stroke="#E4E0F7" strokeWidth="1.5" />
-          <circle r="52" fill="none" stroke="#E4E0F7" strokeWidth="1.5" />
+          <circle r="120" fill="none" stroke="#E6F1F1" strokeWidth="1.5" />
+          <circle r="86" fill="none" stroke="#E6F1F1" strokeWidth="1.5" />
+          <circle r="52" fill="none" stroke="#E6F1F1" strokeWidth="1.5" />
           <g className="radar-sweep"><path d="M0 0 L120 -60 A120 120 0 0 1 120 0 Z" fill="url(#radar-sw)" /></g>
-          <circle className="radar-pulse" r="30" fill="#6C3CE1" opacity=".5" />
-          <circle r="9" fill="#6C3CE1" />
+          <circle className="radar-pulse" r="30" fill="#024947" opacity=".5" />
+          <circle r="9" fill="#024947" />
           <circle cx="70" cy="-30" r="4.5" fill="none" stroke="#F97316" strokeWidth="2" />
-          <circle cx="-58" cy="34" r="4.5" fill="#6C3CE1" />
+          <circle cx="-58" cy="34" r="4.5" fill="#024947" />
           <circle cx="30" cy="66" r="3.5" fill="none" stroke="#F97316" strokeWidth="2" />
         </g>
-        <path d="M40 250 L120 190 L175 235 L235 175 L300 240 L380 195 L380 260 L40 260 Z" fill="#EEEAFB" />
+        <path d="M40 250 L120 190 L175 235 L235 175 L300 240 L380 195 L380 260 L40 260 Z" fill="#EFF6F6" />
       </svg>
 
       <h2 className="text-2xl font-extrabold text-neutral-900 mt-1">

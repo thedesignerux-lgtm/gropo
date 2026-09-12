@@ -7,7 +7,7 @@ interface Props {
 
 export default function GroupCenterContent({ name, imageUrl }: Props) {
   return (
-    <div className="rounded-2xl bg-[#E9E6F3] border border-neutral-200/60 overflow-hidden aspect-[4/3] flex items-center justify-center">
+    <div className="rounded-2xl bg-[#E7F2F2] border border-neutral-200/60 overflow-hidden aspect-[4/3] flex items-center justify-center">
       {imageUrl ? (
         <img src={imageUrl} alt={name} className="w-full h-full object-cover" />
       ) : (

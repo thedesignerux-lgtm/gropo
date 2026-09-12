@@ -72,7 +72,7 @@ export default function GroupLiveSection2c({
   const effectiveSelected = detents[selIdx]?.price ?? displayPrice
   const confirmed = selIdx <= curIdx
   const isEsperar = !confirmed
-  const accent = confirmed ? '#6C4BF4' : '#E8944A'
+  const accent = confirmed ? '#024947' : '#B24A00'
 
   const handleCheckout = () => {
     if (isEsperar && authed) {
@@ -101,7 +101,7 @@ export default function GroupLiveSection2c({
         {nextPriceDisplay != null && (
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontSize: 10, fontWeight: 800, letterSpacing: '.4px', textTransform: 'uppercase' as const, color: '#8A8794' }}>Siguiente</div>
-            <div className="tabular-nums" style={{ fontSize: 20, fontWeight: 800, lineHeight: 1, marginTop: 3, color: '#6C4BF4' }}>{fmt(nextPriceDisplay)}</div>
+            <div className="tabular-nums" style={{ fontSize: 20, fontWeight: 800, lineHeight: 1, marginTop: 3, color: '#024947' }}>{fmt(nextPriceDisplay)}</div>
           </div>
         )}
       </div>
@@ -142,7 +142,7 @@ export default function GroupLiveSection2c({
             borderRadius: 14,
             padding: '14px 8px',
             cursor: 'pointer',
-            boxShadow: `0 12px 26px -14px ${confirmed ? 'rgba(108,75,244,.28)' : 'rgba(232,148,74,.28)'}`,
+            boxShadow: `0 12px 26px -14px ${confirmed ? 'rgba(2, 73, 71,.28)' : 'rgba(232,148,74,.28)'}`,
           }}
         >
           {isEsperar ? `Reservar plaza · Máx. ${fmt(effectiveSelected)}` : `Bloquear precio · Máx. ${fmt(effectiveSelected)}`}

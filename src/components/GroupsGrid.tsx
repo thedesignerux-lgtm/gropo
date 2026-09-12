@@ -81,8 +81,7 @@ export default function GroupsGrid({ products, favoriteIds = [], isAuthed = fals
       <header className="shrink-0 z-10" style={{ background: '#FBFAF8' }}>
         <div className="flex items-center justify-between px-[16px] py-1.5">
           <div className="flex items-center gap-[7px]">
-            <img src="/logo-mark.png" alt="Gropo" className="w-7 h-7 object-contain" />
-            <span className="text-[17px] font-extrabold text-[#1a1a1f]" style={{ letterSpacing: '-0.5px' }}>Gropo</span>
+            <img src="/logo.png" alt="Gropo" className="h-7 w-auto object-contain" />
           </div>
           <div className="flex items-center gap-2.5">
             <span className="text-[12px] font-semibold" style={{ color: '#6B6B76' }}>
@@ -91,7 +90,7 @@ export default function GroupsGrid({ products, favoriteIds = [], isAuthed = fals
             <Link href="/favoritos" aria-label="Alertas" className="w-[30px] h-[30px] rounded-full grid place-items-center">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1a1a1f" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.5 0" /></svg>
             </Link>
-            <Link href="/perfil" className="w-[30px] h-[30px] rounded-full grid place-items-center text-[13px] font-extrabold text-brand" style={{ background: '#EDE9FB' }}>V</Link>
+            <Link href="/perfil" className="w-[30px] h-[30px] rounded-full grid place-items-center text-[13px] font-extrabold text-brand" style={{ background: '#DEEDEC' }}>V</Link>
           </div>
         </div>
       </header>
@@ -130,8 +129,8 @@ export default function GroupsGrid({ products, favoriteIds = [], isAuthed = fals
               className="shrink-0 text-[12.5px] font-semibold rounded-full transition-colors"
               style={
                 selectedCat === cat.key
-                  ? { background: '#6C4BF4', color: '#fff', border: '1px solid #6C4BF4', padding: '8px 15px' }
-                  : { background: 'transparent', color: '#4a4a52', border: '1px solid #ECEAF2', padding: '8px 15px' }
+                  ? { background: '#024947', color: '#fff', border: '1px solid #024947', padding: '8px 15px' }
+                  : { background: 'transparent', color: '#4a4a52', border: '1px solid #E6EDEC', padding: '8px 15px' }
               }
             >
               {cat.label}
@@ -145,7 +144,7 @@ export default function GroupsGrid({ products, favoriteIds = [], isAuthed = fals
         <div className="px-[18px] pt-3.5 pb-8">
           <div className="flex items-baseline gap-2.5 mb-3">
             <h2 className="text-2xl tracking-tight text-[#1a1a1f]" style={{ fontFamily: 'var(--font-instrument-serif), serif', fontWeight: 400 }}>Resultados</h2>
-            <span className="text-xs font-bold text-brand rounded-full px-2.5 py-1" style={{ background: '#EDE9FB' }}>{filtered.length}</span>
+            <span className="text-xs font-bold text-brand rounded-full px-2.5 py-1" style={{ background: '#DEEDEC' }}>{filtered.length}</span>
           </div>
           {filtered.length === 0 ? (
             <div className="py-12 text-center text-sm text-neutral-400">No se encontraron productos para “{query}”</div>
@@ -201,7 +200,7 @@ function FeaturedGropoCard({ x, isFavorited, isAuthed, onOpenSheet }: { x: Price
 
   const selectedPrice = detents.length > 0 ? detents[selIdx].price : currentPrice
   const confirmed = selIdx <= curIdx
-  const accent = confirmed ? '#6C4BF4' : '#E8944A'
+  const accent = confirmed ? '#024947' : '#B24A00'
 
   const handlePrimary = () => {
     if (!confirmed && isAuthed) {
@@ -232,18 +231,18 @@ function FeaturedGropoCard({ x, isFavorited, isAuthed, onOpenSheet }: { x: Price
   }
 
   return (
-    <div className="mx-3 mt-1 relative rounded-[16px]" style={{ background: '#F5F3F9', padding: '13px 13px 12px' }}>
+    <div className="mx-3 mt-1 relative rounded-[16px]" style={{ background: '#F2F7F7', padding: '13px 13px 12px' }}>
       {/* Header: eyebrow + status pill */}
       <div className="flex items-center justify-between mb-2">
         <span className="text-[10px] font-extrabold uppercase text-brand" style={{ letterSpacing: '0.4px' }}>★ Gropo destacada</span>
         {confirmed ? (
-          <span className="inline-flex items-center gap-1.5 rounded-full text-[11.5px] font-bold text-brand" style={{ background: '#EDE9FB', padding: '3px 10px 3px 4px' }}>
-            <span className="grid place-items-center rounded-full text-white text-[9px] font-black" style={{ width: 16, height: 16, background: '#6C4BF4' }}>✓</span>
+          <span className="inline-flex items-center gap-1.5 rounded-full text-[11.5px] font-bold text-brand" style={{ background: '#DEEDEC', padding: '3px 10px 3px 4px' }}>
+            <span className="grid place-items-center rounded-full text-white text-[9px] font-black" style={{ width: 16, height: 16, background: '#024947' }}>✓</span>
             Precio asegurado
           </span>
         ) : (
-          <span className="inline-flex items-center gap-1.5 rounded-full text-[11.5px] font-bold whitespace-nowrap" style={{ background: '#FCEEE0', color: '#E8944A', padding: '3px 10px 3px 4px' }}>
-            <span className="grid place-items-center rounded-full text-white text-[9px] font-black" style={{ width: 16, height: 16, background: '#E8944A' }}>↗</span>
+          <span className="inline-flex items-center gap-1.5 rounded-full text-[11.5px] font-bold whitespace-nowrap" style={{ background: '#FCEEE0', color: '#B24A00', padding: '3px 10px 3px 4px' }}>
+            <span className="grid place-items-center rounded-full text-[#111111] text-[9px] font-black" style={{ width: 16, height: 16, background: '#FF6A00' }}>↗</span>
             Objetivo: {fmt(selectedPrice)}
           </span>
         )}
@@ -257,12 +256,12 @@ function FeaturedGropoCard({ x, isFavorited, isAuthed, onOpenSheet }: { x: Price
           <div className="flex items-baseline gap-[7px] mt-px flex-wrap">
             <span className="text-[22px] font-extrabold text-brand leading-none" style={{ fontFamily: 'var(--font-space-grotesk), sans-serif' }}>{fmt(currentPrice)}</span>
             {p.pvp > currentPrice && <span className="text-[12px] font-semibold text-neutral-400 line-through">{fmt(p.pvp)}</span>}
-            {savings > 0 && <span className="text-[11px] font-bold rounded-full px-2 py-0.5" style={{ color: '#157F52', background: '#E6F4EC' }}>Ahorras {fmt(savings)}</span>}
+            {savings > 0 && <span className="text-[11px] font-bold rounded-full px-2 py-0.5" style={{ color: '#0B7B44', background: '#E6F4EC' }}>Ahorras {fmt(savings)}</span>}
           </div>
           <div className="flex items-center gap-2 mt-2.5">
             <div className="flex">
               {['A', 'B', 'C'].map((c, i) => (
-                <span key={c} className="grid place-items-center rounded-full text-brand text-[7.5px] font-extrabold" style={{ width: 19, height: 19, background: '#EDE9FB', border: '2px solid #F5F3F9', marginLeft: i === 0 ? 0 : -6 }}>{c}</span>
+                <span key={c} className="grid place-items-center rounded-full text-brand text-[7.5px] font-extrabold" style={{ width: 19, height: 19, background: '#DEEDEC', border: '2px solid #F2F7F7', marginLeft: i === 0 ? 0 : -6 }}>{c}</span>
               ))}
             </div>
             <span className="text-[10.5px] font-bold text-[#1a1a1f] whitespace-nowrap">{p.currentUnits} confirmado{p.currentUnits !== 1 ? 's' : ''}</span>
@@ -274,7 +273,7 @@ function FeaturedGropoCard({ x, isFavorited, isAuthed, onOpenSheet }: { x: Price
       </Link>
 
       {/* Price selector */}
-      <div className="mt-2.5 pt-2.5" style={{ borderTop: '1px solid #E4DEEE' }}>
+      <div className="mt-2.5 pt-2.5" style={{ borderTop: '1px solid #DEEEED' }}>
         <div className="text-[17px] font-extrabold tracking-tight leading-[1.2] mb-1.5 text-[#1a1a1f]">¿Hasta cuánto quieres pagar?</div>
         {detents.length > 1 ? (
           <GropoTargetSlider detents={detents} curIdx={curIdx} selIdx={selIdx} onSelIdx={setSelIdx} size="mini" chrome="nudge" pulse={pulseData?.steps} glow={pulseData?.glow} shortfallTicks currentUnits={p.currentUnits} />
@@ -287,7 +286,7 @@ function FeaturedGropoCard({ x, isFavorited, isAuthed, onOpenSheet }: { x: Price
           type="button"
           onClick={handlePrimary}
           className="w-full mt-3.5 font-extrabold text-[15px] rounded-[13px] cursor-pointer transition-colors active:scale-[0.99] whitespace-nowrap overflow-hidden text-ellipsis"
-          style={{ border: `2px solid ${accent}`, background: confirmed ? 'rgba(108,75,244,.10)' : 'rgba(232,148,74,.12)', color: accent, padding: 15, boxShadow: `0 12px 26px -14px ${confirmed ? 'rgba(108,75,244,.28)' : 'rgba(232,148,74,.28)'}` }}
+          style={{ border: `2px solid ${accent}`, background: confirmed ? 'rgba(2, 73, 71,.10)' : 'rgba(232,148,74,.12)', color: accent, padding: 15, boxShadow: `0 12px 26px -14px ${confirmed ? 'rgba(2, 73, 71,.28)' : 'rgba(232,148,74,.28)'}` }}
         >
           {confirmed ? `Asegurar hasta ${fmt(selectedPrice)}` : `Fijar límite en ${fmt(selectedPrice)}`}
         </button>
@@ -296,7 +295,7 @@ function FeaturedGropoCard({ x, isFavorited, isAuthed, onOpenSheet }: { x: Price
             type="button"
             onClick={() => setSelIdx(curIdx)}
             className="w-full mt-2 font-extrabold text-[15px] rounded-[13px] cursor-pointer transition-colors whitespace-nowrap"
-            style={{ border: '2px solid #D9D3EC', background: 'transparent', color: '#6C4BF4', padding: 15, animation: 'ctaIn .22s ease-out both' }}
+            style={{ border: '2px solid #D6E9E8', background: 'transparent', color: '#024947', padding: 15, animation: 'ctaIn .22s ease-out both' }}
           >
             Asegurar {fmt(currentPrice)} ahora
           </button>
@@ -304,9 +303,9 @@ function FeaturedGropoCard({ x, isFavorited, isAuthed, onOpenSheet }: { x: Price
 
         {/* Trust line — debajo de la CTA */}
         <div className="flex items-center justify-center gap-1.5 mt-3">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6C4BF4" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#024947" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
           <span className="text-[12px] font-extrabold text-[#1a1a1f]">Hoy 0 €</span>
-          <button type="button" onClick={onOpenSheet} aria-label="Cómo funciona el pago" className="grid place-items-center rounded-full text-brand text-[11px] font-black transition-colors" style={{ width: 18, height: 18, background: '#EDE9FB' }}>i</button>
+          <button type="button" onClick={onOpenSheet} aria-label="Cómo funciona el pago" className="grid place-items-center rounded-full text-brand text-[11px] font-black transition-colors" style={{ width: 18, height: 18, background: '#DEEDEC' }}>i</button>
         </div>
       </div>
     </div>
@@ -371,14 +370,14 @@ function CarouselCard({ x, isFavorited, wide }: { x: Priced; isFavorited: boolea
         <div style={{ padding: '8px 1px 0' }}>
           <div className="relative" style={{ height: 7 }}>
             <div className="absolute rounded-full" style={{ left: '6%', right: '6%', top: '50%', transform: 'translateY(-50%)', height: 3.5, background: '#E8E6F0' }} />
-            <div className="absolute rounded-full" style={{ left: '6%', width: `${Math.max(0, pct(curIdx) - 6)}%`, top: '50%', transform: 'translateY(-50%)', height: 3.5, background: '#6C4BF4' }} />
+            <div className="absolute rounded-full" style={{ left: '6%', width: `${Math.max(0, pct(curIdx) - 6)}%`, top: '50%', transform: 'translateY(-50%)', height: 3.5, background: '#024947' }} />
             {detents.map((d, i) => (
-              <span key={i} className="absolute rounded-full" style={{ left: `${pct(i)}%`, top: '50%', transform: 'translate(-50%,-50%)', width: 7, height: 7, background: i <= curIdx ? '#6C4BF4' : '#D9D6E8' }} />
+              <span key={i} className="absolute rounded-full" style={{ left: `${pct(i)}%`, top: '50%', transform: 'translate(-50%,-50%)', width: 7, height: 7, background: i <= curIdx ? '#024947' : '#D6E8E7' }} />
             ))}
           </div>
           <div className="relative" style={{ height: 12, marginTop: 2 }}>
             {detents.map((d, i) => (
-              <span key={i} className="absolute" style={{ left: `${pct(i)}%`, transform: 'translateX(-50%)', fontFamily: 'var(--font-space-grotesk), sans-serif', fontSize: 7.5, whiteSpace: 'nowrap', color: i === curIdx ? '#6C4BF4' : '#9a97a2', fontWeight: i === curIdx ? 700 : 500 }}>{fmt(d.price)}</span>
+              <span key={i} className="absolute" style={{ left: `${pct(i)}%`, transform: 'translateX(-50%)', fontFamily: 'var(--font-space-grotesk), sans-serif', fontSize: 7.5, whiteSpace: 'nowrap', color: i === curIdx ? '#024947' : '#9a97a2', fontWeight: i === curIdx ? 700 : 500 }}>{fmt(d.price)}</span>
             ))}
           </div>
         </div>

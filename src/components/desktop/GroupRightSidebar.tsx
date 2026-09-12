@@ -104,12 +104,12 @@ export default function GroupRightSidebar({
   const avatarCount = Math.min(totalParticipants, AVATAR_LETTERS.length)
   const extraCount = totalParticipants - avatarCount
 
-  const accent = confirmed ? '#6C4BF4' : '#E8944A'
-  const accentShadow = confirmed ? 'rgba(108,75,244,.35)' : 'rgba(232,148,74,.35)'
+  const accent = confirmed ? '#024947' : '#B24A00'
+  const accentShadow = confirmed ? 'rgba(2, 73, 71,.35)' : 'rgba(232,148,74,.35)'
 
   return (
     <aside className="flex-shrink-0 sticky top-[24px]">
-      <div className="bg-white rounded-[22px] border border-[#ECEAF2] p-6" style={{ boxShadow: '0 24px 60px -34px rgba(30,20,60,.4)' }}>
+      <div className="bg-white rounded-[22px] border border-[#E6EDEC] p-6" style={{ boxShadow: '0 24px 60px -34px rgba(30,20,60,.4)' }}>
 
         {/* ── Precio actual + siguiente ── */}
         <div className="flex items-start justify-between">
@@ -183,7 +183,7 @@ export default function GroupRightSidebar({
             disabled={lockPhase > 0}
             className="flex-1 h-[46px] rounded-[14px] font-extrabold text-[13.5px] active:scale-[0.98] transition-all whitespace-nowrap"
             style={lockPhase >= 2
-              ? { border: '2px solid #157F52', background: '#E8F5E9', color: '#157F52' }
+              ? { border: '2px solid #0B7B44', background: '#E8F5E9', color: '#0B7B44' }
               : { border: `2px solid ${accent}`, background: `${accent}14`, color: accent, boxShadow: `0 12px 26px -14px ${accentShadow}` }}
           >
             {lockPhase >= 2 ? '✓ Precio bloqueado' : (confirmed ? `Bloquear precio · ${fmt(selectedPrice)}` : `Bloquear precio · Máx. ${fmt(selectedPrice)}`)}

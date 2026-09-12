@@ -75,7 +75,7 @@ export default function FastCheckoutModal({
       capture_method: 'manual' as const,
       setup_future_usage: 'on_session' as const, // debe coincidir con create-intent (A2)
       paymentMethodTypes: ['card'],
-      appearance: { theme: 'stripe' as const, variables: { colorPrimary: '#6C3CE1' } },
+      appearance: { theme: 'stripe' as const, variables: { colorPrimary: '#024947' } },
     }),
     [amountCents],
   );

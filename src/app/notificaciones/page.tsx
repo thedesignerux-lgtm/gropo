@@ -29,10 +29,10 @@ function buildNotis(memberships: Membership[], ladders: Record<string, any[]>): 
 }
 
 const ICONS: Record<NType, { bg: string; fg: string; svg: React.ReactNode }> = {
-  success: { bg: '#E7F7EF', fg: '#0F9D58', svg: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M5 12l5 5 9-11" /></svg> },
+  success: { bg: '#E7F7EF', fg: '#0B7B44', svg: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path d="M5 12l5 5 9-11" /></svg> },
   urgent: { bg: '#FDEBE3', fg: '#F0531F', svg: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="12" r="9" /><path d="M12 8v4l3 2" /></svg> },
   info: { bg: '#EFF6FF', fg: '#2563EB', svg: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9" /><path d="M12 16v-4M12 8h.01" /></svg> },
-  default: { bg: '#EDE9FE', fg: '#6C3CE1', svg: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" /></svg> },
+  default: { bg: '#F0F7F7', fg: '#024947', svg: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z" /></svg> },
 }
 
 export default function NotificacionesPage() {

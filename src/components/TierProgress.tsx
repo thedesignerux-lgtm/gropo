@@ -26,8 +26,8 @@ export interface TierPulse {
   reached?: boolean
 }
 
-const GREEN = '#0F9D58'
-const PURPLE = '#6C3CE1'
+const GREEN = '#0B7B44'
+const PURPLE = '#024947'
 
 const fmtPrice = (n: number) => (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
 
@@ -71,7 +71,7 @@ export default function TierProgress({
 }: Props) {
   useId()
   // Soft (mockup 12 jul): morado como color de la demanda; verde SOLO al máximo
-  const color = fillColor ?? (variant === 'complete' ? GREEN : '#6D28D9')
+  const color = fillColor ?? (variant === 'complete' ? GREEN : '#013230')
   const sorted = [...tiers].sort((a, b) => a.units - b.units)
   const nextIdx = sorted.findIndex((t) => current < t.units)
 
@@ -177,7 +177,7 @@ export default function TierProgress({
         const isSurgeNode = surgeUnits != null && t.units === surgeUnits
         const isSelected = selectedUnits != null && t.units === selectedUnits
         const labelColor = reached ? color
-          : isSurgeNode || isSelected || (p?.marked ?? 0) > 0 ? '#6D28D9'
+          : isSurgeNode || isSelected || (p?.marked ?? 0) > 0 ? '#013230'
           : '#94A3B8'
         return (
           <span

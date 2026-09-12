@@ -2,6 +2,8 @@
 // Se envía a un usuario con ancla 'watching' cuando su tramo pasa a ser
 // alcanzable (compradores + tarjetas aceptadas + esperas >= unidades del tramo).
 
+import { emailBrandHeader } from './brand'
+
 export interface PulseReachableEmailData {
   nombre?: string
   productName: string
@@ -37,7 +39,7 @@ Si ya no te interesa, no tienes que hacer nada.
 — Gropo`
 
   const saludoHtml = nombre
-    ? `Hola <span style="color:#6C4BF4;font-weight:600;">${nombre}</span>,`
+    ? `Hola <span style="color:#024947;font-weight:600;">${nombre}</span>,`
     : 'Hola,'
   const FONT = `-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif`
 
@@ -46,8 +48,9 @@ Si ya no te interesa, no tienes que hacer nada.
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#FBFAF8;">
   <div style="max-width:520px;margin:0 auto;padding:32px 20px;font-family:${FONT};color:#1a1a1f;">
+    <div style="margin:0 0 22px;">${emailBrandHeader(34)}</div>
     <p style="font-size:15px;margin:0 0 18px;">${saludoHtml}</p>
-    <h1 style="font-size:21px;line-height:1.3;margin:0 0 14px;">¡Ya sois suficientes para desbloquear <span style="color:#6C4BF4;">${precio}</span>!</h1>
+    <h1 style="font-size:21px;line-height:1.3;margin:0 0 14px;">¡Ya sois suficientes para desbloquear <span style="color:#024947;">${precio}</span>!</h1>
     <p style="font-size:15px;line-height:1.6;margin:0 0 14px;">
       El precio que esperabas para <b>${productName}</b> ya puede hacerse realidad:
       entre compradores y personas esperando como tú, ya sumáis suficientes.
@@ -57,7 +60,7 @@ Si ya no te interesa, no tienes que hacer nada.
       bloquee su precio y este se active. Si eso ocurre, tu plaza y tu producto quedan
       asegurados a <b>${precio}</b>.
     </p>
-    <a href="${groupUrl}" style="display:block;text-align:center;background:#6C4BF4;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:14px 20px;border-radius:12px;margin:0 0 22px;">Bloquear mi precio de ${precio}</a>
+    <a href="${groupUrl}" style="display:block;text-align:center;background:#024947;color:#ffffff;text-decoration:none;font-size:15px;font-weight:700;padding:14px 20px;border-radius:12px;margin:0 0 22px;">Bloquear mi precio de ${precio}</a>
     <p style="font-size:13px;color:#8A8780;line-height:1.5;margin:0;">
       Si ya no te interesa, no tienes que hacer nada.
     </p>
