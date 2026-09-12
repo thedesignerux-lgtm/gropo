@@ -37,7 +37,9 @@
 | **Rotación de claves de Sendcloud** (expuestas en chat) | 🔴 **PENDIENTE — bloqueante de seguridad** |
 | **Cutover de Stripe test → live** | 🔴 **PENDIENTE** |
 | Vendedor real con tramos confirmados | 🔴 Pendiente |
-| **Custom SMTP en Supabase Auth** | 🔴 Pendiente — el SMTP integrado limita a ~2-4 emails/h **para toda la app** |
+| **Custom SMTP en Supabase Auth** | ✅ **HECHO y VERIFICADO 12-sep-2026** — `smtp.resend.com:465`, remitente `hola@gropo.es`, 100 emails/h. Prueba: un `Confirm your email address` del 11-sep aparece en los registros de Resend |
+| Plan de Resend (techo real de envío) | ⚠️ **Decisión pendiente** — el gratuito son 100 emails/día y 3.000/mes; a 2 emails por miembro son ~50 miembros/día. 20 $/mes quitan el límite diario |
+| Remitente de las etiquetas de Sendcloud | 🔴 **Pendiente** — las 12 variables `SENDCLOUD_FROM_*` no están en Vercel: hoy toda etiqueta saldría con "Carrer de Prova 1" y `envios@vonda.es`. Bloquea el primer ENVÍO real |
 | Webhook Stripe → Gropo | ✅ **Verificado 11-sep-2026** (ver `PAYMENTS.md` §12) |
 | `CRON_SECRET` en Vercel | ✅ **Verificado 11-sep-2026** — el cierre automático está armado |
 | **Dominio registrado en Stripe** (Apple Pay / Google Pay) | 🔴 Pendiente — los logos se anuncian y **no funcionan** (P1-08) |
@@ -48,8 +50,9 @@
 **Conclusión: NO abrir pagos reales** hasta cerrar los bloqueantes en rojo.
 
 > **El Ensayo 3 quedó en verde el 12-sep-2026.** Los bloqueantes que quedan **no son de código**:
-> rotación de claves de Sendcloud, cutover de Stripe a live, Custom SMTP en Supabase Auth y
-> conseguir un vendedor real.
+> rotación de claves de Sendcloud (que arrastra rellenar las 12 variables `SENDCLOUD_FROM_*`),
+> cutover de Stripe a live y conseguir un vendedor real. El Custom SMTP quedó verificado el
+> 12-sep.
 >
 > Durante el ensayo se tocó el selector de unidades varias veces sin reproducir P0-06. Su causa
 > sigue siendo UNKNOWN: seguir vigilándolo en cada compra real.

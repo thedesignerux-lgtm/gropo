@@ -5,10 +5,12 @@ import { paymentInstructionsEmail } from './emails/paymentInstructions'
 import { petitionMatchedEmail } from './emails/petitionMatched'
 import { purchaseConfirmationEmail } from './emails/purchaseConfirmation'
 
-// Remitente: por defecto el sandbox de Resend (entrega solo al email de la
-// cuenta sin dominio verificado). Para producción, define RESEND_FROM con una
-// dirección de un dominio verificado, p.ej. "Gropo <no-reply@vonda.es>".
-const FROM = process.env.RESEND_FROM ?? 'Gropo <no-reply@vonda.es>'
+// Remitente. Debe ser SIEMPRE una dirección de un dominio verificado en Resend
+// (hoy: gropo.es, y el heredado vonda.es); con cualquier otro, Resend rechaza el
+// envío. El valor por defecto es el de la marca ACTUAL: el 12-sep-2026 los emails
+// de cierre salieron firmados por vonda.es porque este default seguía siendo el
+// de la marca antigua y RESEND_FROM no estaba definida en Vercel.
+const FROM = process.env.RESEND_FROM ?? 'Gropo <no-reply@gropo.es>'
 
 function getResend(): Resend {
   const apiKey = process.env.RESEND_API_KEY
