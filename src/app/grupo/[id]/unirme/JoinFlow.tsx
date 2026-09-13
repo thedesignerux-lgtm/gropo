@@ -40,6 +40,8 @@ export type JoinGroup = {
   current_price: number; // precio del gropo con las unidades actuales (fallback hasta el quote)
   image_url?: string | null;
   total_units: number;
+  /** Unidades que ya ocupan stock (P2-01). Ver `remainingStock`. */
+  committed_units: number;
   closes_at: string;
   max_stock: number;
   min_execution: number;
@@ -51,16 +53,18 @@ export type JoinGroup = {
 /**
  * Stock restante de la puja que da el mejor precio. `null` = sin límite conocido.
  *
- * ⚠️ `total_units` solo cuenta demanda FIRME: los esperadores no suman
- * (`KNOWN_ISSUES.md` P2-01), así que este número **sobreestima** lo que queda.
- * Por eso solo se usa para dejar de afirmar "En stock" cuando ya sabemos que
- * no lo hay. Al sobreestimar, nunca marcará agotado antes de tiempo — puede
- * marcarlo tarde, y de eso se encarga `prepare_join`, que rechaza en servidor.
+ * P2-01 · Antes esto restaba `total_units`, que es la demanda EFECTIVA al precio
+ * actual: deja fuera a los esperadores que apuntan a un tramo más barato. Como
+ * esos esperadores SÍ ocupan plaza, el resultado sobreestimaba lo disponible y
+ * el selector dejaba pedir unidades que ya no existían; el rechazo llegaba
+ * después, al pagar. Ahora resta `committed_units`, que es exactamente la misma
+ * suma que usa `prepare_join` para aceptar o rechazar en servidor.
  *
- * No mostramos la cifra exacta por la misma razón: sería una cifra falsa.
+ * Sigue siendo una foto del momento en que se pintó la página: entre eso y el
+ * pago puede entrar alguien. La autoridad es `prepare_join`, no esto.
  */
 function remainingStock(g: JoinGroup): number | null {
-  return g.max_stock > 0 ? g.max_stock - g.total_units : null;
+  return g.max_stock > 0 ? g.max_stock - g.committed_units : null;
 }
 
 // 549 € · 62,50 € — sin decimales si es entero, coma decimal y € al final

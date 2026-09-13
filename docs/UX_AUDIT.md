@@ -161,6 +161,11 @@ agotado.
 > (P2-01), así que sobreestima lo que queda: un "Quedan 3" podría ser un 1 real. Al sobreestimar,
 > el estado "agotado" puede llegar tarde pero nunca antes de tiempo, y de lo que llegue tarde se
 > encarga `prepare_join` en el servidor. Para enseñar la cifra hace falta cerrar P2-01 antes.
+>
+> ✅ **P2-01 cerrado el 13-sep-2026.** El cálculo ya no usa `total_units` sino
+> `group_committed_units()`, la misma suma que usa `prepare_join` para aceptar o rechazar. El
+> número es ahora correcto, así que **enseñar la cifra exacta ya es posible** — queda como
+> decisión de producto pendiente, no como impedimento técnico.
 
 ### Lo que se hizo
 

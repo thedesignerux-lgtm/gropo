@@ -30,6 +30,15 @@ async function fetchGropo(id: string): Promise<JoinGroup | null> {
       price: Number(t.price),
     }))
 
+  // P2-01 · Unidades que YA OCUPAN STOCK. No es `total_units`: ese campo es la
+  // demanda EFECTIVA al precio actual (deja fuera a los esperadores que apuntan
+  // más abajo) y encima no baja cuando alguien se libera. El servidor acepta o
+  // rechaza con esta otra cifra, así que la ficha tiene que enseñar la misma.
+  const { data: committed } = await supabaseAdmin.rpc('group_committed_units', {
+    p_group_id: id,
+  })
+  const committedUnits = Number(committed ?? 0)
+
   let maxStock = 0
   let minExecution = 0
   let shippingIncluded = false
@@ -56,6 +65,7 @@ async function fetchGropo(id: string): Promise<JoinGroup | null> {
     current_price: currentPrice,
     image_url: ((g as any).image_url as string | null) ?? null,
     total_units: Number(g.total_units ?? 0),
+    committed_units: committedUnits,
     closes_at: g.closes_at as string,
     max_stock: maxStock,
     min_execution: minExecution,

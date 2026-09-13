@@ -28,7 +28,8 @@
 | P1-06 | Cero tests automatizados | 🟠 P1 | — |
 | P1-07 | `users_phone_key` no existe: rama de código inalcanzable | 🟠 P1 | ✅ 2 teléfonos duplicados |
 | P1-08 | Apple Pay y Google Pay se anuncian pero no funcionan | 🟠 P1 | ✅ **Sí, en producción** |
-| P2-01 | El stock restante mostrado en el checkout sobreestima | 🟡 P2 | ❓ |
+| P2-01 | El stock restante mostrado en el checkout sobreestima | ✅ Resuelto 13 sep 2026 | — |
+| P2-01b | `JoinFlow` usa `total_units` para el progreso de tramos (infra-reporta y no baja al liberarse un hold) | 🟡 P2 | ❓ |
 | P2-02 | Adjudicación sin relleno: un pedido grande bloquea a los posteriores | 🟡 P2 | ❌ (0 cierres) |
 | P2-03 | `rate_limits` crece sin límite y no tiene primary key | 🟡 P2 | ❓ |
 | P2-04 | Copy de compartir desactualizado tras el cambio de `next_price` | 🟡 P2 | ✅ Sí |
@@ -557,15 +558,49 @@ Amplía la superficie de pares (teléfono, email) válidos para P0-02.
 
 ## 🟡 P2 — MEDIO
 
-### P2-01 · El stock restante mostrado en el checkout sobreestima
-`src/app/grupo/[id]/unirme/JoinFlow.tsx:115`
+### P2-01 · El stock restante mostrado en el checkout sobreestima — ✅ RESUELTO 13 sep 2026
+`src/app/grupo/[id]/unirme/JoinFlow.tsx`
 ```ts
-const remaining = group.max_stock > 0 ? Math.max(1, group.max_stock - group.total_units) : 10;
+// antes
+return g.max_stock > 0 ? g.max_stock - g.total_units : null;
 ```
-`total_units` es demanda **firme** (fluctúa con el precio), no unidades comprometidas. Con
-esperadores por debajo del precio vigente, `total_units` es mucho menor que lo realmente
-comprometido. **El servidor lo corrige en `prepare_join`**, así que no es un fallo de dinero:
-el usuario rellena todo el formulario y es rechazado al final con *"Stock insuficiente"*.
+
+**Diagnóstico.** En el sistema conviven tres números y la interfaz usaba el que no era:
+
+| # | Número | Definición | Quién lo produce |
+|---|--------|-----------|------------------|
+| 1 | **Unidades comprometidas** | `SUM(quantity)` de **todos** los miembros vivos (`authorized`/`instructed`/`paid`), **sin filtrar por `join_mode`** | `prepare_join.v_committed_units`, `close_group.v_gross_units` |
+| 2 | **Demanda efectiva a un precio P** | `SUM(quantity)` de los vivos que comprarían a P (`comprar`, o `esperar` con `target_price >= P`) | `tier_demand.effective_demand` |
+| 3 | **`groups.total_units`** | El caso particular de (2) **al precio actual**, guardado en la fila | `confirm_join` |
+
+Un esperador **ocupa plaza** aunque su tramo no esté desbloqueado. Por eso (3) ≤ (1) siempre, y
+restar (3) de `max_stock` **sobreestima** lo disponible.
+
+**Ejemplo real de producción** — grupo `a0000000-…-0007` (*TEST · Ensayo 3 — esperadores*),
+antes del cierre, con precio vigente 100 €: 3 compradores + 1 esperador\@80 + 1 esperador\@60,
+1 unidad cada uno.
+- comprometidas = **5**
+- `total_units` (demanda efectiva a 100 €) = **3**
+- con `max_stock = 5` la ficha habría dicho *"quedan 2"* cuando quedaban **0**.
+
+**Fix.** Nueva función de solo lectura `public.group_committed_units(uuid)`
+(`supabase/group_committed_units.sql`, desplegada en producción), que devuelve (1) con la misma
+definición literal que `prepare_join`. `unirme/page.tsx` la llama con la service key y la pasa
+como `committed_units`; `remainingStock()` resta esa cifra. Permisos: **solo `service_role`**
+(`anon` y `authenticated` revocados) — ningún cliente la necesita.
+
+Sigue siendo una foto del momento del render: entre pintar y pagar puede entrar alguien. La
+autoridad es `prepare_join`, que no ha cambiado.
+
+**Abierto — P2-01b.** `JoinFlow` sigue usando `total_units` para el **progreso de tramos**
+(`projected`, `groupReached`, posición del slider), y ahí también es el número equivocado por
+dos motivos: (a) para un tramo más barato la demanda relevante es la de *ese* precio, no la del
+actual, así que **infra**-reporta el avance hacia los tramos baratos; (b) `total_units` solo lo
+reescribe `confirm_join`, así que **no baja** cuando un miembro se libera (verificado en
+producción: grupo `a0000000-…-0001` tiene `total_units = 13` con 0 unidades vivas). La home ya
+evita el problema usando `effective_demand` de `tier_demand` por tramo; el checkout recibe esa
+escalera pero descarta la columna de demanda al mapearla. Pendiente de decisión: es display de
+precio, no de stock.
 
 ### P2-02 · Adjudicación sin relleno
 `close_group` paso 6: el corte es `cum_qty <= max_stock` evaluado por filas completas. Si el

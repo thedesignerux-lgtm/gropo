@@ -1013,19 +1013,33 @@ Comentario literal en `confirm_join` (producción):
 **`total_units` puede BAJAR**, e incluso ser **0 con 15 miembros vivos**, si todos son
 esperadores con `target_price` por debajo del precio vigente.
 
-**Escritor único:** `confirm_join` paso 8f, **recalculado entero** (no incremental) para que
-nunca se desincronice.
+**Escritor único:** `confirm_join` paso 8f, recalculado entero (no incremental).
+
+⚠️ **Corrección (13 sep 2026).** Este documento decía que por eso "nunca se desincroniza". Es
+falso: se recalcula **solo cuando corre `confirm_join`**. Ningún camino lo recalcula cuando un
+miembro sale del conjunto vivo (liberación de hold, cancelación, Regla 6), así que después de
+una baja se queda **alto**. Verificado en producción: el grupo `a0000000-…-0001` tiene
+`total_units = 13` con 0 unidades vivas.
+
+**Qué es exactamente:** la **demanda efectiva al precio vigente** — compradores firmes más
+esperadores cuyo `target_price` ya alcanza ese precio:
+
+```sql
+SUM(gm.quantity) WHERE payment_status IN ('authorized','instructed','paid')
+  AND (gm.join_mode = 'comprar' OR gm.target_price >= v_new_price)
+```
+
+**No es** las unidades que ocupan stock. Esas son la suma **sin filtrar por `join_mode`**, y
+tienen su propia función desde el 13 sep 2026:
+`public.group_committed_units(uuid)` (`supabase/group_committed_units.sql`), con la definición
+idéntica a `prepare_join.v_committed_units` y `close_group.v_gross_units`.
 
 **Lectores:** `src/app/page.tsx` (fallback), `grupo/[id]/page.tsx`, `unirme/page.tsx`,
 `unido/page.tsx`, admin, `prepare_join` (lo selecciona pero **ya no lo usa** como techo), y
-🔴 **`src/app/grupo/[id]/unirme/JoinFlow.tsx:115`**:
-```ts
-const remaining = group.max_stock > 0 ? Math.max(1, group.max_stock - group.total_units) : 10;
-```
-→ **sobreestima el stock disponible** cuando hay esperadores por debajo del precio vigente.
-El servidor lo corrige después en `prepare_join`, así que **no es un fallo de dinero**, sino de
-UX (el usuario rellena todo el formulario y es rechazado al final).
-Ver `KNOWN_ISSUES.md` P2-01.
+`JoinFlow.tsx` para el progreso de tramos.
+
+El uso como techo de stock en `JoinFlow` **está corregido**: ahora resta `committed_units`.
+El uso para el progreso de tramos sigue abierto — ver `KNOWN_ISSUES.md` P2-01 / P2-01b.
 
 ### Límites de cantidad
 - `1 <= quantity <= 10` por comprador: `prepare_join` (excepción), CHECK

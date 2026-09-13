@@ -209,11 +209,15 @@ distintos del mismo usuario (P0-04) — cerrado el 11-sep-2026 por dos vías: `i
 derivada del payload en los dos emisores, y el índice parcial `uniq_member_per_group_alive`
 sobre `(group_id, user_id)`, que es la barrera final independientemente del PI.
 
-### ADR-05 · `total_units` = demanda FIRME, no contador de stock
+### ADR-05 · `total_units` = demanda EFECTIVA al precio vigente, no contador de stock
 **Motivo:** nació de un bug de overselling real (comentario en `confirm_join`).
 **Consecuencias:** ✅ sin overselling. ❌ Semántica contraintuitiva: puede **bajar** y ser 0 con
-15 miembros. ❌ El display tiene que derivar sus propias unidades, y `JoinFlow:115` sigue
-usándolo mal (P2-01).
+15 miembros. ❌ El display tiene que derivar sus propias unidades.
+
+**Actualización 13 sep 2026.** El contador de stock ya no sale de aquí: `group_committed_units(uuid)`
+devuelve las unidades que ocupan plaza (todos los vivos, sin filtrar por `join_mode`), con la misma
+definición que `prepare_join`. `JoinFlow` la usa para el tope del selector. Queda P2-01b: el
+progreso de tramos del checkout sigue leyendo `total_units`.
 
 ### ADR-06 · Ventana de cierre máxima de 6,5 días
 **Motivo:** *"incidente del cierre del 5 jul 2026: 3 capturas fallidas por holds de 7d+"*.

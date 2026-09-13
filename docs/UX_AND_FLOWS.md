@@ -139,7 +139,7 @@ Respeta `prefers-reduced-motion` (confeti y animaciones del Pulse en `globals.cs
 | **"Faltan N unidades para bajar a X €"** | **REAL con caveat** | `useTierDemand` calcula su propio `nextTier` ordenando por **unidades faltantes**, criterio **distinto** al de `compute_price.next_price` |
 | **Barra de progreso proyectada** (`JoinFlow`) | **DISPLAY** | `posOf(units)` interpola entre tramos; el precio subyacente sí es real |
 | **`currentUnits` de la home** | **DERIVADO** | `page.tsx:59-63` construye un número de display: `min(nextLocked.minUnits − 1, max(unlockedBase, nextLocked.demand))`. **No es la demanda real ni `total_units`** |
-| **Stock restante del stepper** | **REAL pero SESGADO** | `JoinFlow:115` usa `total_units` → **sobreestima**. Ver `KNOWN_ISSUES.md` P2-01 |
+| **Stock restante del stepper** | **REAL** | `JoinFlow.remainingStock()` resta `committed_units` (`group_committed_units`), la misma suma que usa `prepare_join`. Corregido 13 sep 2026, `KNOWN_ISSUES.md` P2-01 |
 | **Confeti** | Decoración | Solo al cruzar un tramo a la baja, una vez por cruce |
 | **Cuenta atrás** | Display con umbral de 14 días |
 | **"Ahorras X €"** | Display | `pvp − precio`. `pvp` es un campo libre que teclea el admin: **no verificado contra ninguna fuente** |
