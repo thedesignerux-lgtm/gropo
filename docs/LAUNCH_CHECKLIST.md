@@ -35,7 +35,7 @@
 | Gate G6 multi-puja (dos vendedores compitiendo) | ⚪ **FUERA DEL MVP** (decisión de Benjamin, 12-sep). Un grupo = una puja activa |
 | Caché de Next congelaba ficha y checkout | ✅ **Cerrado 12-sep-2026** — `no-store` en los clientes Supabase de servidor, verificado en producción con grupo sonda |
 | **Rotación de claves de Sendcloud** (expuestas en chat) | 🔴 **PENDIENTE — bloqueante de seguridad** |
-| **Cutover de Stripe test → live** | 🔴 **PENDIENTE** |
+| **Cutover de Stripe test → live** | 🟠 **APLAZADO por decisión de Benjamin (13-sep-2026)** — hacen falta más pruebas en test y trabajo de UI. Preparación hecha: ver FASE 3 |
 | Vendedor real con tramos confirmados | 🔴 Pendiente |
 | **Custom SMTP en Supabase Auth** | ✅ **HECHO y VERIFICADO 12-sep-2026** — `smtp.resend.com:465`, remitente `hola@gropo.es`, 100 emails/h. Prueba: un `Confirm your email address` del 11-sep aparece en los registros de Resend |
 | Plan de Resend (techo real de envío) | ⚠️ **Decisión pendiente** — el gratuito son 100 emails/día y 3.000/mes; a 2 emails por miembro son ~50 miembros/día. 20 $/mes quitan el límite diario |
@@ -43,6 +43,7 @@
 | Webhook Stripe → Gropo | ✅ **Verificado 11-sep-2026** (ver `PAYMENTS.md` §12) |
 | `CRON_SECRET` en Vercel | ✅ **Verificado 11-sep-2026** — el cierre automático está armado |
 | **Dominio registrado en Stripe** (Apple Pay / Google Pay) | 🔴 Pendiente — los logos se anuncian y **no funcionan** (P1-08) |
+| **Circuito de pruebas tras el cutover** | 🔴 **Pendiente y BLOQUEA el cutover** — hoy el webhook de test apunta a producción; en cuanto producción use `whsec_` live, toda prueba en test fallará la firma. Ver FASE 3.0 |
 | Miembros duplicados (P0-01) | ✅ **Cerrado y verificado 11-sep-2026** |
 | Idempotencia del PaymentIntent (P0-04) | ✅ **Cerrado y verificado 11-sep-2026** |
 | Limpieza de datos de prueba en producción | ✅ **Completada 11-sep-2026** — 0 grupos abiertos, 0 holds vivos, 0 duplicados vivos |
@@ -137,10 +138,66 @@ Guion original, conservado por si hay que repetirlo:
 
 ## FASE 3 — Cutover de Stripe (test → live)
 
-> ⚠️ A partir de aquí se mueve dinero real. Ve despacio.
+> 🟠 **APLAZADO el 13-sep-2026** por decisión de Benjamin: faltan pruebas en modo test y trabajo
+> de UI. Lo que sigue está a medio camino — leer el estado antes de retomarlo.
 
-> 🔴 **Los endpoints de webhook de modo live son una lista SEPARADA de los de test.** Nada de lo
-> verificado el 11-sep se hereda: el endpoint live es nuevo y tendrá **otro** `whsec_`.
+### ESTADO REAL (verificado contra la API de Stripe el 13-sep-2026)
+
+**Cuenta live `acct_1TieNjAn6mkRTl0g` ("Gropo"):**
+
+| Comprobación | Estado |
+|---|---|
+| `charges_enabled` / `payouts_enabled` | ✅ ambos true |
+| `requirements` pendientes | ✅ ninguno |
+| `card_payments` | ✅ activo |
+| Cuenta bancaria | Bankinter ···1741, EUR, por defecto |
+| Descriptor en el extracto | `GROPO` |
+| Nombre público, email de soporte, web | ✅ corregidos (antes decía "Vonda") |
+| Branding (logo, icono, colores) | ✅ puesto — marca `#024947`, énfasis `#024947` |
+| **Webhook live** | ✅ **CREADO** — `we_1UFA10An6mkRTl0ghhi4vdP9` |
+| Claves live en Vercel | 🔴 **NO puestas** — producción sigue en test |
+| Payouts | ⚠️ en **manual**: el dinero se queda en el saldo de Stripe |
+| Verificación de identidad | ⚠️ `unverified` (`failed_keyed_identity`). Hoy no bloquea nada, pero Stripe puede pedir documento y congelar payouts. Resolver antes de que haya dinero dentro |
+| Apple Pay / Google Pay | 🔴 dominio sin registrar en live (P1-08) |
+
+**El webhook live creado es idéntico al de test que pasó el Ensayo 3:**
+
+| Campo | Live | Test |
+|---|---|---|
+| URL | `https://www.gropo.es/api/stripe/webhook` | la misma |
+| Eventos | `payment_intent.amount_capturable_updated` (1) | el mismo |
+| Versión de API | `2026-05-27.dahlia` | **la misma** |
+| Tipo | webhook clásico (evento completo, no thin event) | el mismo |
+
+Que coincida la versión de API significa que el payload será idéntico al ya procesado con éxito.
+No hay formato nuevo que pueda romper el handler.
+
+**El webhook live está inerte mientras no haya claves live**: sin `sk_live_` no se crea ningún
+PaymentIntent en la cuenta live, así que nunca se disparará. Es seguro dejarlo creado.
+
+### 3.0 · ANTES de retomar el cutover — el circuito de pruebas
+
+🔴 **Descubierto el 13-sep-2026. Bloquea el cutover.**
+
+El webhook de **test** (`we_1TjGhOA114rXo3Kahd7KyxWq`, cuenta `acct_1TieNuA114rXo3Ka` "Vonda
+sandbox") apunta también a `https://www.gropo.es/api/stripe/webhook`. En cuanto producción use el
+`whsec_` live, cualquier prueba en modo test seguirá este camino:
+
+1. el checkout crea el hold en Stripe test — parece que va bien
+2. Stripe test envía el evento a producción
+3. producción verifica la firma con el secreto **live** → **400, firma inválida**
+4. `confirm_join` no se ejecuta → **el miembro nunca se crea**
+
+Falla en silencio desde el punto de vista del usuario. Antes del cutover hay que darle a test su
+propio destino:
+
+- [ ] Crear una rama fija de staging con URL estable de Vercel (`kuorum-git-staging-….vercel.app`)
+- [ ] Apuntar el webhook de test a esa URL
+- [ ] Preview ya tendrá el `whsec_` de test (ver 3.3)
+- [ ] ⚠️ Ojo: Preview comparte la base de datos de PRODUCCIÓN. Las pruebas escriben filas reales
+
+Y con claves live, **las tarjetas de prueba dejan de funcionar en producción**. La única prueba
+posible ahí es tarjeta real + importe mínimo + cancelar el hold antes de capturar (coste 0 €).
 
 ### 3.1 · Obtener las claves live
 - [ ] **[TÚ]** En `https://dashboard.stripe.com`, sal del entorno de pruebas (modo Live).
@@ -156,12 +213,34 @@ Guion original, conservado por si hay que repetirlo:
       solo crea la falsa impresión de que se están gestionando.
 - [ ] **[TÚ]** Copia el **Signing secret** (`whsec_…`) del endpoint recién creado.
 
-### 3.3 · Poner las claves en Vercel
-- [ ] **[TÚ]** Vercel → proyecto → **Settings → Environment Variables**. Las variables son
-      `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` y `STRIPE_WEBHOOK_SECRET`.
-- [ ] **[TÚ]** Para cada una: edita el valor, pega la clave live, marca el entorno
-      **Production** y guarda.
-- [ ] **[TÚ]** **Redeploy** (Deployments → el último → ⋯ → Redeploy) para que tome las variables.
+### 3.3 · Poner las claves en Vercel — ⚠️ SEPARANDO ENTORNOS
+
+🔴 **Verificado el 13-sep-2026: las tres variables están hoy en "Production and Preview".** Si solo
+se cambia el valor, **cada URL de previsualización pasa a cobrar dinero real**. Hay que separarlas.
+
+Vercel no deja crear una variable con un nombre que ya existe para ese entorno, así que el orden
+importa: **encoger primero, añadir después**. Y **no desplegar a medias** — sin
+`STRIPE_SECRET_KEY` el build falla (`src/lib/stripe.ts` lanza al importar).
+
+Para cada una de `STRIPE_SECRET_KEY`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` y
+`STRIPE_WEBHOOK_SECRET`:
+
+- [ ] **[TÚ]** `···` → **Edit** → desmarcar **Production**, dejar **Preview**, no tocar el valor. Guardar.
+- [ ] **[TÚ]** **Add New** → mismo nombre → valor live → **solo Production**. Guardar.
+
+| Variable | Valor live |
+|---|---|
+| `STRIPE_SECRET_KEY` | `sk_live_…` |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | `pk_live_…` |
+| `STRIPE_WEBHOOK_SECRET` | el `whsec_` de `we_1UFA10An6mkRTl0ghhi4vdP9` (**live**, no el de test) |
+
+Resultado esperado: seis filas de Stripe, tres en Preview y tres en Production.
+
+- [ ] **[CLAUDE]** Revisar la lista antes de redesplegar. Un `pk_live` en Preview o un `sk_test` en
+      Production son errores **silenciosos**: no dan error de build.
+- [ ] **[TÚ]** **Redeploy SIN caché de build.** `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` se incrusta en
+      el bundle de cliente en tiempo de compilación; con caché reutilizada seguiría sirviendo la
+      `pk_test`. En el diálogo de Redeploy, **desmarcar "Use existing Build Cache"**.
 
 ### 3.4 · Prueba controlada en vivo
 - [ ] **[TÚ]** Con una tarjeta real tuya y un importe mínimo, completa un "asegurar precio" en

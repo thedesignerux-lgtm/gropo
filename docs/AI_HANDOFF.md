@@ -8,6 +8,30 @@
 > Base: repo `main @ 7c49ef3` + base de datos de producción `xpktkuozspreuxucnguh`, auditada en
 > vivo el **6 de septiembre de 2026**.
 
+
+---
+
+## ⚠️ ÚLTIMO ESTADO — 13 de septiembre de 2026
+
+**Cutover de Stripe: PREPARADO PERO APLAZADO.** Decisión de Benjamin: faltan pruebas en modo test
+y trabajo de UI. Producción **sigue en claves de test**. Detalle completo en `LAUNCH_CHECKLIST.md`
+FASE 3, que incluye el estado verificado contra la API de Stripe.
+
+Lo hecho: cuenta live comprobada (cobros y pagos habilitados, sin requisitos pendientes), datos
+públicos y branding corregidos (antes decían "Vonda"), y **webhook live creado**
+(`we_1UFA10An6mkRTl0ghhi4vdP9`), idéntico en URL, evento y versión de API al de test que pasó el
+Ensayo 3. Está inerte mientras no haya `sk_live_`.
+
+Lo que falta y **bloquea**: las claves live en Vercel **separando entornos** (hoy las tres
+variables están en "Production and Preview": cambiar solo el valor haría que las URLs de
+previsualización cobrasen dinero real), y darle al webhook de **test** su propio destino — hoy
+apunta a producción y en cuanto producción use el `whsec_` live, toda prueba en test fallará la
+firma **en silencio**.
+
+**Marca:** wordmark nuevo (la "g" con punto naranja y sonrisa) en `public/logo.png` y
+`public/logo-light.png`, recoloreado al token `#024947`. Los iconos, el favicon y la imagen de
+Open Graph siguen siendo los anteriores, por decisión explícita.
+
 ---
 
 # 1. PROJECT IDENTITY
