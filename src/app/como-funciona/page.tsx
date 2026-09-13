@@ -22,7 +22,7 @@ const STEPS = [
 
 const GUARANTEES = [
   { t: 'Tu dinero está protegido', d: 'Solo se realiza el cargo si el grupo alcanza su objetivo. Hasta entonces es una retención, no un cobro.' },
-  { t: 'Sin compromiso', d: 'Puedes salir de un grupo antes del cierre y se libera tu retención al instante.' },
+  { t: 'Nunca pagas de más', d: 'Tú fijas el máximo que aceptas pagar y el sistema nunca lo supera. Si el grupo consigue un precio mejor, pagas menos automáticamente.' },
   { t: 'Gropo responde', d: 'Gropo es el vendedor oficial (merchant of record): factura, envío y devoluciones pasan por nosotros.' },
 ]
 

@@ -5,6 +5,7 @@ import GroupCountdown from '@/components/GroupCountdown'
 import FavoriteButton from '@/components/FavoriteButton'
 import DesktopNavbar from '@/components/desktop/DesktopNavbar'
 import { SITE_URL } from '@/lib/site'
+import GroupHowAndTrust from '@/components/GroupHowAndTrust'
 
 interface Tier { minUnits: number; price: number }
 
@@ -22,18 +23,6 @@ interface Props {
   minExecution: number
   closesAt: string
 }
-
-const STEPS = [
-  { n: 1, title: 'Únete al grupo', body: 'Reservas tu plaza sin pagar nada por adelantado.' },
-  { n: 2, title: 'Invita a más gente', body: 'Cada persona que entra acerca el siguiente tramo.' },
-  { n: 3, title: 'El precio baja', body: 'Al cerrar, pagas el precio más bajo alcanzado.' },
-]
-
-const TRUST = [
-  { title: 'Pago seguro', body: 'Tu dinero siempre protegido' },
-  { title: 'Sin compromiso', body: 'Únete gratis, compra cuando quieras' },
-  { title: 'Devoluciones fáciles', body: 'Si algo no encaja, lo solucionamos' },
-]
 
 function ImagePlaceholder({ label }: { label: string }) {
   return (
@@ -138,36 +127,7 @@ export default function GroupDesktopView({
           />
         </div>
 
-        {/* ── Cuantos más, menos pagas ── */}
-        <section className="mt-9 pt-[30px] border-t border-[#F1EFF5]">
-          <h2 className="text-[19px] font-extrabold text-neutral-900 mb-3">Cuantos más, menos pagas</h2>
-          <p className="text-[15px] leading-relaxed text-[#57545e] max-w-[640px]">
-            Cada vez que alguien asegura su plaza, el grupo se acerca al siguiente tramo y el precio baja
-            para <strong>todos</strong>. No pagas hasta que el grupo cierra, y el importe final es el más bajo que se alcance.
-          </p>
-          <div className="grid grid-cols-3 gap-4 mt-6">
-            {STEPS.map(s => (
-              <div key={s.n} className="rounded-2xl border border-[#E6EDEC] p-[18px]">
-                <div className="w-[30px] h-[30px] rounded-[9px] bg-[#DEEDEC] flex items-center justify-center text-sm font-extrabold text-brand">{s.n}</div>
-                <h3 className="text-[14.5px] font-bold text-neutral-900 mt-3">{s.title}</h3>
-                <p className="text-[12.5px] text-[#8A8794] leading-relaxed mt-1">{s.body}</p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* ── Trust row ── */}
-        <div className="flex gap-11 mt-[30px] pt-[26px] border-t border-[#F1EFF5]">
-          {TRUST.map(t => (
-            <div key={t.title} className="flex items-center gap-[11px]">
-              <div className="w-[34px] h-[34px] rounded-full bg-[#DEEDEC] flex-shrink-0" />
-              <div>
-                <p className="text-[13.5px] font-bold text-neutral-900">{t.title}</p>
-                <p className="text-xs text-[#8A8794]">{t.body}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+        <GroupHowAndTrust />
       </div>
       </div>
     </div>

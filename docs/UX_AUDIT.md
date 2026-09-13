@@ -40,6 +40,10 @@ perdida.
 
 ## UX-01 · "Puedes salir de un grupo en cualquier momento" — esa función no existe
 
+> ✅ **RESUELTO por la vía del copy — 13-sep-2026.** Decisión de Benjamin: corregir los tres textos
+> ahora y dejar la funcionalidad de baja como trabajo posterior. El diagnóstico se conserva abajo
+> porque explica por qué se tocó el copy.
+
 **Dónde se promete**, tres veces:
 
 | Sitio | Texto |
@@ -60,9 +64,24 @@ quedas comprometido hasta el cierre.
 
 **Principio que incumple.** *Transparencia absoluta · nunca debe haber sorpresas.*
 
-**Dos salidas, y son tuyas:** implementar la baja (botón en Mis grupos → `paymentIntents.cancel` +
-marcar la fila), o corregir los tres textos para que digan lo que el sistema hace. La segunda es
-una tarde; la primera, dos o tres días. **No la arreglo yo porque cambia qué vendes.**
+**Lo que se hizo.** Los tres textos, reescritos. El hueco de *"Sin compromiso"* no se rellenó con
+una versión aguada: se sustituyó por la garantía más fuerte que el motor **sí** respalda —el
+invariante INV-005, PMA universal en `close_group`— y que no estaba dicha en ninguna parte.
+
+| Sitio | Antes | Ahora |
+|---|---|---|
+| `como-funciona` | *Sin compromiso — Puedes salir de un grupo antes del cierre y se libera tu retención al instante.* | *Nunca pagas de más — Tú fijas el máximo que aceptas pagar y el sistema nunca lo supera. Si el grupo consigue un precio mejor, pagas menos automáticamente.* |
+| `ayuda` (FAQ) | *Sí, en cualquier momento antes del cierre. Al salir se libera tu retención al instante, sin coste.* | *Al asegurar tu precio tu plaza queda comprometida hasta el cierre: es justo lo que permite a la marca conceder el descuento por volumen. Mientras tanto no se te cobra nada, y si el grupo no alcanza su objetivo la retención se libera entera. Si necesitas darte de baja, escríbenos antes del cierre y lo resolvemos contigo.* |
+| Ficha escritorio | *Sin compromiso — Únete gratis, compra cuando quieras* | *Nunca pagas de más — Tú eliges tu precio máximo* |
+
+La pregunta del FAQ **se mantiene** ("¿Puedo salir de un grupo?"): la gente la va a buscar, y es
+mejor que encuentre la respuesta honesta a que no encuentre nada. La última frase promete
+atención, no automatismo: cancelar un PaymentIntent a mano en Stripe es algo que sí puedes cumplir
+con el volumen del MVP.
+
+**Sigue pendiente (trabajo posterior):** la baja autoservicio. Botón en Mis grupos →
+`paymentIntents.cancel` + marcar la fila. Ojo a la concurrencia: qué pasa si alguien se da de baja
+mientras `close_group` está corriendo.
 
 ---
 
@@ -117,6 +136,8 @@ está vacía). Ya es **P1-08**; lo repito porque el sitio donde aparece es el pe
 
 ## UX-05 · La ficha móvil es una versión mutilada de la de escritorio
 
+> 🟠 **PARCIALMENTE RESUELTO — 13-sep-2026.** Ver "Lo que se hizo" al final de este apartado.
+
 Este es el hallazgo con más impacto de negocio. Misma URL, mismo grupo, dos árboles de UI
 distintos (`DT-03`). Texto real extraído de ambas:
 
@@ -141,6 +162,29 @@ y **solo existe en escritorio**.
 **Y hay una inversión que agrava lo anterior:** todo el contenido de confianza sí está… en el
 **checkout**, o sea *después* de que el usuario haya decidido. Está donde ya no hace falta y falta
 donde se decide.
+
+### Lo que se hizo (13-sep-2026)
+
+Los bloques *"Cuantos más, menos pagas"*, los tres pasos y la fila de confianza se extrajeron de
+`desktop/GroupDesktopView` a un componente nuevo, **`src/components/GroupHowAndTrust.tsx`**, que
+ahora renderizan **las dos vistas**. Una sola fuente: cambiar un texto ya no puede dejar móvil y
+escritorio diciendo cosas distintas — era exactamente el coste de DT-03.
+
+Y la pregunta **"¿Cuál es el máximo que pagarías?"** se añadió sobre el slider en móvil
+(`GroupLiveSection`). Es el principio rector del producto y solo existía en escritorio.
+
+**Dos cosas de la tabla que decidí NO copiar a móvil, y por qué:**
+
+- **El precio SIGUIENTE como cifra etiquetada.** En móvil ese dato ya aparece dos veces: en la
+  escalera del slider y en el texto de debajo (*"Si entran 4 uds más, bajaréis a 189 €"*). Una
+  tercera incumpliría *un dato aparece una sola vez*. Si acaso sobra una de las dos que ya hay.
+- **El selector de cantidad.** En escritorio existe porque la compra se resuelve en el panel
+  lateral sin cambiar de página. En móvil el CTA lleva a `/unirme`, que **ya tiene** su stepper.
+  Ponerlo también en la ficha duplicaría el control y abriría la puerta a que ambos se
+  desincronicen.
+
+**Sigue pendiente:** la ficha móvil no tiene descripción de producto ni información de envío. No es
+un problema de paridad con escritorio —tampoco están ahí— sino un hueco de las dos.
 
 ---
 

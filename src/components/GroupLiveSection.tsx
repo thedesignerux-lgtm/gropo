@@ -141,7 +141,9 @@ export default function GroupLiveSection({
 
           {/* Target slider (con nudge, sin encabezado — estado va arriba) */}
           {detents.length > 1 && (
-            <div className="mt-2">
+            <div className="mt-3">
+              {/* UX-05 · La pregunta rectora del producto solo existía en escritorio. */}
+              <p className="text-[13px] font-bold text-neutral-900 mb-1.5">¿Cuál es el máximo que pagarías?</p>
               <GropoTargetSlider
                 detents={detents}
                 curIdx={curIdx}

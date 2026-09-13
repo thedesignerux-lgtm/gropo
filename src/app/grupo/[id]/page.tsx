@@ -7,6 +7,7 @@ import BottomNav from '@/components/BottomNav'
 import GroupLiveSection from '@/components/GroupLiveSection'
 import GroupDesktopView from '@/components/desktop/GroupDesktopView'
 import GroupCountdownBadge from '@/components/GroupCountdownBadge'
+import GroupHowAndTrust from '@/components/GroupHowAndTrust'
 
 export const dynamic = 'force-dynamic'
 
@@ -178,6 +179,12 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
             closesAt={group.closesAt}
             heroMode
           />
+
+          {/* UX-05 · Estos bloques vivían solo en escritorio. La ficha móvil no
+              respondía "¿cuándo me cobráis?" ni "¿y si el grupo no sale?". */}
+          <div className="px-4 pb-6">
+            <GroupHowAndTrust />
+          </div>
         </div>
         <BottomNav />
       </div>

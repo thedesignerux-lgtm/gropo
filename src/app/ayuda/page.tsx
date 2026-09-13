@@ -11,7 +11,7 @@ const FAQS = [
   { q: '¿Qué significa “asegurar el precio”?', a: 'Reservas tu plaza en el grupo al precio actual. Si entran más personas y el precio baja, pagas el precio más bajo. Nunca pagas más del máximo que aceptaste al unirte.' },
   { q: '¿Qué pasa si el grupo no llega al objetivo?', a: 'No pasa nada malo: se libera tu retención automáticamente y no se realiza ningún cargo. Es la garantía de Gropo — si no hay grupo, no hay pago.' },
   { q: '¿Cuándo cierra un grupo?', a: 'Los grupos cierran cada domingo a las 22:00 (hora peninsular española). En ese momento se fija el precio final único para todos los participantes.' },
-  { q: '¿Puedo salir de un grupo?', a: 'Sí, en cualquier momento antes del cierre. Al salir se libera tu retención al instante, sin coste.' },
+  { q: '¿Puedo salir de un grupo?', a: 'Al asegurar tu precio tu plaza queda comprometida hasta el cierre: es justo lo que permite a la marca conceder el descuento por volumen. Mientras tanto no se te cobra nada, y si el grupo no alcanza su objetivo la retención se libera entera. Si necesitas darte de baja, escríbenos antes del cierre y lo resolvemos contigo.' },
   { q: '¿Cómo veo mis pedidos?', a: 'En la sección “Mis grupos”, identificándote con el teléfono y el email con los que te uniste. Ahí ves el estado de cada grupo y tu plaza.' },
   { q: '¿Cómo y cuándo llega mi pedido?', a: 'Cuando el grupo cierra habiendo alcanzado el objetivo, se procesa tu pago y preparamos el envío con seguimiento. Recibirás la información de tracking por email.' },
   { q: '¿Puedo cambiar mi dirección de envío?', a: 'Sí, desde tu perfil, en el bloque “Dirección de envío”. Puedes tener varias direcciones y marcar una como predeterminada.' },
