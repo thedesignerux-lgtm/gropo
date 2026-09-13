@@ -46,6 +46,23 @@ perdida.
 > ✅ **RESUELTO por la vía del copy — 13-sep-2026.** Decisión de Benjamin: corregir los tres textos
 > ahora y dejar la funcionalidad de baja como trabajo posterior. El diagnóstico se conserva abajo
 > porque explica por qué se tocó el copy.
+>
+> ✅ **CERRADO DEL TODO — 13-sep-2026, más tarde.** La baja **no se va a implementar nunca**: es
+> una decisión de producto, no una tarea pendiente. Ver `BUSINESS_RULES.md` RULE-061. El
+> compromiso es lo que permite al vendedor comprometer un precio y lo que evita que a los demás
+> les suba si alguien se marcha.
+>
+> Con eso, el hueco que dejó esta auditoría cambia de forma: ya no falta una función, **faltaba
+> decirlo**. El checkout prometía tres veces *"se libera sin cargo"* (hablando de que el grupo no
+> saliera) y **en ningún momento decía que no podrías echarte atrás**. Añadido en los dos banners
+> del checkout y en `HowGropoSheet` (RULE-061).
+>
+> Y se añadió lo que sí faltaba de verdad: un **botón de liberar en el admin** (RULE-062). No es
+> una baja: es que hasta hoy no existía ninguna forma, ni siquiera manual desde el panel, de sacar
+> a alguien que se equivocó de cantidad o al que le robaron la tarjeta. Sin esa salida, ese
+> comprador acaba llamando a su banco, y un contracargo es más caro que una liberación.
+>
+> Queda abierto lo legal: RULE-063, pendiente de abogado.
 
 **Dónde se promete**, tres veces:
 

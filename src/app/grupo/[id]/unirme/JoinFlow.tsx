@@ -415,7 +415,7 @@ export default function JoinFlow({
             <div className="flex gap-[11px] rounded-2xl border border-[#CFEADA] bg-[#EEF8F1] p-[13px]">
               <svg width="19" height="19" className="mt-px flex-none" viewBox="0 0 24 24" fill="none" stroke="#0B7B44" strokeWidth="2"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11z" /><path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" /></svg>
               <div className="text-xs font-semibold leading-[1.5] text-[#0D6B3D]">
-                <b>Tu compra automática a {eur(efectiveTargetPrice)}.</b> Se retendrán {eur(efectiveTargetPrice * quantity)} ({eur(efectiveTargetPrice)}/ud × {quantity}). Si el grupo alcanza este precio antes del cierre, tu compra se confirma automáticamente. Si no, se libera sin cargo.{' '}
+                <b>Tu compra automática a {eur(efectiveTargetPrice)}.</b> Se retendrán {eur(efectiveTargetPrice * quantity)} ({eur(efectiveTargetPrice)}/ud × {quantity}). Si el grupo alcanza este precio antes del cierre, tu compra se confirma automáticamente. Si no, se libera sin cargo. <b>La reserva se mantiene hasta el cierre y no se puede retirar:</b> es lo que permite al vendedor comprometer el precio.{' '}
                 <button type="button" onClick={() => setPayInfoOpen(true)} className="font-extrabold underline">Cómo funciona</button>
               </div>
             </div>
@@ -725,7 +725,7 @@ export default function JoinFlow({
             <div className="flex gap-[11px] rounded-2xl border border-[#CFEADA] bg-[#EEF8F1] p-[13px]">
               <svg width="19" height="19" className="mt-px flex-none" viewBox="0 0 24 24" fill="none" stroke="#0B7B44" strokeWidth="2"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11z" /><path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" /></svg>
               <div className="text-xs font-semibold leading-[1.5] text-[#0D6B3D]">
-                <b>Aseguras tu plaza hoy sin pagar.</b> Retenemos el importe en tu tarjeta y solo se cobra al cierre del grupo, al mejor precio alcanzado. Si el grupo no se completa, se libera sin cargo.{' '}
+                <b>Aseguras tu plaza hoy sin pagar.</b> Retenemos el importe en tu tarjeta y solo se cobra al cierre del grupo, al mejor precio alcanzado. Si el grupo no se completa, se libera sin cargo. <b>Tu plaza queda reservada hasta el cierre y no se puede retirar:</b> es lo que permite al vendedor comprometer el precio.{' '}
                 <button type="button" onClick={() => setPayInfoOpen(true)} className="font-extrabold underline">¿Cómo funciona el pago?</button>
               </div>
             </div>

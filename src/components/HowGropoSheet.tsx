@@ -4,11 +4,17 @@
 // destacada) y el checkout (enlace "¿Cómo funciona el pago?").
 // Se monta siempre; queda inerte con pointer-events:none mientras está cerrado.
 
+import { CONTACT_EMAIL } from '@/lib/site'
+
 const ROWS = [
   { emoji: '💳', h: 'Hoy no pagas nada', b: 'Tu banco puede mostrar una autorización temporal por el importe que hayas elegido. No es un cobro.' },
   { emoji: '📉', h: 'Siempre pagas el precio más bajo', b: 'Si el grupo alcanza tu precio o uno mejor, comprarás automáticamente al precio más bajo conseguido.' },
   { emoji: '🛡️', h: 'Sin riesgo', b: 'Si el grupo no alcanza tu precio, no se realizará ninguna compra y la autorización temporal se liberará automáticamente al cerrar el gropo.' },
   { emoji: '⏰', h: 'Cierre', b: 'El precio final se calcula el domingo a las 22:00.' },
+  // El compromiso es lo que sostiene el modelo, así que se dice aquí y también
+  // en el banner del checkout, ANTES de reservar. Un compromiso que el
+  // comprador no sabía que adquiría es el que acaba en contracargo.
+  { emoji: '🤝', h: 'La plaza no se puede retirar', b: `Una vez reservada, tu plaza cuenta hasta el cierre. Es lo que permite al vendedor comprometer un precio, y evita que a los demás les suba si alguien se marcha. Si te has equivocado en la cantidad o en la dirección, escríbenos a ${CONTACT_EMAIL}.` },
 ]
 
 export default function HowGropoSheet({ open, onClose }: { open: boolean; onClose: () => void }) {

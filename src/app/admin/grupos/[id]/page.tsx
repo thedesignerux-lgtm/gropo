@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import CloseGroupButton from './CloseGroupButton'
+import ReleaseMemberButton from './ReleaseMemberButton'
 import GenerateLabelsButton from './GenerateLabelsButton'
 import EditGroupForm from './EditGroupForm'
 import AssignSellerForm from './AssignSellerForm'
@@ -147,6 +148,7 @@ export default async function AdminGroupDetailPage({ params }: { params: { id: s
                   <th className="px-4 py-3 text-right">Precio</th>
                   <th className="px-4 py-3 text-right">Hold</th>
                   <th className="px-4 py-3 text-left">Pago</th>
+                  <th className="px-4 py-3 text-right"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -189,6 +191,19 @@ export default async function AdminGroupDetailPage({ params }: { params: { id: s
                           {payBadge.label}
                         </span>
                       </td>
+                      {/* Extintor del admin: solo con el grupo abierto y un hold vivo.
+                          No existe equivalente para el comprador, y es deliberado. */}
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        {group.status === 'open' && m.payment_status === 'authorized' ? (
+                          <ReleaseMemberButton
+                            memberId={m.id}
+                            groupId={id}
+                            memberName={u?.name ?? 'este miembro'}
+                            quantity={m.quantity}
+                            holdLabel={fmt(holdTotal)}
+                          />
+                        ) : null}
+                      </td>
                     </tr>
                   )
                 })}
@@ -206,6 +221,7 @@ export default async function AdminGroupDetailPage({ params }: { params: { id: s
                           .reduce((s, m) => s + (m.authorized_amount ? Number(m.authorized_amount) : Number(m.final_price ?? m.guaranteed_price) * m.quantity), 0)
                       )}
                     </td>
+                    <td />
                     <td />
                   </tr>
                 </tfoot>

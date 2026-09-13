@@ -293,6 +293,52 @@
 - **IMPLEMENTATION:** `withdrawBid` paso 3
 - **STATUS:** ✅ `IMPLEMENTED`
 
+### RULE-061 · El comprador NO puede darse de baja de un grupo
+- **DECISIÓN DE PRODUCTO (Benjamin, 13 sep 2026).** El compromiso es el producto: un vendedor
+  que puja 20 unidades a 150 € renuncia a margen a cambio de un volumen que tiene que ser real.
+  Y si alguien se marcha, el grupo puede caer de tramo y **subirle el precio a todos los demás**
+  (ver `ALGORITHM.md`: "un miembro vivo se cancela o libera → el precio puede SUBIR"). La salida
+  libre traslada el coste de uno al resto del grupo.
+- **IMPLEMENTATION:** no existe ninguna vía de baja para el comprador, ni RPC ni endpoint ni
+  botón. Comprobado en producción: las únicas funciones con nombre de cancelación son
+  `pulse_pledge_cancel` (pledges del Pulse, sin dinero) y la liberación interna de
+  `close_group` / `captureGroupPayments`.
+- **DIVULGACIÓN (obligatoria).** El banner del checkout lo dice **antes** de reservar, en los dos
+  modos: *"Tu plaza queda reservada hasta el cierre y no se puede retirar: es lo que permite al
+  vendedor comprometer el precio"*. También está en `HowGropoSheet`. Un compromiso que el
+  comprador no sabía que adquiría es el que acaba en contracargo.
+- **STATUS:** ✅ `IMPLEMENTED`
+
+### RULE-062 · El admin puede liberar a un miembro; es un extintor, no una baja
+- **MOTIVO:** hay casos que no son arrepentimiento — cantidad equivocada, dirección equivocada,
+  alta duplicada, tarjeta robada. Sin salida, ese comprador **llama a su banco**: el contracargo
+  lo decide el banco, cuesta comisión y cuenta contra el ratio de disputas de Stripe. Una
+  liberación que controlamos es siempre más barata que una disputa que no controlamos.
+- **IMPLEMENTATION:** `releaseMember` (`admin/grupos/[id]/actions.ts`) + botón en la tabla de
+  miembros, visible **solo** con el grupo `open` y el miembro en `authorized`.
+- **INVARIANTE:** hereda RULE-041. Marca `released` tentativamente, recalcula, y si el precio
+  nuevo superaría el `guaranteed_price` mínimo de los miembros vivos **revierte y no toca
+  Stripe**. Al soltar demanda el precio sube, así que el riesgo es el mismo que al retirar una
+  puja.
+- **ORDEN DE OPERACIONES:** BD primero, Stripe después, a propósito. Si se cancelara antes en
+  Stripe y fallara la BD, el miembro seguiría contando como demanda viva con un hold muerto y
+  `close_group` intentaría capturar un PaymentIntent cancelado (unidad fantasma en el reparto).
+  Al revés, el peor caso es un hold vivo unos días con la fila ya liberada: el comprador no se
+  cobra, el hold caduca solo, y la acción devuelve el id del PaymentIntent para cancelarlo a mano.
+- **También recalcula `total_units`** con la fórmula de `confirm_join`, que si no se quedaría alto.
+- **STATUS:** ⚠️ `PARTIALLY_IMPLEMENTED` — **sin lock**, misma carrera admitida que RULE-041.
+
+### RULE-063 · El desistimiento legal no se ve afectado por RULE-061
+- ⚖️ **UNKNOWN — pendiente de abogado.** En España el derecho de desistimiento son 14 días
+  naturales y **no se puede renunciar a él por contrato**. Antes del cierre no hay compra, solo
+  una autorización, así que probablemente aún no aplica; **después del cobro y la entrega sí
+  aplica**, digan lo que digan las condiciones. Es decir: RULE-061 puede ser cierta antes del
+  cierre, pero no puede serlo después.
+- **PENDIENTE ANTES DEL LANZAMIENTO:** confirmar con un abogado (a) cuándo se perfecciona el
+  contrato en este modelo, (b) si una retención de hasta 6,5 días sin salida es una cláusula
+  admisible, y (c) qué debe decir la política de devoluciones.
+- **STATUS:** ❌ `NOT_IMPLEMENTED` (no hay política escrita)
+
 ### RULE-043 · Las pujas son mejorables y JAMÁS retirables (+3% mínimo para desbancar)
 - **SOURCE:** especificación V0, citada en el project prompt
 - **IMPLEMENTATION:** 🔴 **ninguna, y contradicha por el código.** `withdrawBid` **sí** permite

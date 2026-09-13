@@ -7,6 +7,7 @@ import { captureGroupPayments } from '@/lib/stripe-capture'
 import { sendAdminAlert } from '@/lib/resend'
 import { generateShippingLabels, type ShippingResult } from '@/lib/shipping-sendcloud'
 import { requireAdmin } from '@/lib/admin-auth'
+import { stripe } from '@/lib/stripe'
 import { validateCloseWindow, madridCloseAtISO } from '@/lib/closeWindow'
 
 export interface CloseResult {
@@ -223,4 +224,164 @@ export async function withdrawBid(
   revalidatePath('/')
   revalidatePath(`/grupo/${groupId}`)
   return {}
+}
+
+// ── Liberar a un miembro (extintor del admin) ────────────────────────────────
+//
+// NO es la "baja autoservicio". Decisión de producto (13 sep 2026): el comprador
+// NO puede salirse de un grupo. El compromiso es lo que hace que el vendedor
+// pueda comprometer un precio y que a los demás no les suba al irse alguien.
+//
+// Esto es para lo que no es arrepentimiento: cantidad equivocada, dirección
+// equivocada, alta duplicada, tarjeta robada. Sin esta salida, ese comprador
+// llama a su banco — y un contracargo lo decide el banco, cuesta comisión y
+// cuenta contra el ratio de disputas de Stripe. Una liberación que controlamos
+// nosotros es siempre más barata que una disputa que no controlamos.
+//
+// ORDEN DE OPERACIONES (importa, es dinero):
+//   1. Marcar 'released' en BD y recalcular precio.
+//   2. Si el precio nuevo rompe el guaranteed_price de otro miembro → REVERTIR
+//      y no tocar Stripe.
+//   3. Solo con la BD ya en su estado final, cancelar el hold en Stripe.
+//
+// Se hace así a propósito. Si cancelásemos primero en Stripe y fallara la BD,
+// el miembro seguiría contando como demanda viva con un hold muerto detrás, y
+// `close_group` intentaría capturar un PaymentIntent cancelado: unidad fantasma
+// en el reparto. Al revés, el peor caso es un hold que sigue vivo unos días con
+// la fila ya liberada — el comprador NO se cobra (close_group ignora
+// 'released'), el hold caduca solo, y aquí devolvemos el id del PaymentIntent
+// para cancelarlo a mano.
+
+export async function releaseMember(
+  memberId: string,
+  groupId: string,
+): Promise<{ error?: string; warning?: string; data?: { name: string; quantity: number } }> {
+  const authError = requireAdmin()
+  if (authError) return { error: authError }
+
+  // 1. El miembro existe, es de este grupo y tiene un hold vivo
+  const { data: member, error: memberErr } = await supabaseAdmin
+    .from('group_members')
+    .select('id, group_id, payment_status, quantity, stripe_payment_intent_id, users(name)')
+    .eq('id', memberId)
+    .single()
+  if (memberErr || !member) return { error: 'Miembro no encontrado' }
+  if (member.group_id !== groupId) return { error: 'El miembro no pertenece a este grupo' }
+  if (member.payment_status !== 'authorized') {
+    return {
+      error: member.payment_status === 'instructed' || member.payment_status === 'paid'
+        ? 'Este miembro ya está adjudicado: el grupo cerró y su compra está en marcha. Liberarlo aquí no deshace nada — hay que gestionarlo como devolución.'
+        : `No hay hold vivo que liberar (estado actual: '${member.payment_status}')`,
+    }
+  }
+
+  // 2. Solo en grupos abiertos. Con el grupo cerrando o cerrado, el reparto ya
+  //    está decidido y esto lo dejaría incoherente.
+  //    (Carrera con close_group: ventana mínima y solo el admin usa esto, igual
+  //    que en withdrawBid. La BD es la última barrera.)
+  const { data: group } = await supabaseAdmin
+    .from('groups')
+    .select('status')
+    .eq('id', groupId)
+    .single()
+  if (group?.status !== 'open') {
+    return { error: `Solo se puede liberar en grupos abiertos (estado: '${group?.status ?? '?'}')` }
+  }
+
+  // 3. Marcar liberado TENTATIVAMENTE
+  const { error: relErr } = await supabaseAdmin
+    .from('group_members')
+    .update({ payment_status: 'released' })
+    .eq('id', memberId)
+    .eq('payment_status', 'authorized') // guarda contra doble clic
+  if (relErr) return { error: relErr.message }
+
+  // 4. Recalcular. Al irse demanda el precio puede SUBIR, y si sube por encima
+  //    de lo que se le garantizó a alguien, ese alguien quedaría fuera al cerrar
+  //    (RULE-032). Mismo control que `withdrawBid`.
+  const { data: priced } = await supabaseAdmin.rpc('compute_price', { p_group_id: groupId })
+  const row = Array.isArray(priced) ? priced[0] : priced
+  const newPrice = row?.best_price != null ? Number(row.best_price) : null
+
+  const { data: rest } = await supabaseAdmin
+    .from('group_members')
+    .select('guaranteed_price')
+    .eq('group_id', groupId)
+    .in('payment_status', ['authorized', 'instructed', 'paid'])
+
+  if (rest && rest.length > 0 && newPrice != null) {
+    const minGuaranteed = Math.min(...rest.map(m => Number(m.guaranteed_price)))
+    if (newPrice > minGuaranteed) {
+      await supabaseAdmin
+        .from('group_members')
+        .update({ payment_status: 'authorized' })
+        .eq('id', memberId)
+      return {
+        error: `No se puede liberar: sin estas ${member.quantity} unidad(es) el precio subiría a `
+          + `${newPrice.toFixed(2).replace('.', ',')} €, por encima del precio garantizado a otro `
+          + `miembro (${minGuaranteed.toFixed(2).replace('.', ',')} €), que quedaría fuera al cerrar. `
+          + `No se ha tocado nada. Habla antes con quien esté afectado.`,
+      }
+    }
+  }
+
+  // 5. Estado final en BD: precio, siguiente precio y total_units (demanda
+  //    efectiva al precio nuevo, misma fórmula que confirm_join — si no, el
+  //    campo se queda alto y miente al resto de la web).
+  if (newPrice != null) {
+    await supabaseAdmin
+      .from('groups')
+      .update({
+        current_price: newPrice,
+        next_price: row?.next_price != null ? Number(row.next_price) : null,
+      })
+      .eq('id', groupId)
+
+    const { data: live } = await supabaseAdmin
+      .from('group_members')
+      .select('quantity, join_mode, target_price')
+      .eq('group_id', groupId)
+      .in('payment_status', ['authorized', 'instructed', 'paid'])
+
+    const effective = (live ?? []).reduce(
+      (sum, m) =>
+        m.join_mode === 'comprar' || Number(m.target_price) >= newPrice
+          ? sum + Number(m.quantity)
+          : sum,
+      0,
+    )
+    await supabaseAdmin.from('groups').update({ total_units: effective }).eq('id', groupId)
+  }
+
+  revalidatePath(`/admin/grupos/${groupId}`)
+  revalidatePath('/admin')
+  revalidatePath('/')
+  revalidatePath(`/grupo/${groupId}`)
+
+  const name = (member.users as any)?.name ?? 'El miembro'
+  const done = { name, quantity: member.quantity }
+
+  // 6. Ahora sí, soltar el dinero.
+  const pi = member.stripe_payment_intent_id
+  if (!pi) {
+    return { data: done, warning: 'La fila queda liberada, pero no tenía PaymentIntent asociado: no había nada que cancelar en Stripe.' }
+  }
+  try {
+    await stripe.paymentIntents.cancel(pi)
+  } catch (e: any) {
+    // Ya cancelado en Stripe → es el resultado que queríamos, no un fallo.
+    const code = e?.raw?.code ?? e?.code
+    if (code === 'payment_intent_unexpected_state') {
+      return { data: done, warning: `El PaymentIntent ${pi} ya no estaba retenido en Stripe. La fila queda liberada igualmente.` }
+    }
+    console.error('[releaseMember] cancel falló:', pi, e)
+    return {
+      data: done,
+      warning: `Liberado en Gropo, pero Stripe rechazó cancelar el hold (${e?.message ?? 'error desconocido'}). `
+        + `Cancela a mano el PaymentIntent ${pi} en el panel de Stripe. El comprador NO se cobrará en ningún caso: `
+        + `el cierre ignora a los liberados y el hold caduca solo.`,
+    }
+  }
+
+  return { data: done }
 }
