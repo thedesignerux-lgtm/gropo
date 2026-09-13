@@ -49,10 +49,11 @@ export default function DesktopNavbar() {
           </Link>
           <Link
             href="/perfil"
-            className="w-9 h-9 rounded-full grid place-items-center text-sm font-extrabold"
+            aria-label="Tu perfil"
+            className="w-9 h-9 rounded-full grid place-items-center"
             style={{ background: '#DEEDEC', color: '#024947' }}
           >
-            V
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
           </Link>
         </div>
       </div>

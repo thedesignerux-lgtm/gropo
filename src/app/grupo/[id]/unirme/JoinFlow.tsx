@@ -330,7 +330,7 @@ export default function JoinFlow({
                           <div className="mt-0.5 h-4 w-4 rounded-full border-[2.5px] border-black/[0.18] bg-white" />
                         )}
                         <div className={`mt-2 text-[15px] font-extrabold ${isTarget && !youReached ? 'text-accent-dark' : groupReached ? 'text-neutral-900' : youReached ? 'text-brand' : 'text-neutral-400'}`}>{eur(t.price)}</div>
-                        <div className="text-xs font-medium text-neutral-400">{t.minUnits} uds</div>
+                        <div className="text-xs font-medium text-neutral-500">{t.minUnits} {t.minUnits === 1 ? 'ud' : 'uds'}</div>
                       </div>
                     );
                   })}
@@ -473,7 +473,7 @@ export default function JoinFlow({
                           <div className="mt-0.5 h-4 w-4 rounded-full border-[2.5px] border-black/[0.18] bg-white" />
                         )}
                         <div className={`mt-2 text-[15px] font-extrabold ${isGoal && !youReached ? 'text-accent-dark' : (groupReached || youReached) ? 'text-neutral-900' : 'text-neutral-400'}`}>{eur(t.price)}</div>
-                        <div className="text-xs font-medium text-neutral-400">{t.minUnits} uds</div>
+                        <div className="text-xs font-medium text-neutral-500">{t.minUnits} {t.minUnits === 1 ? 'ud' : 'uds'}</div>
                         {isMine && <div className="mt-0.5 text-[10px] font-bold uppercase tracking-wide text-brand">tu precio</div>}
                       </div>
                     );
@@ -624,14 +624,14 @@ export default function JoinFlow({
                           <div className="mt-0.5 h-4 w-4 rounded-full border-[2.5px] border-black/[0.18] bg-white" />
                         )}
                         <div className={`mt-2 text-[15px] font-extrabold ${isGoal && !youReached ? 'text-accent-dark' : groupReached ? 'text-neutral-900' : youReached ? 'text-brand' : 'text-neutral-400'}`}>{eur(t.price)}</div>
-                        <div className="text-xs font-medium text-neutral-400">{t.minUnits} uds</div>
+                        <div className="text-xs font-medium text-neutral-500">{t.minUnits} {t.minUnits === 1 ? 'ud' : 'uds'}</div>
                       </div>
                     );
                   })}
                 </div>
               </div>
               {projIdx > lastUnlockedIdx ? (
-                <div className="mt-1 text-center text-xs font-bold text-[#0B7B44]">Tus {quantity} {quantity === 1 ? 'unidad desbloquea' : 'uds desbloquean'} {eur(sorted[projIdx].price)} 🎉</div>
+                <div className="mt-1 text-center text-xs font-bold text-[#0B7B44]">{quantity === 1 ? 'Tu unidad desbloquea' : `Tus ${quantity} unidades desbloquean`} {eur(sorted[projIdx].price)} 🎉</div>
               ) : comprarGoalIdx >= 0 ? (
                 <div className="mt-1 text-center text-xs font-medium text-neutral-500">Faltan <b className="text-accent-dark">{sorted[comprarGoalIdx].minUnits - projected} {sorted[comprarGoalIdx].minUnits - projected === 1 ? 'unidad' : 'unidades'}</b> para desbloquear {eur(sorted[comprarGoalIdx].price)}</div>
               ) : (
