@@ -34,6 +34,7 @@ export default function NewGroupPage() {
     min_execution: 5,
     max_stock: 50,
     payment_info: '',
+    shipping_included: false,
   })
   const [tiers, setTiers] = useState<Tier[]>([
     { min_units: 1, price: 0 },
@@ -42,7 +43,7 @@ export default function NewGroupPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  function setField(key: keyof typeof fields, value: string | number) {
+  function setField(key: keyof typeof fields, value: string | number | boolean) {
     setFields(f => ({ ...f, [key]: value }))
   }
 
@@ -223,6 +224,28 @@ export default function NewGroupPage() {
               />
             </div>
           </div>
+
+
+          {/* UX-03 · El envío deja de ser un texto fijo del checkout: lo declara
+              el vendedor aquí. Por defecto NO marcado — nunca afirmar algo sin
+              confirmar. Regla del MVP: si el vendedor no puede incluirlo, se
+              renegocia el precio del tramo; no se publica con envío aparte. */}
+          <label className="flex items-start gap-3 rounded-xl border border-gray-200 bg-white p-3.5 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={fields.shipping_included}
+              onChange={e => setField('shipping_included', e.target.checked)}
+              disabled={loading}
+              className="mt-0.5 h-4 w-4 accent-brand"
+            />
+            <span>
+              <span className="block text-sm font-semibold text-gray-900">Los precios incluyen el envío a península</span>
+              <span className="block text-xs text-gray-500 mt-0.5">
+                Confírmalo con el vendedor antes de marcarlo. Si lo marcas, el comprador
+                verá &ldquo;Envío incluido&rdquo; en el pago y no se le puede cobrar nada aparte.
+              </span>
+            </span>
+          </label>
 
           {/* Datos de pago del vendedor */}
           <div>

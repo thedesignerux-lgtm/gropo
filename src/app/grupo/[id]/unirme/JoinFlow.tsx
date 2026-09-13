@@ -42,6 +42,8 @@ export type JoinGroup = {
   closes_at: string;
   max_stock: number;
   min_execution: number;
+  /** El vendedor declaró que los precios ya incluyen el envío (UX-03). */
+  shipping_included: boolean;
   tiers: Tier[];
 };
 
@@ -258,10 +260,12 @@ export default function JoinFlow({
                   <span className="min-w-[22px] text-center text-[15px] font-bold tabular-nums text-neutral-900">{quantity}</span>
                   <button type="button" onClick={() => setQuantity((q) => Math.min(maxQty, q + 1))} disabled={quantity >= maxQty || checkoutBusy} aria-label="Añadir una unidad" className="grid h-6 w-6 place-items-center text-[17px] leading-none text-neutral-600 disabled:text-neutral-300">+</button>
                 </div>
-                <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#F2F7F7] px-2.5 py-1.5 text-xs font-semibold text-neutral-500">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#024947" strokeWidth="2"><rect x="1" y="6" width="14" height="10" rx="1.5" /><path d="M15 9h4l3 3v4h-7" /><circle cx="6" cy="18" r="2" /><circle cx="18" cy="18" r="2" /></svg>
-                  Entrega gratis
-                </span>
+                {group.shipping_included && (
+                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#F2F7F7] px-2.5 py-1.5 text-xs font-semibold text-neutral-600">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#024947" strokeWidth="2"><rect x="1" y="6" width="14" height="10" rx="1.5" /><path d="M15 9h4l3 3v4h-7" /><circle cx="6" cy="18" r="2" /><circle cx="18" cy="18" r="2" /></svg>
+                    Envío incluido
+                  </span>
+                )}
                 <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#E6F5EC] px-2.5 py-1.5 text-xs font-bold text-[#0B7B44]">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                   En stock
@@ -410,10 +414,12 @@ export default function JoinFlow({
                   <span className="min-w-[22px] text-center text-[15px] font-bold tabular-nums text-neutral-900">{quantity}</span>
                   <button type="button" onClick={() => setQuantity((q) => Math.min(maxQty, q + 1))} disabled={quantity >= maxQty || checkoutBusy} aria-label="Añadir una unidad" className="grid h-6 w-6 place-items-center text-[17px] leading-none text-neutral-600 disabled:text-neutral-300">+</button>
                 </div>
-                <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#F2F7F7] px-2.5 py-1.5 text-xs font-semibold text-neutral-500">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#024947" strokeWidth="2"><rect x="1" y="6" width="14" height="10" rx="1.5" /><path d="M15 9h4l3 3v4h-7" /><circle cx="6" cy="18" r="2" /><circle cx="18" cy="18" r="2" /></svg>
-                  Entrega gratis
-                </span>
+                {group.shipping_included && (
+                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#F2F7F7] px-2.5 py-1.5 text-xs font-semibold text-neutral-600">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#024947" strokeWidth="2"><rect x="1" y="6" width="14" height="10" rx="1.5" /><path d="M15 9h4l3 3v4h-7" /><circle cx="6" cy="18" r="2" /><circle cx="18" cy="18" r="2" /></svg>
+                    Envío incluido
+                  </span>
+                )}
                 <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#E6F5EC] px-2.5 py-1.5 text-xs font-bold text-[#0B7B44]">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                   En stock
@@ -555,10 +561,12 @@ export default function JoinFlow({
                   <span className="min-w-[22px] text-center text-[15px] font-bold tabular-nums text-neutral-900">{quantity}</span>
                   <button type="button" onClick={() => setQuantity((q) => Math.min(maxQty, q + 1))} disabled={quantity >= maxQty || checkoutBusy} aria-label="Añadir una unidad" className="grid h-6 w-6 place-items-center text-[17px] leading-none text-neutral-600 disabled:text-neutral-300">+</button>
                 </div>
-                <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#F2F7F7] px-2.5 py-1.5 text-xs font-semibold text-neutral-500">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#024947" strokeWidth="2"><rect x="1" y="6" width="14" height="10" rx="1.5" /><path d="M15 9h4l3 3v4h-7" /><circle cx="6" cy="18" r="2" /><circle cx="18" cy="18" r="2" /></svg>
-                  Entrega gratis
-                </span>
+                {group.shipping_included && (
+                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#F2F7F7] px-2.5 py-1.5 text-xs font-semibold text-neutral-600">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#024947" strokeWidth="2"><rect x="1" y="6" width="14" height="10" rx="1.5" /><path d="M15 9h4l3 3v4h-7" /><circle cx="6" cy="18" r="2" /><circle cx="18" cy="18" r="2" /></svg>
+                    Envío incluido
+                  </span>
+                )}
                 <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#E6F5EC] px-2.5 py-1.5 text-xs font-bold text-[#0B7B44]">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
                   En stock

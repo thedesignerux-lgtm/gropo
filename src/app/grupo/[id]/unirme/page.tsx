@@ -32,15 +32,19 @@ async function fetchGropo(id: string): Promise<JoinGroup | null> {
 
   let maxStock = 0
   let minExecution = 0
+  let shippingIncluded = false
   if (bestBidId) {
     const { data: bid } = await supabaseAdmin
       .from('bids')
-      .select('max_stock, min_execution')
+      .select('max_stock, min_execution, shipping_included')
       .eq('id', bestBidId)
       .single()
     if (bid) {
       maxStock = Number((bid as any).max_stock ?? 0)
       minExecution = Number((bid as any).min_execution ?? 0)
+      // UX-03 · Antes el checkout decía "Entrega gratis" con un texto fijo.
+      // Ahora sale de lo que declaró el vendedor al cargar sus tramos.
+      shippingIncluded = Boolean((bid as any).shipping_included)
     }
   }
 
@@ -55,6 +59,7 @@ async function fetchGropo(id: string): Promise<JoinGroup | null> {
     closes_at: g.closes_at as string,
     max_stock: maxStock,
     min_execution: minExecution,
+    shipping_included: shippingIncluded,
     tiers,
   }
 }

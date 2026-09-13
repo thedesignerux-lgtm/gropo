@@ -24,6 +24,9 @@ export interface CreateGroupInput {
   min_execution: number
   max_stock: number
   payment_info: string
+  /** El vendedor confirma que los precios de los tramos YA incluyen el envío
+   *  a península. Solo display: no entra en ningún cálculo de dinero. */
+  shipping_included: boolean
   tiers: Tier[]
 }
 
@@ -62,7 +65,7 @@ export async function createGroup(input: CreateGroupInput): Promise<{ error?: st
   const authError = requireAdmin()
   if (authError) return { error: authError }
 
-  const { product_name, product_spec, product_url, image_url, pvp, closes_at, seller_name, price_mode, min_execution, max_stock, payment_info, tiers } = input
+  const { product_name, product_spec, product_url, image_url, pvp, closes_at, seller_name, price_mode, min_execution, max_stock, payment_info, shipping_included, tiers } = input
 
   // Validations
   if (!product_name.trim()) return { error: 'El nombre del producto es obligatorio' }
@@ -117,6 +120,7 @@ export async function createGroup(input: CreateGroupInput): Promise<{ error?: st
       min_execution,
       max_stock,
       payment_info: payment_info.trim() || null,
+      shipping_included,
       tiers,
       status: 'active',
     })
@@ -135,6 +139,7 @@ export interface AddBidInput {
   min_execution: number
   max_stock: number
   payment_info: string
+  shipping_included: boolean
   seller_name: string
   closes_at?: string  // UTC ISO con zona explícita (mismo formato que createGroup)
   pvp?: string        // string vacío/ausente → no se toca
@@ -148,7 +153,7 @@ export async function addBidToGroup(
   const authError = requireAdmin()
   if (authError) return { error: authError }
 
-  const { tiers, price_mode, min_execution, max_stock, payment_info, seller_name, closes_at, pvp } = input
+  const { tiers, price_mode, min_execution, max_stock, payment_info, shipping_included, seller_name, closes_at, pvp } = input
 
   // Validaciones
   if (!seller_name.trim()) return { error: 'El nombre del vendedor es obligatorio' }
@@ -198,6 +203,7 @@ export async function addBidToGroup(
       min_execution,
       max_stock,
       payment_info: payment_info.trim() || null,
+      shipping_included,
       tiers,
       status: 'active',
     })

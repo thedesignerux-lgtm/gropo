@@ -139,6 +139,9 @@ de cambiar una abreviatura fea (`uds`) por un dato falso.
 
 ## UX-03 · "Entrega gratis" es un texto fijo, no un cálculo
 
+> ✅ **RESUELTO — 13-sep-2026.** Decisión de Benjamin: **lo decide el vendedor al crear los
+> tramos**, y en el MVP el precio siempre incluye el envío.
+
 **Dónde.** Badge en el checkout, junto a "En stock". Ambos hardcodeados
 (`UX_AND_FLOWS.md` §6 ya lo documenta).
 
@@ -147,7 +150,37 @@ ni cálculo de portes en todo el sistema. Si algún envío acaba con gastos, lo 
 en el punto de pago.
 
 `En stock` es más leve, pero tampoco consulta `max_stock`: puede anunciar existencias de un tramo
-agotado.
+agotado. **Sigue pendiente.**
+
+### Lo que se hizo
+
+**Primero, quitarlo.** El badge escrito a mano desapareció de las tres variantes del checkout el
+mismo día. Una promesa económica sin respaldo no espera a que exista la funcionalidad.
+
+**Después, hacerlo real.** Columna nueva `bids.shipping_included` (boolean, `NOT NULL DEFAULT
+false`) y casilla en los dos formularios del admin —crear grupo y asignar vendedor—:
+
+> ☐ **Los precios incluyen el envío a península**
+> Confírmalo con el vendedor antes de marcarlo. Si lo marcas, el comprador verá "Envío incluido"
+> en el pago y no se le puede cobrar nada aparte.
+
+El checkout lee ese valor de la puja que da el mejor precio y muestra **"Envío incluido"** solo si
+está marcado. Si no, no muestra nada — que es lo honesto cuando no se sabe.
+
+**Por qué `false` por defecto**, tanto en la base de datos como en el formulario, aunque la regla
+del MVP diga que el precio siempre incluye el envío: si el valor por defecto fuese `true` y
+alguien olvidara desmarcarlo, volveríamos a la promesa falsa. Al revés, el olvido solo cuesta un
+badge que no aparece.
+
+**Es solo display.** `shipping_included` no entra en `compute_price`, ni en `close_group`, ni en
+el importe que se retiene o se captura. Se descartaron a propósito las dos alternativas que sí
+habrían tocado el camino del dinero —un importe de portes, o envío gratis a partir de N
+unidades—: ambas cambian lo que se retiene y lo que se cobra, y exigirían su propio ensayo antes
+de ir a live.
+
+**Regla de producto que queda fijada:** si un vendedor no puede incluir el envío, se renegocia el
+precio del tramo. No se publica un grupo con el envío aparte mientras el checkout no tenga línea
+de portes ni total.
 
 ---
 

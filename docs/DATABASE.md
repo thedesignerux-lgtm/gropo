@@ -114,6 +114,17 @@ Sin políticas de INSERT/UPDATE/DELETE → solo `service_role` escribe.
 | `created_at` | timestamptz | NO | `now()` |
 | `improved_at` | timestamptz | SÍ | — |
 | `payment_info` | text | SÍ | — |
+| `shipping_included` | boolean | NO | `false` |
+
+> **`shipping_included`** — añadida el **13-sep-2026** (`UX_AUDIT.md` UX-03). El vendedor declara,
+> al cargar sus tramos, que los precios **ya incluyen el envío a península**. Es **solo display**:
+> no entra en `compute_price`, ni en `close_group`, ni en el importe retenido o capturado. Existe
+> para que el badge del checkout deje de ser un texto fijo que prometía *"Entrega gratis"* sin
+> nada detrás. Por defecto `false`: nunca afirmar algo que nadie ha confirmado.
+>
+> **Regla de producto del MVP:** si un vendedor no puede incluir el envío, se renegocia el precio
+> del tramo. No se publica un grupo con el envío aparte, porque hoy no hay ninguna línea de portes
+> en el checkout ni en la captura.
 
 **Constraints:** `bids_pkey (id)` · `bids_group_id_fkey → groups(id) ON DELETE CASCADE` ·
 `bids_seller_id_fkey → users(id)` (sin cascade)
