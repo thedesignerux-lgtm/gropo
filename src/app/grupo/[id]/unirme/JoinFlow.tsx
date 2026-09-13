@@ -749,6 +749,29 @@ export default function JoinFlow({
 }
 
 /* Logos de método de pago (sin assets externos, inline). */
+/**
+ * UX-04 · Fila de métodos aceptados, bajo el botón de pago.
+ *
+ * Llevaba también Apple Pay y Google Pay. Se han retirado por dos razones
+ * independientes, y basta con una:
+ *
+ *  1. Es marcado ESTÁTICO: no pregunta nada al Payment Element. Un usuario de
+ *     Android veía Apple Pay, que en su teléfono es imposible; uno de Safari
+ *     veía Google Pay; y cualquiera sin tarjeta guardada no veía ninguno de los
+ *     dos al llegar al pago. Prometía en el punto de pago algo que en la mitad
+ *     de los casos no aparece.
+ *  2. Las carteras además exigen registrar el dominio en Stripe
+ *     (Settings → Payments → Payment method domains). En live la lista estaba
+ *     VACÍA (comprobado el 13-sep-2026); en test es UNKNOWN, la clave de la
+ *     integración no tiene permiso para consultarlo.
+ *
+ * Las marcas de tarjeta sí se quedan: el Payment Element siempre ofrece tarjeta,
+ * así que VISA y Mastercard son ciertas en todos los casos.
+ *
+ * PARA DEVOLVERLAS: registrar el dominio en Stripe (test y live son listas
+ * separadas), comprobar en un móvil real que la cartera aparece de verdad en el
+ * Element, y solo entonces volver a añadir los dos pills aquí.
+ */
 function PayLogos() {
   const pill = 'flex h-7 items-center justify-center rounded-md border border-neutral-200 bg-white px-2.5';
   return (
@@ -756,15 +779,6 @@ function PayLogos() {
       <div className={pill}><span className="text-[11.5px] font-extrabold italic tracking-tight text-[#1A1F71]">VISA</span></div>
       <div className={pill}>
         <svg width="26" height="16" viewBox="0 0 30 18" aria-label="Mastercard"><circle cx="12" cy="9" r="6" fill="#EB001B" /><circle cx="18" cy="9" r="6" fill="#F79E1B" fillOpacity="0.9" /></svg>
-      </div>
-      <div className={pill}>
-        <span className="flex items-center gap-0.5 text-[11.5px] font-semibold text-neutral-900" aria-label="Apple Pay">
-          <svg width="10" height="12" viewBox="0 0 14 17" fill="currentColor" aria-hidden="true"><path d="M11.2 9c0-1.6 1.3-2.4 1.4-2.4-.8-1.1-2-1.3-2.4-1.3-1-.1-2 .6-2.5.6s-1.3-.6-2.2-.6c-1.1 0-2.1.6-2.7 1.6-1.1 2-.3 4.9.8 6.5.5.8 1.2 1.7 2 1.6.8 0 1.1-.5 2.1-.5s1.2.5 2.1.5c.9 0 1.4-.8 2-1.6.6-.9.8-1.8.8-1.8s-1.5-.6-1.5-2.6zM9.6 3.5c.4-.5.7-1.3.6-2-.6 0-1.4.4-1.9 1-.4.5-.7 1.3-.6 2 .7.1 1.4-.4 1.9-1z" /></svg>
-          Pay
-        </span>
-      </div>
-      <div className={pill}>
-        <span className="text-[11.5px] font-semibold text-neutral-900"><span style={{ color: '#4285F4' }}>G</span> Pay</span>
       </div>
     </div>
   );

@@ -196,9 +196,34 @@ de portes ni total.
 
 ## UX-04 · Apple Pay y Google Pay se anuncian en el checkout y no funcionan
 
+> ✅ **El anuncio, retirado el 13-sep-2026.** ⚠️ **P1-08 sigue abierto**: las carteras siguen sin
+> funcionar. Lo que se ha arreglado es dejar de prometerlas, no hacerlas funcionar.
+
 Confirmado en la pantalla de pago: los logos `Pay` y `G Pay` aparecen bajo el botón. El dominio no
-está registrado en Stripe (comprobado hoy: la lista de *payment method domains* de la cuenta live
-está vacía). Ya es **P1-08**; lo repito porque el sitio donde aparece es el peor posible.
+está registrado en Stripe (comprobado el 13-sep: la lista de *payment method domains* de la cuenta
+live está **vacía**; en **test es UNKNOWN** — la clave de la integración no tiene permiso para
+consultar `GetPaymentMethodDomains`).
+
+### Y hay una segunda razón, independiente de Stripe
+
+`PayLogos` es **marcado estático**: cuatro pills fijos que no le preguntan nada al Payment
+Element. Eso falla aunque el dominio estuviera registrado:
+
+- en **Android** se anunciaba Apple Pay, que en ese teléfono es imposible;
+- en **Safari / iOS** se anunciaba Google Pay;
+- **sin tarjeta guardada** no aparece ninguno de los dos, se registre lo que se registre.
+
+O sea que en la mayoría de los casos la fila prometía, en el punto de pago, algo que el comprador
+no iba a ver. Basta con esta razón para retirarla; la del dominio solo la agrava.
+
+### Lo que se hizo
+
+Fuera los dos pills de cartera. **Se quedan VISA y Mastercard**, que sí son ciertas siempre: el
+Payment Element ofrece tarjeta en todos los casos.
+
+**Para devolverlas** (queda escrito en el propio componente): registrar el dominio en Stripe —test
+y live son listas separadas—, comprobar **en un móvil real** que la cartera aparece de verdad en
+el Element, y solo entonces volver a añadir los pills. No al revés.
 
 ---
 
