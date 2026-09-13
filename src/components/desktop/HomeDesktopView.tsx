@@ -201,9 +201,6 @@ export default function HomeDesktopView({ products, favoriteIds = [], isAuthed =
                 {gridProducts.length} activo{gridProducts.length !== 1 ? 's' : ''}
               </span>
             </div>
-            <span className="text-sm text-neutral-400">
-              Ordenar por: <strong className="text-neutral-900">Recomendados</strong>
-            </span>
           </div>
 
           {/* Grid */}

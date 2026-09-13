@@ -178,19 +178,29 @@ export default function GropoTargetSlider({
   // Posición: si el nodo seleccionado está cerca de los bordes, desplazar hacia el centro
   const tipPct = posN(selIdx)
   const tipShift = tipPct < 25 ? 'translateX(-12%)' : tipPct > 75 ? 'translateX(-88%)' : 'translateX(-50%)'
+  /**
+   * UX-02 · `confirmed` significa "el tramo seleccionado ya está desbloqueado",
+   * NO "eres miembro del grupo". El copy anterior decía "¡Estás dentro!" y
+   * "Aceptas pagar hasta X" a un visitante que no había tocado nada: dos
+   * afirmaciones falsas, y encima dejaban sin sentido el botón de debajo.
+   * Ahora describe el estado del precio, no una participación inexistente.
+   */
   let nudgeText: string
   if (confirmed) {
     if (selIdx < curIdx) {
-      nudgeText = `Tu máximo es ${fmt(selP)}, pero gracias al grupo pagarás solo ${fmt(curP)}. ¡Estás dentro!`
+      nudgeText = `Tu máximo sería ${fmt(selP)}, pero el grupo ya está en ${fmt(curP)}: eso es lo que pagarías.`
     } else {
-      nudgeText = `¡Estás dentro! Aceptas pagar hasta ${fmt(selP)} y el grupo ya está en ese precio` +
-        (nextP != null ? `. Si entran ${faltan} uds más, bajaréis a ${fmt(nextP)}.` : '.')
+      nudgeText = `Este precio ya está disponible. Si te unes hoy pagas ${fmt(selP)}, y menos si el grupo sigue creciendo` +
+        (nextP != null
+          ? `. Con ${faltan} unidad${faltan === 1 ? '' : 'es'} más baja a ${fmt(nextP)}.`
+          : '.')
     }
   } else {
-    nudgeText = `Reservas tu plaza como esperador: solo pagarás si el grupo baja a ${fmt(selP)}. ` +
-      `Ahora está en ${fmt(curP)}; cada persona que entra acerca ese precio.`
+    nudgeText = `Solo comprarías si el grupo baja a ${fmt(selP)}. ` +
+      `Ahora está en ${fmt(curP)}, y cada persona que entra lo acerca.`
   }
-  const statusLabel = confirmed ? 'Confirmado' : 'En espera'
+  /** "Confirmado" es vocabulario de banco para algo que todavía no ha ocurrido. */
+  const statusLabel = confirmed ? 'Disponible' : 'En espera'
   const statusBg = confirmed ? '#DEEDEC' : '#FCEEE0'
   const nudgeBg = confirmed ? '#F5FAFA' : '#FCF4EA'
   const nudgeBr = confirmed ? '#E6F1F1' : '#F3E3CC'

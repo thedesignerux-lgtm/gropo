@@ -89,9 +89,12 @@ export default function GroupsGrid({ products, favoriteIds = [], isAuthed = fals
             <img src="/logo.png" alt="Gropo" className="h-7 w-auto object-contain" />
           </div>
           <div className="flex items-center gap-2.5">
-            <span className="text-[12px] font-semibold" style={{ color: '#6B6B76' }}>
-              Cierra <strong className="font-extrabold text-[#1a1a1f]">Dom 22:00</strong>
-            </span>
+            {/* Sin ningún grupo abierto no cierra nada: anunciar la hora confunde. */}
+            {priced.length > 0 && (
+              <span className="text-[12px] font-semibold" style={{ color: '#6B6B76' }}>
+                Cierra <strong className="font-extrabold text-[#1a1a1f]">Dom 22:00</strong>
+              </span>
+            )}
             <Link href="/favoritos" aria-label="Alertas" className="w-[30px] h-[30px] rounded-full grid place-items-center">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1a1a1f" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.5 0" /></svg>
             </Link>

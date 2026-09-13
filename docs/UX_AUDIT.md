@@ -22,6 +22,7 @@
    instante. **Esa función no existe en ninguna parte del producto.** ✅ *Copy corregido el
    13-sep; la baja autoservicio queda pendiente.*
 2. 🔴 La ficha saluda a un visitante que no ha tocado nada con **"¡Estás dentro!"**. No lo está.
+   ✅ *Resuelto el 13-sep.*
 3. 🟠 **La ficha móvil es una versión mutilada de la de escritorio**: le falta la pregunta que
    define el producto, el precio siguiente, el selector de cantidad y los tres bloques de
    confianza. El tráfico de Instagram y TikTok es casi todo móvil. 🟠 *Resuelto en parte el
@@ -89,6 +90,8 @@ mientras `close_group` está corriendo.
 
 ## UX-02 · "¡Estás dentro!" antes de que el usuario haya hecho nada
 
+> ✅ **RESUELTO — 13-sep-2026.**
+
 **Dónde.** `src/components/GropoTargetSlider.tsx:183-186`.
 
 **Por qué pasa.** `confirmed = selIdx <= curIdx` (línea 141). Es decir: *"el tramo que hay
@@ -108,7 +111,29 @@ alimenta el badge **"Confirmado"**, que refuerza la idea.
 
 **Lo que hace falta.** Separar dos conceptos que hoy comparten una variable: *"tu precio ya está
 disponible"* (estado del tramo) y *"ya participas"* (membresía). El copy del primero no puede
-hablar en pasado ni en primera persona del plural. **Es reescritura de mensaje: lo decides tú.**
+hablar en pasado ni en primera persona del plural.
+
+### Lo que se hizo
+
+No se tocó la variable, se dejó de mentir con ella: el copy describe ahora **el estado del
+precio**, que es lo que `confirmed` sabe de verdad.
+
+| Estado | Antes | Ahora |
+|---|---|---|
+| Tramo disponible | *¡Estás dentro! Aceptas pagar hasta 219 € y el grupo ya está en ese precio. Si entran 4 uds más, bajaréis a 189 €.* | *Este precio ya está disponible. Si te unes hoy pagas 219 €, y menos si el grupo sigue creciendo. Con 4 unidades más baja a 189 €.* |
+| Máximo por encima del actual | *Tu máximo es 219 €, pero gracias al grupo pagarás solo 189 €. ¡Estás dentro!* | *Tu máximo sería 219 €, pero el grupo ya está en 189 €: eso es lo que pagarías.* |
+| Esperando un precio | *Reservas tu plaza como esperador: solo pagarás si…* | *Solo comprarías si el grupo baja a 189 €. Ahora está en 219 €, y cada persona que entra lo acerca.* |
+| Badge (UX-11) | **Confirmado** | **Disponible** |
+
+Todo pasa a condicional: *pagarías*, *comprarías*, *si te unes*. Ya no afirma participación ni
+aceptación, y el botón de debajo recupera el sentido.
+
+**Una corrección sobre la propuesta inicial.** Se planteó decir *"con 4 compras más"*, siguiendo
+el ejemplo de `PRODUCT_PRINCIPLES.md` §5. **Sería inexacto:** lo que falta son **unidades**, y un
+comprador puede pedir varias. Se dejó *"unidades"* — que no es jerga, solo español llano — en vez
+de cambiar una abreviatura fea (`uds`) por un dato falso.
+
+**"esperador"** desaparece del copy visible. Sigue en comentarios de código, que es su sitio.
 
 ---
 
@@ -365,6 +390,8 @@ teclado.
 
 ## UX-11 · "Confirmado" / "En espera" es vocabulario bancario
 
+> ✅ **RESUELTO — 13-sep-2026** junto con UX-02: ahora dice **Disponible**.
+
 Etiqueta de estado en la ficha. *Confirmado* significa, para cualquiera que haya comprado por
 internet, *"la transacción se ha completado"*. Aquí solo significa que el tramo elegido está
 desbloqueado. Mismo origen que UX-02.
@@ -401,6 +428,35 @@ libre que teclea el admin, sin verificar contra ninguna fuente.
 (unirse, participar, grupo) del **transaccional** (comprar, pagar, máximo) y prohíbe mezclarlos
 *"en el mismo momento de decisión"*. El ejemplo que da el propio documento para este botón es
 *"Autorizar pago (Máx. 48,90 €)"*.
+
+## UX-17 · Cuatro falsos controles más, encontrados por el camino
+
+> ✅ **RESUELTOS — 13-sep-2026.**
+
+Buscando los chips aparecieron cuatro elementos más que parecen controles y no lo son. Van juntos
+porque son el mismo defecto:
+
+| Dónde | Qué era |
+|---|---|
+| Cabecera de carrusel (móvil) | *"Ver todas →"* — `<span>` sin `onClick` |
+| Cabecera de rejilla (escritorio) | *"Ordenar por: Recomendados"* — `<span>` estático disfrazado de selector |
+| Mi Radar | *"Filtros"* — `<button>` con hover y sin `onClick` |
+| Mi Radar | *"Ordenar por: Mayor urgencia ↓"* — idem |
+
+Los dos de Mi Radar son los peores: son `<button>` de verdad, con estado hover, así que invitan a
+pulsarlos más que los otros. Los cuatro, retirados.
+
+---
+
+## UX-18 · La cabecera anunciaba el cierre del domingo sin ningún grupo abierto
+
+> ✅ **RESUELTO — 13-sep-2026.**
+
+*"Cierra Dom 22:00"* estaba fijo en la cabecera móvil. Con cero grupos abiertos —el estado de hoy—
+anunciaba el cierre de nada, justo encima de un mensaje que dice que no hay grupos. Ahora solo
+aparece cuando hay algo que cierre.
+
+---
 
 ## UX-16 · `localStorage` sigue guardando `vonda_user`
 

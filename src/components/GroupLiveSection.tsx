@@ -85,7 +85,7 @@ export default function GroupLiveSection({
   const confirmed = selIdx <= curIdx
   const isEsperar = !confirmed
   const accent = modeAccent(confirmed)
-  const statusLabel = confirmed ? 'Confirmado' : 'En espera'
+  const statusLabel = confirmed ? 'Disponible' : 'En espera'  // UX-02
   const statusBg = confirmed ? '#DEEDEC' : '#FCEEE0'
 
   const [lockPhase, setLockPhase] = useState(0) // 0=idle, 1=spinning, 2=locked

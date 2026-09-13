@@ -228,17 +228,9 @@ export default async function RadarPage() {
                 </p>
               </div>
 
-              {hasAnything && (
-                <div className="flex items-center gap-3 flex-shrink-0">
-                  <button className="flex items-center gap-2 bg-white border border-neutral-200 rounded-xl px-4 py-2.5 text-sm font-medium text-neutral-700 hover:border-neutral-300 transition-colors">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-                    Filtros
-                  </button>
-                  <button className="flex items-center gap-2 bg-white border border-neutral-200 rounded-xl px-4 py-2.5 text-sm font-medium text-neutral-700 hover:border-neutral-300 transition-colors">
-                    Ordenar por: Mayor urgencia ↓
-                  </button>
-                </div>
-              )}
+              {/* Aquí había un "Filtros" y un "Ordenar por: Mayor urgencia ↓": dos
+                  <button> con hover, sin onClick. Retirados — un botón que no hace
+                  nada al pulsarlo es peor que no tenerlo. */}
             </div>
 
             {!hasAnything ? (
