@@ -34,10 +34,23 @@ async function fetchGropo(id: string): Promise<JoinGroup | null> {
   // demanda EFECTIVA al precio actual (deja fuera a los esperadores que apuntan
   // más abajo) y encima no baja cuando alguien se libera. El servidor acepta o
   // rechaza con esta otra cifra, así que la ficha tiene que enseñar la misma.
-  const { data: committed } = await supabaseAdmin.rpc('group_committed_units', {
-    p_group_id: id,
-  })
-  const committedUnits = Number(committed ?? 0)
+  const { data: committed, error: committedError } = await supabaseAdmin.rpc(
+    'group_committed_units',
+    { p_group_id: id },
+  )
+  if (committedError) {
+    // Si la RPC falla no podemos callarnos y enseñar un cero: eso diría que el
+    // stock está entero. Volvemos al número viejo, que sobreestima pero es lo
+    // más cercano que hay, y dejamos rastro en el log. No es un fallo de
+    // dinero: `prepare_join` sigue siendo quien acepta o rechaza en servidor.
+    console.error(
+      '[unirme] group_committed_units falló, usando total_units:',
+      committedError.message,
+    )
+  }
+  const committedUnits = committedError
+    ? Number(g.total_units ?? 0)
+    : Number(committed ?? 0)
 
   let maxStock = 0
   let minExecution = 0
