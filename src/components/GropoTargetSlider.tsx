@@ -166,7 +166,7 @@ export default function GropoTargetSlider({
   const nextP = nextIdx != null ? detents[nextIdx].price : null
   const faltan = udsToNext != null ? udsToNext : (nextIdx != null ? Math.max(0, detents[nextIdx].uds - detents[curIdx].uds) : 0)
 
-  // Tooltip naranja "Faltan X uds" sobre el tier SELECCIONADO — aparece 4s tras cada cambio
+  // Tooltip naranja "Faltan X unidades" sobre el tier SELECCIONADO — aparece 4s tras cada cambio
   const faltanSel = selIdx > curIdx ? Math.max(0, (detents[selIdx]?.uds ?? 0) - (detents[curIdx]?.uds ?? 0)) : 0
   const [faltanTipOn, setFaltanTipOn] = useState(false)
   useEffect(() => {
@@ -285,11 +285,11 @@ export default function GropoTargetSlider({
       )}
 
       <div className="relative" style={{ marginTop: ui.trackTop }}>
-        {/* Tooltip naranja "Faltan X uds" sobre el tier seleccionado */}
+        {/* Tooltip naranja "Faltan X unidades" sobre el tier seleccionado */}
         {selIdx > curIdx && faltanSel > 0 && (
           <div style={{ position: 'absolute', top: -34, left: pos(selIdx), transform: tipShift, transition: 'left .22s cubic-bezier(.34,1.56,.64,1), opacity .5s ease', opacity: faltanTipOn ? 1 : 0, zIndex: 7, pointerEvents: 'none' }}>
             <div style={{ background: '#FF6A00', color: '#111111', fontSize: mini ? 11 : 12.5, fontWeight: 700, padding: mini ? '4px 10px' : '5px 13px', borderRadius: 20, whiteSpace: 'nowrap', boxShadow: '0 4px 12px -4px rgba(255,106,0,.35)' }}>
-              {faltanSel === 1 ? 'Falta 1 ud' : `Faltan ${faltanSel} uds`}
+              {faltanSel === 1 ? 'Falta 1 unidad' : `Faltan ${faltanSel} unidades`}
             </div>
           </div>
         )}
