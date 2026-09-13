@@ -150,7 +150,17 @@ ni cálculo de portes en todo el sistema. Si algún envío acaba con gastos, lo 
 en el punto de pago.
 
 `En stock` es más leve, pero tampoco consulta `max_stock`: puede anunciar existencias de un tramo
-agotado. **Sigue pendiente.**
+agotado.
+
+> ✅ **El badge de stock, resuelto el 13-sep-2026.** Ahora sale de `max_stock − total_units`: con
+> stock agotado muestra **Sin stock** y el CTA se deshabilita. Antes, además, el tope del selector
+> era `Math.max(1, restante)`, así que con cero unidades **seguía dejando elegir 1**: el comprador
+> rellenaba el formulario entero y `prepare_join` lo rechazaba al final.
+>
+> **No se muestra la cifra exacta a propósito.** `total_units` solo cuenta demanda firme
+> (P2-01), así que sobreestima lo que queda: un "Quedan 3" podría ser un 1 real. Al sobreestimar,
+> el estado "agotado" puede llegar tarde pero nunca antes de tiempo, y de lo que llegue tarde se
+> encarga `prepare_join` en el servidor. Para enseñar la cifra hace falta cerrar P2-01 antes.
 
 ### Lo que se hizo
 
@@ -445,6 +455,8 @@ desbloqueado. Mismo origen que UX-02.
 
 ## UX-14 · El checkout no tiene total
 
+> ✅ **RESUELTO — 13-sep-2026.**
+
 Hay *"Subtotal (1 ud) 219 €"* y justo debajo un CTA que dice *"Hoy 0 €"*. No hay línea de gastos
 de envío ni línea de total. Para un checkout de comercio electrónico eso es una laguna de
 confianza, y con el badge "Entrega gratis" (UX-03) sin respaldo, además es una laguna de
@@ -453,7 +465,52 @@ información precontractual.
 **No soy abogado**, pero merece revisión: en España la venta a distancia exige mostrar el precio
 total con impuestos y gastos antes de que el comprador quede vinculado, y anunciar un precio de
 referencia ("Ahorras 70 € frente a tienda") tiene requisitos propios — hoy ese `pvp` es un campo
-libre que teclea el admin, sin verificar contra ninguna fuente.
+libre que teclea el admin, sin verificar contra ninguna fuente. **Lo del `pvp` sigue pendiente.**
+
+### Lo que apareció al ir a arreglarlo: el hold no siempre coincide con lo que se muestra
+
+Verificado con `compute_price` sobre un grupo desechable (tramos 219 € @1 · 189 € @4 · 159 € @8):
+
+| Caso | Se muestra | Se retiene | ¿Coincide? |
+|---|---|---|---|
+| Comprar ahora | precio proyectado | el mismo | sí |
+| Esperar, objetivo **no** alcanzado | el objetivo | el mismo | sí |
+| **Esperar, objetivo ya alcanzado** | **el precio real** | **el objetivo (mayor)** | **no** |
+
+El tercer caso es real: `holdPricePerUnit = isEsperar ? target : pricePerUnit` (techo de
+seguridad), mientras que `displayPricePerUnit` pasa al precio real en cuanto `targetReached`. El
+comprador ve 159 € y se le bloquean 189 €. **No se cobra de más** —al cierre se captura el precio
+final y Stripe libera el resto, como demostró el Ensayo 3— pero desaparecen del saldo disponible
+30 € que la pantalla no menciona.
+
+> ⚠️ **Nota de método.** La primera versión de este hallazgo era **incorrecta**: se afirmó que el
+> subtotal mostraba el precio proyectado (219 €) a un esperador. No es así — a `InnerForm` se le
+> pasa `displayTotal`, no `total`. Se leyó la primera variable que encajaba con la sospecha en vez
+> de seguir el dato hasta el punto de uso. Queda anotado porque el error es instructivo: en una
+> pantalla de dinero, "he leído el código" no basta; hay que seguir cada número hasta donde se
+> pinta.
+
+### Lo que se hizo
+
+Se descartó mostrar el importe retenido como número principal: en el tercer caso haría ver 189 €
+a quien va a pagar 159 €, cambiando un desajuste por otro peor. El bloque de dinero queda así:
+
+| Línea | Cuándo aparece |
+|---|---|
+| **Total** *(o "Tu precio máximo" si es un esperador sin objetivo alcanzado)* | siempre |
+| **Envío · Incluido** | si el vendedor lo declaró (UX-03) |
+| **Se retiene hoy** | **solo cuando el hold supera al total** — el tercer caso |
+| Explicación de qué pasa hoy y qué pasa al cierre | siempre, adaptada a los tres casos |
+| Ahorro frente a tienda | si lo hay, **una sola vez** |
+
+El importe retenido sale de `effectiveAmount`, exactamente el mismo valor que viaja a Stripe, así
+que no puede desincronizarse ni con el checkout ya en marcha (`frozenAmount`).
+
+Y **"Subtotal" pasa a "Total"**: con el envío incluido en el precio no hay nada más que sumar, y
+un "subtotal" sin total detrás invita a buscar una línea que no existe.
+
+**El ahorro dejaba de estar dos veces en la misma pantalla:** se quitó el de la escalera y se
+quedó el del bloque de dinero.
 
 ## UX-15 · El CTA del checkout mezcla los dos registros
 

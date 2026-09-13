@@ -623,9 +623,7 @@ export default function JoinFlow({
               </div>
               <div className="ml-auto text-[22px] font-extrabold leading-none tracking-tight tabular-nums text-brand">{eur(displayPricePerUnit)}</div>
             </div>
-            {savingsPerUnit > 0.01 && (
-              <p className="mt-2 px-1 text-[12px] font-semibold text-[#0B7B44]">Ahorras {eur(savingsPerUnit * quantity)} frente al precio de tienda</p>
-            )}
+            {/* El ahorro se dice una sola vez, en el bloque de dinero de abajo. */}
           </section>
 
           {/* Progreso del grupo — stepper horizontal (objetivo = próximo tramo por desbloquear) */}
@@ -728,6 +726,10 @@ export default function JoinFlow({
           group={group}
           quantity={quantity}
           total={displayTotal}
+          /* UX-14 · El importe que de verdad se bloquea en la tarjeta. Sale de
+             `effectiveAmount`, el mismo que viaja a Stripe, así que no puede
+             desincronizarse ni siquiera con el checkout ya en marcha. */
+          holdTotal={effectiveAmount / 100}
           savings={savingsPerUnit * quantity}
           showAdjust={!unlocks && !targetReached}
           joinMode={isEsperar ? 'esperar' : 'comprar'}
@@ -787,6 +789,7 @@ function InnerForm({
   group,
   quantity,
   total,
+  holdTotal,
   savings,
   showAdjust,
   joinMode = 'comprar',
@@ -800,6 +803,10 @@ function InnerForm({
   group: JoinGroup;
   quantity: number;
   total: number;
+  /** Lo que se retiene hoy en la tarjeta. Puede superar a `total` cuando un
+   *  esperador ya vio su objetivo alcanzado: el hold es su techo, el cobro
+   *  será el precio real y la diferencia se libera al capturar. */
+  holdTotal: number;
   savings: number;
   showAdjust: boolean;
   joinMode?: 'comprar' | 'esperar';
@@ -813,6 +820,12 @@ function InnerForm({
   onCheckoutEnd: () => void;
 }) {
   const noStock = (remainingStock(group) ?? 1) <= 0;
+  /** Esperador que todavía no ha visto su objetivo alcanzado: el importe no es
+   *  un total a pagar, es un techo condicionado a que el grupo llegue. */
+  const esperando = visualMode === 'esperar' && !targetReached;
+  /** Solo pasa con un esperador cuyo objetivo YA se alcanzó: el hold es su
+   *  objetivo y el cobro será el precio real, más bajo. */
+  const holdExceedsTotal = holdTotal - total > 0.01;
   const stripe = useStripe();
   const elements = useElements();
 
@@ -1007,15 +1020,44 @@ function InnerForm({
 
   return (
     <>
-      {/* ── SUBTOTAL ── */}
+      {/* ── TOTAL Y RETENCIÓN (UX-14) ──
+          Antes aquí solo había un "Subtotal" y ninguna línea de envío ni total,
+          y el CTA decía "Hoy 0 €" sin contar que hay un importe bloqueado en la
+          tarjeta. Ahora se dice lo que se paga, lo que se retiene, y en qué se
+          diferencian cuando no coinciden. */}
       <section className="px-4 pt-6">
         <div className="rounded-2xl border border-neutral-100 bg-white p-3.5">
           <div className="flex items-baseline justify-between">
-            <span className="text-sm text-neutral-500">Subtotal ({quantity} {quantity === 1 ? 'ud' : 'uds'}{targetReached || visualMode === 'esperar' ? ' · precio objetivo' : ''})</span>
+            <span className="text-sm text-neutral-500">
+              {esperando ? 'Tu precio máximo' : 'Total'} ({quantity} {quantity === 1 ? 'ud' : 'uds'})
+            </span>
             <span className="text-lg font-bold text-neutral-900">{eur(total)}</span>
           </div>
+
+          {group.shipping_included && (
+            <div className="mt-1.5 flex items-baseline justify-between text-sm">
+              <span className="text-neutral-500">Envío</span>
+              <span className="font-semibold text-neutral-700">Incluido</span>
+            </div>
+          )}
+
+          {holdExceedsTotal && (
+            <div className="mt-1.5 flex items-baseline justify-between text-sm">
+              <span className="text-neutral-500">Se retiene hoy</span>
+              <span className="font-semibold text-neutral-700">{eur(holdTotal)}</span>
+            </div>
+          )}
+
+          <p className="mt-2.5 border-t border-neutral-100 pt-2.5 text-xs leading-relaxed text-neutral-500">
+            {esperando
+              ? `Hoy no se te cobra nada. Retenemos ${eur(holdTotal)} en tu tarjeta y solo se cobra si el grupo llega a tu precio. Si no llega, se libera entera.`
+              : holdExceedsTotal
+                ? 'Hoy no se te cobra nada. Al cierre se cobra el total y se libera la diferencia.'
+                : `Hoy no se te cobra nada: retenemos ${eur(holdTotal)} en tu tarjeta y al cierre se cobra el precio final, que puede ser menor.`}
+          </p>
+
           {savings > 0.01 && (
-            <div className="mt-1 text-right text-xs font-semibold text-brand">
+            <div className="mt-2 text-right text-xs font-semibold text-brand">
               Ahorras {eur(savings)} frente a tienda
             </div>
           )}
