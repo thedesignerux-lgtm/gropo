@@ -159,7 +159,7 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
               <GroupCountdownBadge closesAt={group.closesAt} />
               <h1 className="text-[22px] font-extrabold text-white tracking-tight leading-tight mt-2">{group.name}</h1>
               {group.spec && (
-                <p className="text-xs text-white/70 mt-0.5">{group.spec} · Deporte</p>
+                <p className="text-xs text-white/70 mt-0.5">{group.spec}</p>
               )}
             </div>
           </div>

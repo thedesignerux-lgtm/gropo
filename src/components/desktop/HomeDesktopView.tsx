@@ -13,21 +13,6 @@ import { modeAccent } from '@/lib/brand-colors'
 
 const fmt = (n: number) => (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
 
-const CATEGORIES = [
-  { key: 'todos', label: 'Todos' },
-  { key: 'deporte', label: 'Deporte' },
-  { key: 'tecnologia', label: 'Tecnología' },
-  { key: 'hogar', label: 'Hogar' },
-  { key: 'moda', label: 'Moda' },
-  { key: 'herramientas', label: 'Herramientas' },
-  { key: 'infantil', label: 'Infantil' },
-  { key: 'otros', label: 'Otros' },
-]
-
-
-function getProductCategory(_product: GroupProduct): string {
-  return 'deporte'
-}
 
 /* ── Countdown helper ── */
 function useCountdown() {
@@ -65,13 +50,11 @@ interface Props {
 
 export default function HomeDesktopView({ products, favoriteIds = [], isAuthed = false }: Props) {
   const [query, setQuery] = useState('')
-  const [selectedCat, setSelectedCat] = useState('todos')
   const favSet = new Set(favoriteIds)
   const countdown = useCountdown()
 
   const filtered = products.filter((p) => {
     if (query.trim() && !p.name.toLowerCase().includes(query.toLowerCase())) return false
-    if (selectedCat !== 'todos' && getProductCategory(p) !== selectedCat) return false
     return true
   })
 
@@ -205,28 +188,9 @@ export default function HomeDesktopView({ products, favoriteIds = [], isAuthed =
         </div>
       </section>
 
-      {/* ══════════ CATEGORÍAS + GRID ══════════ */}
+      {/* ══════════ GRID ══════════ */}
       <section className="bg-white border-t" style={{ borderColor: '#EFEDE7' }}>
         <div className="max-w-[1240px] mx-auto px-8 pt-8 pb-16">
-          {/* Category chips */}
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <span className="text-[11px] font-bold tracking-[0.14em] uppercase text-neutral-400 mr-1">Categorías</span>
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat.key}
-                onClick={() => setSelectedCat(cat.key)}
-                className="text-[13.5px] font-semibold rounded-full px-4 py-2.5 transition-colors cursor-pointer"
-                style={
-                  selectedCat === cat.key
-                    ? { background: '#024947', color: '#fff', border: '1px solid #024947' }
-                    : { background: '#fff', color: '#4a4a52', border: '1px solid #E6EDEC' }
-                }
-              >
-                {cat.label}
-              </button>
-            ))}
-          </div>
-
           {/* Heading */}
           <div className="flex items-center justify-between pt-8 pb-1">
             <div className="flex items-center gap-3">

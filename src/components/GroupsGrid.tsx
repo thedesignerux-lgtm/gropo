@@ -12,16 +12,19 @@ import GropoTargetSlider, { type Detent } from '@/components/GropoTargetSlider'
 import HowGropoSheet from '@/components/HowGropoSheet'
 import { modeAccent } from '@/lib/brand-colors'
 
-const fmt = (n: number) => (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
+/**
+ * UX-07 · Los tres carruseles se construyen sobre el MISMO conjunto de grupos,
+ * solo que ordenado distinto. Con inventario corto, el usuario ve el mismo
+ * producto en el destacado y en los tres carruseles: cuatro veces, bajo cuatro
+ * titulares que sugieren cuatro selecciones. Por debajo de este umbral la home
+ * es simplemente destacado + rejilla.
+ *
+ * Nota: por ENCIMA del umbral los carruseles siguen pudiendo repetir producto.
+ * Hacerlos disjuntos es el arreglo de fondo; esto solo evita el caso ridículo.
+ */
+const CAROUSEL_MIN = 6
 
-const CATEGORIES = [
-  { key: 'todos', label: 'Todos' },
-  { key: 'deporte', label: 'Deporte' },
-  { key: 'tecnologia', label: 'Tecnología' },
-  { key: 'hogar', label: 'Hogar' },
-  { key: 'moda', label: 'Moda' },
-  { key: 'herramientas', label: 'Herramientas' },
-]
+const fmt = (n: number) => (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
 
 interface Props {
   products: GroupProduct[]
@@ -47,7 +50,6 @@ function price(p: GroupProduct): Priced {
 
 export default function GroupsGrid({ products, favoriteIds = [], isAuthed = false }: Props) {
   const [query, setQuery] = useState('')
-  const [selectedCat, setSelectedCat] = useState('todos')
   const [sheetOpen, setSheetOpen] = useState(false)
   const favSet = new Set(favoriteIds)
 
@@ -75,6 +77,7 @@ export default function GroupsGrid({ products, favoriteIds = [], isAuthed = fals
   )
   const droppedMost = useMemo(() => [...priced].sort((a, b) => b.savings - a.savings), [priced])
   const popular = useMemo(() => [...priced].sort((a, b) => b.p.currentUnits - a.p.currentUnits), [priced])
+  const rest = useMemo(() => priced.filter((x) => x.p.id !== featured?.p.id), [priced, featured])
 
   return (
     <>
@@ -124,22 +127,6 @@ export default function GroupsGrid({ products, favoriteIds = [], isAuthed = fals
           </div>
         </div>
 
-        <div className="flex gap-2.5 overflow-x-auto px-[18px] pt-3 pb-1.5 no-scrollbar">
-          {CATEGORIES.map((cat) => (
-            <button
-              key={cat.key}
-              onClick={() => setSelectedCat(cat.key)}
-              className="shrink-0 text-[12.5px] font-semibold rounded-full transition-colors"
-              style={
-                selectedCat === cat.key
-                  ? { background: '#024947', color: '#fff', border: '1px solid #024947', padding: '8px 15px' }
-                  : { background: 'transparent', color: '#4a4a52', border: '1px solid #E6EDEC', padding: '8px 15px' }
-              }
-            >
-              {cat.label}
-            </button>
-          ))}
-        </div>
       </div>
 
       {searching ? (
@@ -164,10 +151,23 @@ export default function GroupsGrid({ products, favoriteIds = [], isAuthed = fals
           {/* ── Card destacada ── */}
           <FeaturedGropoCard x={featured} isFavorited={favSet.has(featured.p.id)} isAuthed={isAuthed} onOpenSheet={() => setSheetOpen(true)} />
 
-          {/* ── Carruseles ── */}
-          {nearNext.length > 0 && <CarouselRow title="Cerca del siguiente precio" items={nearNext} favSet={favSet} first />}
-          {droppedMost.length > 0 && <CarouselRow title="Más han bajado hoy" items={droppedMost} favSet={favSet} />}
-          {popular.length > 0 && <CarouselRow title="Gropos populares" items={popular} favSet={favSet} link="Ver todos" />}
+          {/* ── Carruseles, solo con inventario suficiente (UX-07) ── */}
+          {priced.length >= CAROUSEL_MIN ? (
+            <>
+              {nearNext.length > 0 && <CarouselRow title="Cerca del siguiente precio" items={nearNext} favSet={favSet} first />}
+              {droppedMost.length > 0 && <CarouselRow title="Más han bajado hoy" items={droppedMost} favSet={favSet} />}
+              {popular.length > 0 && <CarouselRow title="Gropos populares" items={popular} favSet={favSet} />}
+            </>
+          ) : rest.length > 0 ? (
+            <section className="px-[18px] pt-4">
+              <h3 className="text-[14.5px] font-extrabold italic tracking-tight text-[#1a1a1f] pb-2.5">Más grupos abiertos</h3>
+              <div className="grid grid-cols-2 gap-3">
+                {rest.map((x) => (
+                  <CarouselCard key={x.p.id} x={x} isFavorited={favSet.has(x.p.id)} wide />
+                ))}
+              </div>
+            </section>
+          ) : null}
 
           <div className="h-16" />
         </>
@@ -319,12 +319,12 @@ function FeaturedGropoCard({ x, isFavorited, isAuthed, onOpenSheet }: { x: Price
    CarouselRow + CarouselCard
    ═══════════════════════════════════════════ */
 
-function CarouselRow({ title, items, favSet, first, link = 'Ver todas →' }: { title: string; items: Priced[]; favSet: Set<string>; first?: boolean; link?: string }) {
+function CarouselRow({ title, items, favSet, first }: { title: string; items: Priced[]; favSet: Set<string>; first?: boolean }) {
   return (
     <section>
+      {/* El "Ver todas →" era un <span> sin onClick: un falso botón más. */}
       <div className="flex items-baseline justify-between px-[16px]" style={{ paddingTop: first ? 16 : 2, paddingBottom: 4 }}>
         <h3 className="text-[14.5px] font-extrabold italic tracking-tight text-[#1a1a1f]">{title}</h3>
-        <span className="text-[11.5px] font-bold text-brand cursor-pointer">{link}</span>
       </div>
       <div className="flex gap-2.5 overflow-x-auto no-scrollbar" style={{ padding: '4px 16px 14px' }}>
         {items.map((x) => (

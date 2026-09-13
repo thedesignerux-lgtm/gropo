@@ -54,7 +54,7 @@ export default function GroupDesktopView({
         {/* ── Header: breadcrumb + share/save ── */}
         <div className="flex items-center justify-between mb-1.5">
           <a href="/" className="text-[13px] text-[#8A8794] hover:text-neutral-700 transition-colors">
-            ← Volver a Deporte
+            ← Volver a los grupos
           </a>
           <div className="flex items-center gap-2">
             <button onClick={handleShare} className="flex items-center gap-[7px] text-[13.5px] font-bold text-[#1a1a1f] hover:text-brand px-2.5 py-2 rounded-[9px] transition-colors">
@@ -75,7 +75,7 @@ export default function GroupDesktopView({
         <div className="flex items-end justify-between gap-5">
           <div className="min-w-0">
             <h1 className="text-[30px] font-extrabold text-[#1a1a1f] leading-tight" style={{ letterSpacing: '-.6px' }}>{name}</h1>
-            {spec && <p className="text-sm text-[#8A8794] mt-1">{spec} · Deporte</p>}
+            {spec && <p className="text-sm text-[#8A8794] mt-1">{spec}</p>}
           </div>
           <span className="flex-shrink-0 inline-flex items-center gap-[7px] text-[13px] font-bold text-[#B4541A] bg-[#FCEEE1] rounded-full px-3.5 py-2 whitespace-nowrap">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15 15" /></svg>

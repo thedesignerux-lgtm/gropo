@@ -30,7 +30,7 @@
    secundaria. ✅ *Resuelto el 13-sep.*
 5. 🟠 La home muestra **el mismo producto hasta cuatro veces** (destacado + tres carruseles).
    Con uno o dos grupos abiertos, que es el escenario de lanzamiento, se ve como un escaparate
-   vacío disfrazado.
+   vacío disfrazado. ✅ *Resuelto el 13-sep.*
 
 ---
 
@@ -244,6 +244,8 @@ documentados en §9.2 y no se tocan: editar código muerto solo añade ruido.
 
 ## UX-07 · La home enseña el mismo producto hasta cuatro veces
 
+> ✅ **RESUELTO por umbral — 13-sep-2026.**
+
 `GroupsGrid.tsx:63-72`: el destacado y los tres carruseles —*"Cerca del siguiente precio"*,
 *"Más han bajado hoy"*, *"Gropos populares"*— se construyen todos sobre **el mismo array
 `priced`**, solo que ordenado distinto. No hay ningún filtro que los haga disjuntos salvo excluir
@@ -254,8 +256,17 @@ cuatro selecciones distintas. Con dos, igual. Ese es exactamente el escenario de
 
 **Principio que incumple.** *Un dato aparece una sola vez.*
 
-Lo natural es que los carruseles solo se rendericen por encima de un umbral (¿4-5 grupos?) y que
-por debajo la home sea una rejilla simple. **Es una decisión de escaparate: la dejo para ti.**
+**Lo que se hizo.** Constante `CAROUSEL_MIN = 6` en `GroupsGrid`. Por debajo de seis grupos
+abiertos la home es **destacado + rejilla** ("Más grupos abiertos"); a partir de ahí vuelven los
+tres carruseles. Ojo con el detalle que casi se cuela: al ocultar los carruseles había que
+renderizar el resto de grupos en algún sitio, o desaparecían de la home.
+
+**Lo que el umbral NO arregla:** por encima de seis, los tres carruseles siguen pudiendo repetir
+producto, porque salen del mismo array. Hacerlos disjuntos sigue siendo el arreglo de fondo. El
+umbral solo evita el caso ridículo, que es justo el del lanzamiento.
+
+De paso, el **"Ver todas →"** de las cabeceras de carrusel era un `<span>` sin `onClick`: otro
+falso botón. Retirado.
 
 ---
 
@@ -276,6 +287,9 @@ qué debe decir esa pantalla es tuyo.
 
 ## UX-09 · Los filtros de categoría no filtran nada
 
+> ✅ **RESUELTO retirándolos — 13-sep-2026.** Decisión de Benjamin: quitarlos hasta que haya
+> catálogo que filtrar.
+
 `GroupsGrid.tsx:44` declara `selectedCat`, línea 128 lo actualiza al pulsar… y **`filtered`
 (línea 55) solo filtra por texto**. `selectedCat` no se lee en ningún sitio. Los seis chips
 cambian de color y no hacen absolutamente nada.
@@ -288,6 +302,26 @@ funcionar aunque se conecten.
 Y la misma categoría inventada aparece dos veces más: `· Deporte` pegado a la ficha
 (`grupo/[id]/page.tsx:161`) y **"← Volver a Deporte"** en el escritorio, un enlace de vuelta a un
 sitio que no existe.
+
+### En escritorio era peor de lo que decía este informe
+
+Descubierto al ir a arreglarlo. `HomeDesktopView` **sí** filtraba, línea 74, usando
+`getProductCategory(p)`… que es esto:
+
+```ts
+function getProductCategory(_product: GroupProduct): string {
+  return 'deporte'
+}
+```
+
+Devuelve `'deporte'` para todo. Es decir: en escritorio, pulsar cualquier chip que no fuera
+*Todos* o *Deporte* **vaciaba el escaparate entero**. No era un botón inerte, era un botón que
+rompía la home.
+
+**Lo que se hizo.** Retirados los chips de las dos vistas, junto con `getProductCategory`, el
+`· Deporte` de las dos fichas y la migaja falsa, que ahora dice *"← Volver a los grupos"* porque
+es adonde lleva de verdad. Cuando exista catálogo real, esto vuelve con una columna `category` en
+`groups` y su campo en el panel de admin — no con una función que devuelve una constante.
 
 ## UX-10 · El botón de la lupa no hace nada
 
