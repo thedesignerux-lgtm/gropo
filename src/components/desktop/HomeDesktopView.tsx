@@ -375,7 +375,7 @@ function GridCard({ product, isFavorited, isAuthed }: { product: GroupProduct; i
         </div>
 
         <div className="absolute bottom-0 left-0 right-0 px-3.5 pb-3.5 pt-10" style={{ background: 'linear-gradient(transparent, rgba(0,0,0,.68))' }}>
-          <div className="text-sm font-bold text-white tracking-tight leading-tight line-clamp-1">{product.name}</div>
+          <div className="text-sm font-bold text-white tracking-tight leading-tight line-clamp-2">{product.name}</div>
           <div className="flex items-baseline gap-1.5 mt-1">
             <span className="text-[17px] font-extrabold text-white">{fmt(s.currentPrice)}</span>
             {!s.isComplete && s.nextTier && <span className="text-[11.5px] text-white/70">→ {fmt(s.nextTier.price)}</span>}

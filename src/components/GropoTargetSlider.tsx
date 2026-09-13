@@ -164,10 +164,23 @@ export default function GropoTargetSlider({
   const selP = detents[selIdx]?.price ?? 0
   const curP = detents[curIdx]?.price ?? 0
   const nextP = nextIdx != null ? detents[nextIdx].price : null
-  const faltan = udsToNext != null ? udsToNext : (nextIdx != null ? Math.max(0, detents[nextIdx].uds - detents[curIdx].uds) : 0)
+  /**
+   * Cuánto falta para un tramo. Se medía entre DOS ESCALONES en vez de entre la
+   * demanda real y el escalón: con la escalera 1→99 € / 12→85 € y 11 unidades
+   * dentro decía «faltan 11» cuando faltaba **1**. Solo acertaba cuando la
+   * demanda caía justo encima del umbral del tramo vigente.
+   *
+   * `currentUnits` ya llegaba aquí —lo usan los rectangulitos de más abajo— pero
+   * el copy no lo miraba. Es el mismo error que P2-01b en el checkout: comparar
+   * contra un umbral en vez de contra la demanda.
+   */
+  const baseUnits = currentUnits ?? detents[curIdx]?.uds ?? 0
+  const faltan = udsToNext != null
+    ? udsToNext
+    : (nextIdx != null ? Math.max(0, detents[nextIdx].uds - baseUnits) : 0)
 
   // Tooltip naranja "Faltan X unidades" sobre el tier SELECCIONADO — aparece 4s tras cada cambio
-  const faltanSel = selIdx > curIdx ? Math.max(0, (detents[selIdx]?.uds ?? 0) - (detents[curIdx]?.uds ?? 0)) : 0
+  const faltanSel = selIdx > curIdx ? Math.max(0, (detents[selIdx]?.uds ?? 0) - baseUnits) : 0
   const [faltanTipOn, setFaltanTipOn] = useState(false)
   useEffect(() => {
     if (selIdx <= curIdx || faltanSel <= 0) { setFaltanTipOn(false); return }
@@ -191,7 +204,7 @@ export default function GropoTargetSlider({
       nudgeText = `Tu máximo sería ${fmt(selP)}, pero el grupo ya está en ${fmt(curP)}: eso es lo que pagarías.`
     } else {
       nudgeText = `Este precio ya está disponible. Si te unes hoy pagas ${fmt(selP)}, y menos si el grupo sigue creciendo` +
-        (nextP != null
+        (nextP != null && faltan >= 1
           ? `. Con ${faltan} unidad${faltan === 1 ? '' : 'es'} más baja a ${fmt(nextP)}.`
           : '.')
     }

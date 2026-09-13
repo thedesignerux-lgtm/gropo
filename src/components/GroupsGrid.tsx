@@ -275,7 +275,10 @@ function FeaturedGropoCard({ x, isFavorited, isAuthed, onOpenSheet }: { x: Price
           </div>
         </div>
         <div className="rounded-[12px] overflow-hidden shrink-0" style={{ width: 104, height: 88, background: '#F0EEE8' }}>
-          {p.imageUrl && <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" loading="lazy" />}
+          {/* Es la foto del hero, lo primero que se ve: cargarla en diferido deja un
+              hueco de color plano justo donde debería estar el producto. Las de los
+              carruseles sí van en diferido, que están más abajo. */}
+          {p.imageUrl && <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" loading="eager" fetchPriority="high" />}
         </div>
       </Link>
 
@@ -364,7 +367,7 @@ function CarouselCard({ x, isFavorited, wide }: { x: Priced; isFavorited: boolea
         </div>
         {/* Caption overlay */}
         <div className="absolute left-0 right-0 bottom-0" style={{ padding: '20px 10px 10px', background: 'linear-gradient(to top, rgba(0,0,0,.8), rgba(0,0,0,.25) 60%, transparent)' }}>
-          <div className="text-[12.5px] font-extrabold text-white truncate">{p.name}</div>
+          <div className="text-[12.5px] font-extrabold text-white leading-tight line-clamp-2">{p.name}</div>
           <div className="flex items-baseline justify-between gap-1 mt-0.5">
             <span className="text-[14px] font-extrabold text-white" style={{ fontFamily: 'var(--font-space-grotesk), sans-serif' }}>{fmt(currentPrice)}</span>
             {savings > 0 && <span className="text-[10px] font-extrabold" style={{ color: '#5FD08A' }}>−{fmt(savings)}</span>}

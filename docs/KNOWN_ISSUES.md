@@ -30,6 +30,7 @@
 | P1-08 | Apple Pay y Google Pay se anuncian pero no funcionan | 🟠 P1 | ✅ **Sí, en producción** |
 | P2-01 | El stock restante mostrado en el checkout sobreestima | ✅ Resuelto 13 sep 2026 | — |
 | P2-01b | `JoinFlow` usa `total_units` para el progreso de tramos (infra-reporta y no baja al liberarse un hold) | ✅ Resuelto 13 sep 2026 | — |
+| P2-01c | «Faltan N unidades» medía entre escalones en vez de contra la demanda (tarjeta destacada y Pulse) | ✅ Resuelto 13 sep 2026 | — |
 | P2-02 | Adjudicación sin relleno: un pedido grande bloquea a los posteriores | 🟡 P2 | ❌ (0 cierres) |
 | P2-03 | `rate_limits` crece sin límite y no tiene primary key | 🟡 P2 | ❓ |
 | P2-04 | Copy de compartir desactualizado tras el cambio de `next_price` | 🟡 P2 | ✅ Sí |
@@ -673,6 +674,39 @@ lanza.
 **Efecto colateral resuelto.** Como la escalera ya no lee `groups.total_units`, la obsolescencia
 de ese campo (no baja al liberarse un hold) deja de afectar al checkout: `tier_demand` se calcula
 en vivo en cada carga. El campo sigue obsoleto para sus otros lectores — ver `ALGORITHM.md`.
+
+### P2-01c · «Faltan N unidades» medía entre escalones, no contra la demanda — ✅ RESUELTO 13 sep 2026
+`src/components/GropoTargetSlider.tsx`
+```ts
+// antes
+const faltan = udsToNext != null ? udsToNext
+  : (nextIdx != null ? Math.max(0, detents[nextIdx].uds - detents[curIdx].uds) : 0)
+```
+La resta era **umbral del tramo siguiente − umbral del tramo vigente**: una constante de la
+escalera que no depende de cuánta gente hay dentro. Solo daba el número correcto cuando la
+demanda caía justo encima del umbral del tramo vigente.
+
+**Visto en producción** con el dataset de pruebas, grupo `dd000000-…-0008` (escalera 1→99 €,
+12→85 €, 25→75 €, con 11 unidades de demanda efectiva): la tarjeta destacada anunciaba
+*«Con 11 unidades más baja a 85 €»* cuando faltaba **1**.
+
+**Alcance.** Afectaba a los consumidores que **no** pasan `udsToNext`: la tarjeta destacada de la
+home (`GroupsGrid`) y `PulseZone`. La ficha de producto estaba bien: `useTierDemand` calcula
+`missing = nextTier.minUnits − nextTier.demand`, que sí es demanda contra umbral.
+
+**Fix.** El componente ya recibía `currentUnits` —lo usan los rectangulitos de progreso— pero el
+copy lo ignoraba. Ahora `baseUnits = currentUnits ?? detents[curIdx].uds` es la base tanto de
+`faltan` como de `faltanSel` (el tooltip naranja sobre el tramo seleccionado, que tenía el mismo
+error). Y la frase se omite si `faltan` sale 0, para que no pueda escribirse nunca
+*«Con 0 unidades más baja a…»*.
+
+**Comprobado contra el dataset:** G08 11→**1**, G09 15→**1**, G07 6→**9** (antes 14), G02 12→**8**,
+G05 sin siguiente tramo → la frase no se escribe.
+
+**Es el tercero de la misma familia.** P2-01 (stock), P2-01b (progreso del checkout) y este.
+El patrón se repite: **comparar contra un umbral de la escalera en vez de contra la demanda
+real**. Regla en `ALGORITHM.md`: cuánto falta para el tramo de X € se responde SIEMPRE con la
+demanda efectiva a X €, nunca con un número global ni con la distancia entre escalones.
 
 ### P2-02 · Adjudicación sin relleno
 `close_group` paso 6: el corte es `cum_qty <= max_stock` evaluado por filas completas. Si el

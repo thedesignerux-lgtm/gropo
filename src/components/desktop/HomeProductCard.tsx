@@ -126,7 +126,7 @@ export default function HomeProductCard({ product, isFavorited = false, isAuthed
       {/* Content */}
       <div className="p-3.5 pt-3 flex flex-col flex-1">
         <Link href={href} className="block">
-          <div className="text-[14.5px] font-bold text-neutral-900 leading-tight line-clamp-1">{product.name}</div>
+          <div className="text-[14.5px] font-bold text-neutral-900 leading-tight line-clamp-2">{product.name}</div>
           {product.variant && (
             <div className="text-xs text-neutral-500 mt-0.5 line-clamp-1">{product.variant}</div>
           )}

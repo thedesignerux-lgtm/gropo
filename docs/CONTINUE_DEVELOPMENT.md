@@ -262,3 +262,84 @@ configuradas en Vercel. Requieren acceso a esos paneles. Ver `PAYMENTS.md` §12.
 - **No cambies el esquema ni los permisos "de camino" a otra cosa.**
 - **No toques `.git/`.**
 - Estás autorizado a **decir que no** al scope creep.
+
+---
+
+# PENDIENTE AL 13 DE SEPTIEMBRE DE 2026
+
+Estado guardado al pausar el trabajo de bugs y pasar a la auditoría heurística de UX.
+Todo lo de esta lista está **abierto**; lo cerrado ese día está en `KNOWN_ISSUES.md`
+(P2-01, P2-01b) y en `BUSINESS_RULES.md` (RULE-061, RULE-062).
+
+## 1 · Bloqueantes de lanzamiento
+
+### L-01 · Cutover de Stripe a modo live — ⏸️ APLAZADO por decisión de Benjamin
+Motivo: faltan pruebas en modo test y trabajo de UI. Todo el pre-vuelo está hecho y verificado
+en `LAUNCH_CHECKLIST.md` FASE 3.
+**Bloqueado por FASE 3.0:** el webhook de test apunta a producción. En cuanto producción use la
+`whsec_` de live, ese webhook empezará a fallar la firma **en silencio**. Necesita destino propio
+antes de mover nada.
+
+### L-02 · `pvp` sin verificar sostiene *"Ahorras X frente a tienda"* — ⚖️ RIESGO LEGAL
+`groups.pvp` lo teclea el admin a mano. No hay verificación, ni fuente, ni fecha, ni captura.
+Sobre ese número se calcula el ahorro que se anuncia en la home, en la ficha y en el checkout.
+Publicidad comparativa con un precio de referencia no verificado. **No soy abogado: hay que
+consultarlo.** Ver también RULE-044 (el tramo 1 debe ser ≤ el mejor precio público del vendedor),
+que hoy tampoco se comprueba.
+
+### L-03 · RULE-063 · Desistimiento legal — ⚖️ PENDIENTE DE ABOGADO
+Los 14 días naturales **no se pueden renunciar por contrato**. RULE-061 (la plaza no se retira)
+probablemente es válida antes del cierre, pero **no después del cobro y la entrega**. Falta:
+(a) cuándo se perfecciona el contrato en este modelo, (b) si una retención de hasta 6,5 días sin
+salida es cláusula admisible, (c) qué debe decir la política de devoluciones, que no existe.
+
+**L-02 y L-03 son la misma consulta.** Una sola visita al abogado las cierra las dos.
+
+## 2 · Producto / UX abiertos
+
+### P1-08 · Apple Pay y Google Pay, retirados de la ficha
+Se quitaron (UX-04) porque se anunciaban sin funcionar. Para devolverlos: registrar el dominio en
+Stripe — **test y live son listas separadas** —, probar en un móvil real y solo entonces
+restaurarlos. El registro en modo test quedó como **UNKNOWN**: `GetPaymentMethodDomains` devolvió
+permiso denegado en las dos modalidades.
+
+### RULE-062 · El botón de liberar del admin, sin probar de extremo a extremo
+Desplegado y verificado que compila y que la ruta responde. **No se ha ejecutado nunca** contra un
+hold real: no hay acceso de admin desde la sesión de IA y no había holds vivos. Plan de prueba en
+modo test:
+1. Unirse a un grupo con tarjeta de test → hold visible en Stripe.
+2. Admin → grupo → miembros → **Liberar**.
+3. Esperado: aviso de éxito, fila en *Liberado*, PaymentIntent en `canceled`.
+4. **La prueba que importa:** con dos compradores, intentar liberar a uno de forma que el precio
+   suba de tramo. Debe **negarse**, decir a quién afectaría y no tocar Stripe.
+
+## 3 · Deuda conocida que sigue viva
+
+| # | Qué | Dónde |
+|---|-----|-------|
+| P2-01 (resto) | `groups.total_units` **no baja** cuando un miembro se libera. Ya no afecta al checkout, sí a la home, la ficha y el admin | `ALGORITHM.md` |
+| P2-02 | Adjudicación sin relleno: si el siguiente miembro no cabe entero, quedan fuera él y todos los posteriores. **UNKNOWN** si es deliberado | `KNOWN_ISSUES.md` |
+| P2-03 | `rate_limits` crece sin límite y no tiene primary key | `KNOWN_ISSUES.md` |
+| P2-04 | Copy de compartir desactualizado tras el cambio de `next_price` | `KNOWN_ISSUES.md` |
+| P2-06 | **Nadie avisa a quien se queda fuera.** Esperadores no alcanzados, cancelados por RULE-032 y grupos cancelados: el hold desaparece sin explicación | `KNOWN_ISSUES.md` |
+| P2-08 | La cookie de admin **es** el `ADMIN_SECRET`: sin rotación, sin caducidad, sin 2FA, sin auditoría. El panel mueve dinero real | `SECURITY.md` SEC-03 |
+| DT-03 | Móvil y escritorio son árboles de UI duplicados. Cada cambio de copy hay que hacerlo dos o tres veces | `TECHNICAL_DEBT.md` |
+| RULE-041/062 | `withdrawBid` y `releaseMember` recalculan **sin lock**. Suposición operativa: "solo Benjamin usa el admin" | `BUSINESS_RULES.md` |
+
+## 4 · Basura en producción
+
+- Grupo `bf117565-…` *"probando otra versd"*: abierto, sin puja, 0 miembros. Hoy es invisible
+  (la home exige puja) pero aparecería en cuanto alguien le cargue una.
+- Grupos `a0000000-…-0001/6/7`: cerrados o cancelados, de ensayos antiguos. `-0001` tiene
+  `total_units = 13` con 0 unidades vivas — es el ejemplar que demuestra la obsolescencia del campo.
+
+## 5 · Hallazgos menores encontrados de camino, sin abrir ticket
+
+- **`URGENCY_WINDOW_DAYS = 14` es código muerto.** `JoinFlow` no enseña cuenta atrás si el cierre
+  está a más de 14 días, pero `MAX_CLOSE_WINDOW_HOURS = 156` (6,5 días) hace que eso no pueda
+  ocurrir nunca. La rama *"Próximo domingo"* es inalcanzable.
+- **`groups.image_url` no se ha usado nunca en producción.** Cero grupos con imagen, jamás. Toda
+  la maquetación que depende de la foto del producto está sin probar con datos reales.
+- **`bids.max_stock` = 0 significa cosas distintas** en dos sitios: para `unirme/page.tsx` es
+  "sin límite conocido", para `prepare_join` es "no queda nada" (rechaza siempre). Hoy no se puede
+  dar (el formulario de admin fuerza ≥ 1), pero la ambigüedad está escrita.
