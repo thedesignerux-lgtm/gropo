@@ -9,6 +9,7 @@ import { useCheckout } from '@/components/checkout/CheckoutProvider'
 import FavoriteButton from '@/components/FavoriteButton'
 import GropoTargetSlider, { type Detent } from '@/components/GropoTargetSlider'
 import DesktopNavbar from '@/components/desktop/DesktopNavbar'
+import { modeAccent } from '@/lib/brand-colors'
 
 const fmt = (n: number) => (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
 
@@ -287,7 +288,7 @@ function useCardState(product: GroupProduct, isAuthed: boolean) {
   const [selIdx, setSelIdx] = useState(curIdx)
   const selectedPrice = detents.length > 0 ? detents[selIdx].price : currentPrice
   const confirmed = selIdx <= curIdx
-  const accent = confirmed ? '#024947' : '#B24A00'
+  const accent = modeAccent(confirmed)
   const ctaBg = confirmed ? 'rgba(2, 73, 71,.10)' : 'rgba(232,148,74,.12)'
   const ctaText = confirmed
     ? `Bloquear precio · ${fmt(selectedPrice)}`

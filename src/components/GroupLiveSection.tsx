@@ -8,6 +8,7 @@ import { useCheckout } from '@/components/checkout/CheckoutProvider'
 import GroupCountdown from './GroupCountdown'
 import GropoTargetSlider, { type Detent } from '@/components/GropoTargetSlider'
 import { createClient } from '@/lib/supabase-browser'
+import { modeAccent } from '@/lib/brand-colors'
 
 function fmt(n: number | undefined | null): string {
   if (n === undefined || n === null) return '—'
@@ -83,7 +84,7 @@ export default function GroupLiveSection({
   const effectiveSelected = detents[selIdx]?.price ?? displayPrice
   const confirmed = selIdx <= curIdx
   const isEsperar = !confirmed
-  const accent = confirmed ? '#024947' : '#B24A00'
+  const accent = modeAccent(confirmed)
   const statusLabel = confirmed ? 'Confirmado' : 'En espera'
   const statusBg = confirmed ? '#DEEDEC' : '#FCEEE0'
 
@@ -194,9 +195,12 @@ export default function GroupLiveSection({
           onClick={handleCheckout}
           disabled={lockPhase > 0}
           className="w-full h-12 rounded-xl font-bold text-[14.5px] active:scale-[0.98] transition-all whitespace-nowrap"
+          /* UX-06 · Era un botón fantasma (relleno al 8 % con borde) para la única
+             acción de la pantalla, la que autoriza una retención en la tarjeta.
+             Sólido: #024947 da 10,26:1 con blanco y #B24A00 da 5,42:1. */
           style={lockPhase >= 2
             ? { border: '2px solid #0B7B44', background: '#E8F5E9', color: '#0B7B44' }
-            : { border: `2px solid ${accent}`, background: `${accent}14`, color: accent }}
+            : { background: accent, color: '#fff', boxShadow: `0 10px 24px -12px ${accent}` }}
         >
           {lockPhase >= 2 ? '✓ Precio bloqueado' : (isEsperar ? `Bloquear precio · Máx. ${fmt(effectiveSelected)}` : `Bloquear precio · ${fmt(effectiveSelected)}`)}
         </button>

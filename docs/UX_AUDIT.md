@@ -19,13 +19,15 @@
 ## RESUMEN — los cinco que importan
 
 1. 🔴 La web promete **tres veces** que puedes salir de un grupo y recuperar la retención al
-   instante. **Esa función no existe en ninguna parte del producto.**
+   instante. **Esa función no existe en ninguna parte del producto.** ✅ *Copy corregido el
+   13-sep; la baja autoservicio queda pendiente.*
 2. 🔴 La ficha saluda a un visitante que no ha tocado nada con **"¡Estás dentro!"**. No lo está.
 3. 🟠 **La ficha móvil es una versión mutilada de la de escritorio**: le falta la pregunta que
    define el producto, el precio siguiente, el selector de cantidad y los tres bloques de
-   confianza. El tráfico de Instagram y TikTok es casi todo móvil.
+   confianza. El tráfico de Instagram y TikTok es casi todo móvil. 🟠 *Resuelto en parte el
+   13-sep.*
 4. 🟠 El **CTA principal es un botón fantasma** — relleno al 8 %, con borde. Parece una acción
-   secundaria.
+   secundaria. ✅ *Resuelto el 13-sep.*
 5. 🟠 La home muestra **el mismo producto hasta cuatro veces** (destacado + tres carruseles).
    Con uno o dos grupos abiertos, que es el escenario de lanzamiento, se ve como un escaparate
    vacío disfrazado.
@@ -198,6 +200,8 @@ un problema de paridad con escritorio —tampoco están ahí— sino un hueco de
 
 ## UX-06 · El CTA principal parece un botón secundario
 
+> ✅ **RESUELTO — 13-sep-2026.** Ver "Lo que se hizo" al final del apartado.
+
 **Dónde.** `src/components/GroupLiveSection.tsx:186-187`.
 
 ```
@@ -215,6 +219,26 @@ Debería ser sólido `brand` con texto blanco, que es exactamente el par que ya 
 
 **Además**, en esa pantalla el color se escribe a mano cuatro veces en vez de usar el token —
 justo lo que `UX_AND_FLOWS.md` §9-bis advierte que produjo dos morados y tres naranjas.
+
+### Lo que se hizo (13-sep-2026)
+
+**Botón sólido** en las dos fichas, móvil (`GroupLiveSection`) y escritorio
+(`GroupRightSidebar`): fondo del color del modo, texto blanco, sombra suave. Ambos pares cumplen
+AA holgadamente — `#024947` sobre blanco da **10,26:1** y `#B24A00` da **5,42:1**.
+
+El estado *"✓ Precio bloqueado"* se deja como está, en verde suave: ahí ya no hay acción que
+ofrecer, es una confirmación, y el contraste entre el sólido de antes y el suave de después
+refuerza que algo ha terminado.
+
+**Los CTA de las tarjetas del escaparate NO se tocaron.** En una rejilla, el botón de cada tarjeta
+es una acción entre muchas; ponerlos todos en teal sólido convertiría la home en un muro de color
+y le quitaría énfasis justo a la pantalla donde el énfasis importa.
+
+**Y el color, a una sola fuente.** La línea `const accent = confirmed ? '#024947' : '#B24A00'`
+estaba copiada, idéntica, en **ocho** componentes. Ahora vive en `src/lib/brand-colors.ts`
+(`BRAND`, `ACCENT_DARK`, `modeAccent()`), que refleja los tokens de `tailwind.config.ts`. Están
+migrados los seis vivos; los dos restantes (`HomeProductCard`, `GroupLiveSection2c`) son huérfanos
+documentados en §9.2 y no se tocan: editar código muerto solo añade ruido.
 
 ---
 

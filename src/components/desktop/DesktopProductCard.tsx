@@ -9,6 +9,7 @@ import { useCheckout } from '@/components/checkout/CheckoutProvider'
 import { usePulse } from '@/hooks/usePulse'
 import FavoriteButton from '@/components/FavoriteButton'
 import GropoTargetSlider, { type Detent } from '@/components/GropoTargetSlider'
+import { modeAccent } from '@/lib/brand-colors'
 
 function fmt(price: number): string {
   return (price % 1 === 0 ? String(price) : price.toFixed(2).replace('.', ',')) + ' €'
@@ -70,7 +71,7 @@ export default function DesktopProductCard({ product, isFavorited = false, isAut
   const { data: pulseData } = usePulse(isComplete ? null : product.id)
   const selectedPrice = detents.length > 0 ? detents[selIdx].price : currentPrice
   const confirmed = selIdx <= curIdx
-  const accent = confirmed ? '#024947' : '#B24A00'
+  const accent = modeAccent(confirmed)
 
   const handleCheckout = () => {
     if (!confirmed && isAuthed) {

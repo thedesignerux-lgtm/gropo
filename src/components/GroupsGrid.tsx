@@ -10,6 +10,7 @@ import { usePulse } from '@/hooks/usePulse'
 import FavoriteButton from '@/components/FavoriteButton'
 import GropoTargetSlider, { type Detent } from '@/components/GropoTargetSlider'
 import HowGropoSheet from '@/components/HowGropoSheet'
+import { modeAccent } from '@/lib/brand-colors'
 
 const fmt = (n: number) => (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
 
@@ -202,7 +203,7 @@ function FeaturedGropoCard({ x, isFavorited, isAuthed, onOpenSheet }: { x: Price
 
   const selectedPrice = detents.length > 0 ? detents[selIdx].price : currentPrice
   const confirmed = selIdx <= curIdx
-  const accent = confirmed ? '#024947' : '#B24A00'
+  const accent = modeAccent(confirmed)
 
   const handlePrimary = () => {
     if (!confirmed && isAuthed) {

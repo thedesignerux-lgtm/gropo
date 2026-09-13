@@ -7,6 +7,7 @@ import { usePulse } from '@/hooks/usePulse'
 import { useCheckout } from '@/components/checkout/CheckoutProvider'
 import { createClient } from '@/lib/supabase-browser'
 import GropoTargetSlider, { type Detent } from '@/components/GropoTargetSlider'
+import { modeAccent } from '@/lib/brand-colors'
 
 function fmt(n: number): string {
   return (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
@@ -104,7 +105,7 @@ export default function GroupRightSidebar({
   const avatarCount = Math.min(totalParticipants, AVATAR_LETTERS.length)
   const extraCount = totalParticipants - avatarCount
 
-  const accent = confirmed ? '#024947' : '#B24A00'
+  const accent = modeAccent(confirmed)
   const accentShadow = confirmed ? 'rgba(2, 73, 71,.35)' : 'rgba(232,148,74,.35)'
 
   return (
@@ -182,9 +183,11 @@ export default function GroupRightSidebar({
             onClick={handleBuy}
             disabled={lockPhase > 0}
             className="flex-1 h-[46px] rounded-[14px] font-extrabold text-[13.5px] active:scale-[0.98] transition-all whitespace-nowrap"
+            /* UX-06 · Mismo cambio que en móvil: la acción principal deja de
+               parecer secundaria. */
             style={lockPhase >= 2
               ? { border: '2px solid #0B7B44', background: '#E8F5E9', color: '#0B7B44' }
-              : { border: `2px solid ${accent}`, background: `${accent}14`, color: accent, boxShadow: `0 12px 26px -14px ${accentShadow}` }}
+              : { background: accent, color: '#fff', boxShadow: `0 12px 26px -14px ${accentShadow}` }}
           >
             {lockPhase >= 2 ? '✓ Precio bloqueado' : (confirmed ? `Bloquear precio · ${fmt(selectedPrice)}` : `Bloquear precio · Máx. ${fmt(selectedPrice)}`)}
           </button>

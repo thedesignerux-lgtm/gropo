@@ -3,6 +3,7 @@
 import { useCallback, useRef, useEffect, useState } from 'react'
 import PulseRings from '@/components/PulseRings'
 import type { TierPulse } from '@/components/TierProgress'
+import { modeAccent } from '@/lib/brand-colors'
 
 function fmt(n: number): string {
   return (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
@@ -139,7 +140,7 @@ export default function GropoTargetSlider({
   useEffect(() => { wasLockedRef.current = locked }, [locked])
 
   const confirmed = selIdx <= curIdx
-  const accent = confirmed ? '#024947' : '#B24A00'
+  const accent = modeAccent(confirmed)
   const accentShadow = confirmed ? 'rgba(2, 73, 71,.28)' : 'rgba(232,148,74,.28)'
   const nextIdx = curIdx < n - 1 ? curIdx + 1 : null
   // Rastro del track:
