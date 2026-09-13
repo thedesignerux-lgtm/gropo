@@ -1034,12 +1034,23 @@ tienen su propia función desde el 13 sep 2026:
 `public.group_committed_units(uuid)` (`supabase/group_committed_units.sql`), con la definición
 idéntica a `prepare_join.v_committed_units` y `close_group.v_gross_units`.
 
-**Lectores:** `src/app/page.tsx` (fallback), `grupo/[id]/page.tsx`, `unirme/page.tsx`,
-`unido/page.tsx`, admin, `prepare_join` (lo selecciona pero **ya no lo usa** como techo), y
-`JoinFlow.tsx` para el progreso de tramos.
+**Lectores:** `src/app/page.tsx` (fallback), `grupo/[id]/page.tsx`, `unido/page.tsx`, admin, y
+`prepare_join` (lo selecciona pero **ya no lo usa** como techo).
 
-El uso como techo de stock en `JoinFlow` **está corregido**: ahora resta `committed_units`.
-El uso para el progreso de tramos sigue abierto — ver `KNOWN_ISSUES.md` P2-01 / P2-01b.
+**El checkout ya no lo lee.** `JoinFlow` usaba `total_units` para dos cosas y las dos estaban
+mal; ambas corregidas el 13 sep 2026 (`KNOWN_ISSUES.md` P2-01 y P2-01b):
+- techo de stock → ahora `group_committed_units()`
+- progreso de tramos → ahora `effective_demand` por tramo, de `tier_demand`
+
+`total_units` ya ni siquiera se pasa al componente, para que no vuelva a usarse por error.
+
+**Regla para futuros lectores.** Antes de usar `total_units`, decide cuál de las tres preguntas
+estás haciendo:
+| Pregunta | Número |
+|---|---|
+| ¿Cuántas plazas quedan? | `group_committed_units()` |
+| ¿Cuánto falta para el tramo de X €? | `tier_demand().effective_demand` de ESE tramo |
+| ¿Cuánta demanda hay al precio de hoy? | `total_units` (y ojo: no baja al liberarse un hold) |
 
 ### Límites de cantidad
 - `1 <= quantity <= 10` por comprador: `prepare_join` (excepción), CHECK

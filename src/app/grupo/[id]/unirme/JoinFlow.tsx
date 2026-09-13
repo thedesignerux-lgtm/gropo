@@ -30,7 +30,15 @@ import { readLocalIdentity, saveLocalIdentity } from '@/lib/local-identity';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
-type Tier = { minUnits: number; price: number };
+/**
+ * Un escalón de la curva pública de precios.
+ *
+ * `demand` es la demanda EFECTIVA a ESE precio (`tier_demand.effective_demand`):
+ * cuántas unidades lo comprarían. No es un número global — un esperador con
+ * objetivo 150 € cuenta en el tramo de 150 € y en los más baratos, pero no en el
+ * de 200 €. Ver P2-01b en `KNOWN_ISSUES.md`.
+ */
+type Tier = { minUnits: number; price: number; demand: number };
 
 export type JoinGroup = {
   id: string;
@@ -39,7 +47,6 @@ export type JoinGroup = {
   pvp: number;
   current_price: number; // precio del gropo con las unidades actuales (fallback hasta el quote)
   image_url?: string | null;
-  total_units: number;
   /** Unidades que ya ocupan stock (P2-01). Ver `remainingStock`. */
   committed_units: number;
   closes_at: string;
@@ -157,7 +164,8 @@ export default function JoinFlow({
   // Modo visual: si el target ya se alcanza, colapsar a "comprar"
   const visualMode = isEsperar && !targetReached ? 'esperar' : 'comprar';
 
-  // Quote en vivo: precio por unidad proyectado a (total_units + qty).
+  // Quote en vivo: precio por unidad proyectado. Lo calcula compute_price en el
+  // servidor, que es la autoridad; la escalera de aquí abajo solo pinta.
   useEffect(() => {
     const ac = new AbortController();
     fetch(
@@ -182,14 +190,37 @@ export default function JoinFlow({
   const displayPricePerUnit = (isEsperar && !targetReached) ? efectiveTargetPrice : pricePerUnit;
   const displayTotal = displayPricePerUnit * quantity;
   const savingsPerUnit = Math.max(0, group.pvp - displayPricePerUnit);
-  const nextTier = useMemo(() => {
-    let curIdx = 0;
-    for (let i = 0; i < sorted.length; i++) if (sorted[i].minUnits <= group.total_units) curIdx = i;
-    return curIdx < sorted.length - 1 ? sorted[curIdx + 1] : null;
-  }, [sorted, group.total_units]);
+  // ── ESCALERA CON DEMANDA POR TRAMO (P2-01b) ──
+  //
+  // Antes todo esto se medía contra `group.total_units`, un solo número: la
+  // demanda al precio vigente. Con eso, un grupo al que le falta 1 unidad para
+  // bajar a 150 € podía anunciar "faltan 8", porque los esperadores que apuntan
+  // a 150 € no entran en la demanda a 200 €. La caja de precio (que sí viene del
+  // servidor) decía 150 € y el progreso, justo debajo, decía que faltaban 8.
+  //
+  // Cada tramo trae ahora su propia demanda. `withYou` le suma la compra en
+  // curso SOLO si contaría en ese tramo: quien compra ahora cuenta en todos;
+  // quien espera a un objetivo cuenta en el suyo y en los más baratos, igual
+  // que hace `tier_demand` en el servidor.
+  const ladder = useMemo(() => sorted.map((t) => {
+    const buyerCounts = !isEsperar || t.price <= efectiveTargetPrice + 0.01;
+    const withYou = t.demand + (buyerCounts ? quantity : 0);
+    return {
+      ...t,
+      withYou,
+      groupReached: t.demand >= t.minUnits,
+      youReached: withYou >= t.minUnits,
+      missing: Math.max(0, t.minUnits - withYou),
+    };
+  }), [sorted, isEsperar, efectiveTargetPrice, quantity]);
 
-  const projected = group.total_units + quantity;
-  const unlocks = !!nextTier && projected >= nextTier.minUnits; // Estado A
+  const nextTier = useMemo(() => {
+    let curIdx = -1;
+    for (let i = 0; i < ladder.length; i++) if (ladder[i].groupReached) curIdx = i;
+    return curIdx + 1 < ladder.length ? ladder[curIdx + 1] : null;
+  }, [ladder]);
+
+  const unlocks = !!nextTier && nextTier.youReached; // Estado A
 
 
   // Hold para Stripe: siempre target × qty para esperadores (techo de seguridad)
@@ -227,28 +258,30 @@ export default function JoinFlow({
   // ── Stepper de tramos (diseño 4b): estados y relleno de la barra ──
   // La barra refleja las unidades PROYECTADAS (grupo + las que elige el usuario),
   // en coherencia con el precio, que también es proyectado.
-  const nTiers = sorted.length;
-  const lastUnlockedIdx = (() => { let idx = -1; for (let i = 0; i < sorted.length; i++) if (group.total_units >= sorted[i].minUnits) idx = i; return idx; })();
-  const projIdx = (() => { let idx = -1; for (let i = 0; i < sorted.length; i++) if (projected >= sorted[i].minUnits) idx = i; return idx; })();
+  const nTiers = ladder.length;
+  const lastUnlockedIdx = (() => { let idx = -1; for (let i = 0; i < nTiers; i++) if (ladder[i].groupReached) idx = i; return idx; })();
+  const projIdx = (() => { let idx = -1; for (let i = 0; i < nTiers; i++) if (ladder[i].youReached) idx = i; return idx; })();
   const comprarGoalIdx = projIdx + 1 < nTiers ? projIdx + 1 : -1;
-  const targetTier = sorted.find((t) => Math.abs(t.price - efectiveTargetPrice) < 0.01) ?? sorted[sorted.length - 1];
-  const missingToTarget = targetTier ? Math.max(0, targetTier.minUnits - projected) : 0;
-  // Posición CONTINUA en la barra: interpola entre tramos según las unidades,
-  // así el relleno avanza porcentualmente al acercarse al siguiente tramo.
-  const posOf = (units: number) => {
-    if (nTiers <= 1) return 0;
-    if (units >= sorted[nTiers - 1].minUnits) return 1;
-    let lo = 0;
-    for (let i = 0; i < nTiers; i++) if (units >= sorted[i].minUnits) lo = i;
-    const a = sorted[lo].minUnits, b = sorted[lo + 1].minUnits;
-    const seg = b > a ? Math.min(1, Math.max(0, (units - a) / (b - a))) : 0;
-    return (lo + seg) / (nTiers - 1);
+  const targetIdx = (() => {
+    const i = ladder.findIndex((t) => Math.abs(t.price - efectiveTargetPrice) < 0.01);
+    return i >= 0 ? i : nTiers - 1;
+  })();
+  const missingToTarget = targetIdx >= 0 ? ladder[targetIdx].missing : 0;
+  // Posición CONTINUA en la barra. El relleno de un segmento es lo llena que
+  // está la exigencia del tramo que viene: su demanda dividida entre sus
+  // unidades. Al cumplirse, el segmento llega justo al nodo.
+  const positionOf = (reachedIdx: number, key: 'demand' | 'withYou') => {
+    if (nTiers <= 1 || reachedIdx < 0) return 0;
+    if (reachedIdx >= nTiers - 1) return 1;
+    const next = ladder[reachedIdx + 1];
+    const seg = next.minUnits > 0 ? Math.min(1, Math.max(0, next[key] / next.minUnits)) : 0;
+    return (reachedIdx + seg) / (nTiers - 1);
   };
-  const groupPos = posOf(group.total_units);
-  const projPos = posOf(projected);
+  const groupPos = positionOf(lastUnlockedIdx, 'demand');
+  const projPos = positionOf(projIdx, 'withYou');
   // El punto (knob) solo se muestra mientras avanza ENTRE hitos; al llegar
   // justo a un tramo, ese nodo pasa a check y el punto desaparece.
-  const showKnob = projIdx < nTiers - 1 && projected > sorted[projIdx].minUnits;
+  const showKnob = projIdx >= 0 && projIdx < nTiers - 1 && projPos > projIdx / (nTiers - 1) + 1e-9;
 
   return (
     <div>
@@ -342,8 +375,8 @@ export default function JoinFlow({
                 )}
                 <div className="relative flex justify-between">
                   {sorted.map((t, i) => {
-                    const groupReached = group.total_units >= t.minUnits;
-                    const youReached = projected >= t.minUnits;
+                    const groupReached = ladder[i].groupReached;
+                    const youReached = ladder[i].youReached;
                     const isTarget = Math.abs(t.price - efectiveTargetPrice) < 0.01;
                     return (
                       <div key={i} className="flex w-14 flex-col items-center">
@@ -496,8 +529,8 @@ export default function JoinFlow({
                 )}
                 <div className="relative flex justify-between">
                   {sorted.map((t, i) => {
-                    const groupReached = group.total_units >= t.minUnits;
-                    const youReached = projected >= t.minUnits;
+                    const groupReached = ladder[i].groupReached;
+                    const youReached = ladder[i].youReached;
                     const isGoal = i === comprarGoalIdx;
                     const isMine = Math.abs(t.price - displayPricePerUnit) < 0.01;
                     return (
@@ -522,7 +555,7 @@ export default function JoinFlow({
                 </div>
               </div>
               {comprarGoalIdx >= 0 ? (
-                <div className="mt-1 text-center text-xs font-medium text-neutral-500">Faltan <b className="text-accent-dark">{sorted[comprarGoalIdx].minUnits - projected} {sorted[comprarGoalIdx].minUnits - projected === 1 ? 'unidad' : 'unidades'}</b> para bajar al siguiente tramo: {eur(sorted[comprarGoalIdx].price)}</div>
+                <div className="mt-1 text-center text-xs font-medium text-neutral-500">Faltan <b className="text-accent-dark">{ladder[comprarGoalIdx].missing} {ladder[comprarGoalIdx].missing === 1 ? 'unidad' : 'unidades'}</b> para bajar al siguiente tramo: {eur(sorted[comprarGoalIdx].price)}</div>
               ) : (
                 <div className="mt-1 text-center text-xs font-bold text-[#0B7B44]">Ya estás en el mejor precio 🎉</div>
               )}
@@ -650,8 +683,8 @@ export default function JoinFlow({
                 )}
                 <div className="relative flex justify-between">
                   {sorted.map((t, i) => {
-                    const groupReached = group.total_units >= t.minUnits;
-                    const youReached = projected >= t.minUnits;
+                    const groupReached = ladder[i].groupReached;
+                    const youReached = ladder[i].youReached;
                     const isGoal = i === comprarGoalIdx;
                     return (
                       <div key={i} className="flex w-14 flex-col items-center">
@@ -678,9 +711,9 @@ export default function JoinFlow({
                 </div>
               </div>
               {projIdx > lastUnlockedIdx ? (
-                <div className="mt-1 text-center text-xs font-bold text-[#0B7B44]">{quantity === 1 ? 'Tu unidad desbloquea' : `Tus ${quantity} unidades desbloquean`} {eur(sorted[projIdx].price)} 🎉</div>
+                <div className="mt-1 text-center text-xs font-bold text-[#0B7B44]">{quantity === 1 ? 'Tu unidad desbloquea' : `Tus ${quantity} unidades desbloquean`} {eur(ladder[projIdx].price)} 🎉</div>
               ) : comprarGoalIdx >= 0 ? (
-                <div className="mt-1 text-center text-xs font-medium text-neutral-500">Faltan <b className="text-accent-dark">{sorted[comprarGoalIdx].minUnits - projected} {sorted[comprarGoalIdx].minUnits - projected === 1 ? 'unidad' : 'unidades'}</b> para desbloquear {eur(sorted[comprarGoalIdx].price)}</div>
+                <div className="mt-1 text-center text-xs font-medium text-neutral-500">Faltan <b className="text-accent-dark">{ladder[comprarGoalIdx].missing} {ladder[comprarGoalIdx].missing === 1 ? 'unidad' : 'unidades'}</b> para desbloquear {eur(sorted[comprarGoalIdx].price)}</div>
               ) : (
                 <div className="mt-1 text-center text-xs font-bold text-[#0B7B44]">Mejor precio ya desbloqueado 🎉</div>
               )}

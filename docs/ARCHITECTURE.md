@@ -214,10 +214,14 @@ sobre `(group_id, user_id)`, que es la barrera final independientemente del PI.
 **Consecuencias:** ✅ sin overselling. ❌ Semántica contraintuitiva: puede **bajar** y ser 0 con
 15 miembros. ❌ El display tiene que derivar sus propias unidades.
 
-**Actualización 13 sep 2026.** El contador de stock ya no sale de aquí: `group_committed_units(uuid)`
-devuelve las unidades que ocupan plaza (todos los vivos, sin filtrar por `join_mode`), con la misma
-definición que `prepare_join`. `JoinFlow` la usa para el tope del selector. Queda P2-01b: el
-progreso de tramos del checkout sigue leyendo `total_units`.
+**Actualización 13 sep 2026.** El checkout ya no lee este campo, ni para stock ni para progreso:
+- stock → `group_committed_units(uuid)`, las unidades que ocupan plaza (todos los vivos, sin
+  filtrar por `join_mode`), con la misma definición que `prepare_join`
+- progreso de tramos → `effective_demand` por tramo, de `tier_demand`
+
+`total_units` deja de pasarse a `JoinFlow`. La consecuencia mala del ADR (obligar al display a
+derivar sus propias unidades) se resuelve así: no hay un número global de unidades porque **no
+existe**; hay una demanda por precio, y esa la da `tier_demand`.
 
 ### ADR-06 · Ventana de cierre máxima de 6,5 días
 **Motivo:** *"incidente del cierre del 5 jul 2026: 3 capturas fallidas por holds de 7d+"*.

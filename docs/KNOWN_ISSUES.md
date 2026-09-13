@@ -29,7 +29,7 @@
 | P1-07 | `users_phone_key` no existe: rama de código inalcanzable | 🟠 P1 | ✅ 2 teléfonos duplicados |
 | P1-08 | Apple Pay y Google Pay se anuncian pero no funcionan | 🟠 P1 | ✅ **Sí, en producción** |
 | P2-01 | El stock restante mostrado en el checkout sobreestima | ✅ Resuelto 13 sep 2026 | — |
-| P2-01b | `JoinFlow` usa `total_units` para el progreso de tramos (infra-reporta y no baja al liberarse un hold) | 🟡 P2 | ❓ |
+| P2-01b | `JoinFlow` usa `total_units` para el progreso de tramos (infra-reporta y no baja al liberarse un hold) | ✅ Resuelto 13 sep 2026 | — |
 | P2-02 | Adjudicación sin relleno: un pedido grande bloquea a los posteriores | 🟡 P2 | ❌ (0 cierres) |
 | P2-03 | `rate_limits` crece sin límite y no tiene primary key | 🟡 P2 | ❓ |
 | P2-04 | Copy de compartir desactualizado tras el cambio de `next_price` | 🟡 P2 | ✅ Sí |
@@ -592,7 +592,23 @@ como `committed_units`; `remainingStock()` resta esa cifra. Permisos: **solo `se
 Sigue siendo una foto del momento del render: entre pintar y pagar puede entrar alguien. La
 autoridad es `prepare_join`, que no ha cambiado.
 
-**Abierto — P2-01b.** `JoinFlow` sigue usando `total_units` para el **progreso de tramos**
+**Verificado en producción (13 sep 2026).** Grupo de prueba `d0000000-…-00b1`: `max_stock = 8`,
+tramos 1→200 € y 6→150 €, con 2 compradores y 3 esperadores a 150 € (por debajo del precio
+vigente, 200 €).
+
+| | |
+|---|---|
+| `total_units` | 2 → el cálculo viejo anunciaba **6 libres** |
+| `group_committed_units` | 5 → el cálculo nuevo anuncia **3 libres** |
+| `prepare_join` con 3 uds | acepta |
+| `prepare_join` con 4 uds | `Stock insuficiente: solo quedan 3 unidades disponibles` |
+
+La página servida en producción entrega `committed_units: 5` (la RPC atraviesa PostgREST
+correctamente) y el selector del checkout, a 375 px, **se detiene en 3** con el botón `+`
+deshabilitado. Coincide exactamente con la frontera del servidor. Antes habría llegado a 6 y el
+pago habría fallado en 4, 5 y 6.
+
+**P2-01b — ✅ RESUELTO 13 sep 2026.** `JoinFlow` sigue usando `total_units` para el **progreso de tramos**
 (`projected`, `groupReached`, posición del slider), y ahí también es el número equivocado por
 dos motivos: (a) para un tramo más barato la demanda relevante es la de *ese* precio, no la del
 actual, así que **infra**-reporta el avance hacia los tramos baratos; (b) `total_units` solo lo
@@ -601,6 +617,62 @@ producción: grupo `a0000000-…-0001` tiene `total_units = 13` con 0 unidades v
 evita el problema usando `effective_demand` de `tier_demand` por tramo; el checkout recibe esa
 escalera pero descarta la columna de demanda al mapearla. Pendiente de decisión: es display de
 precio, no de stock.
+
+**Evidencia en producción (13 sep 2026).** Grupo de prueba `d0000000-…-00b2`: tramos 1→200 € y
+10→150 €, con 1 comprador y 8 esperadores a 150 €. Demanda efectiva real a 150 € = **9**, el
+tramo pide 10 → **falta 1 unidad**. `compute_price(grupo, 1)` devuelve **150 €**: el servidor
+confirma que con una unidad más el tramo cae.
+
+La misma pantalla del checkout se contradice:
+- caja de precio: *"Precio de tu plaza · **150 €**"* ← correcto, viene del servidor
+- barra de progreso: *"Faltan **8 unidades** para desbloquear 150 €"* ← `10 − (total_units 1 + qty 1)`
+- y la barra se dibuja casi vacía, como si no se hubiera unido casi nadie
+
+Es decir: el comprador ve el precio bueno y, justo debajo, un mensaje que le dice que ese precio
+está a 8 unidades de distancia. Es el número que empuja a unirse y a compartir, y está
+infra-reportado por 8.
+
+**Fix.** `unirme/page.tsx` deja de descartar `effective_demand`: cada tramo del tipo `Tier` viaja
+con su propia `demand`. `JoinFlow` sustituye el escalar `group.total_units` por una escalera
+derivada, y `group.total_units` **ya no se pasa al componente** para que no pueda volver a usarse
+por error:
+
+```ts
+const ladder = sorted.map((t) => {
+  const buyerCounts = !isEsperar || t.price <= efectiveTargetPrice + 0.01
+  const withYou = t.demand + (buyerCounts ? quantity : 0)
+  return { ...t, withYou,
+           groupReached: t.demand >= t.minUnits,
+           youReached:   withYou  >= t.minUnits,
+           missing: Math.max(0, t.minUnits - withYou) }
+})
+```
+
+`buyerCounts` replica la condición del servidor (`tier_demand`: `join_mode='comprar' OR
+target_price >= price`): quien compra ahora cuenta en todos los tramos; quien espera a un objetivo
+cuenta en el suyo y en los más baratos. El relleno de cada segmento de la barra pasa a ser
+`demanda_del_tramo_siguiente / sus_unidades`, así que al cumplirse llega exactamente al nodo.
+
+**Comparación vieja/nueva sobre los dos grupos de prueba** (`compute_price(grupo, 1)` devuelve
+**150 €** en los seis casos, o sea: la unidad del comprador SÍ desbloquea el tramo):
+
+| Caso | Antes | Ahora |
+|------|-------|-------|
+| A · 1 ud comprar | «Faltan 3 unidades para 150 €» | «Tu unidad desbloquea 150 €» |
+| A · 3 uds comprar | «Faltan 1 unidad para 150 €» | «Tus 3 unidades desbloquean 150 €» |
+| B · 1 ud comprar | «Faltan 8 unidades para 150 €» | «Tu unidad desbloquea 150 €» |
+| B · 2 uds comprar | «Faltan 7 unidades para 150 €» | «Tus 2 unidades desbloquean 150 €» |
+| B · 1 ud esperar\@150 | «Faltan 8 unidades» | «Tu unidad desbloquea 150 €» |
+| B · 1 ud esperar\@200 | «Faltan 8 unidades» | «Tu unidad desbloquea 150 €» |
+
+Casos límite comprobados: **una sola escalera de un tramo** (barra a 0, sin meta siguiente),
+**escalera vacía** y **ningún tramo alcanzado**. Los dos últimos hacían `sorted[-1].minUnits` en
+el cálculo del knob y del relleno, es decir **reventaban**; la versión nueva devuelve 0 y no
+lanza.
+
+**Efecto colateral resuelto.** Como la escalera ya no lee `groups.total_units`, la obsolescencia
+de ese campo (no baja al liberarse un hold) deja de afectar al checkout: `tier_demand` se calcula
+en vivo en cada carga. El campo sigue obsoleto para sus otros lectores — ver `ALGORITHM.md`.
 
 ### P2-02 · Adjudicación sin relleno
 `close_group` paso 6: el corte es `cum_qty <= max_stock` evaluado por filas completas. Si el

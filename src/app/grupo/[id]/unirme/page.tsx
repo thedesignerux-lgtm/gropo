@@ -22,12 +22,18 @@ async function fetchGropo(id: string): Promise<JoinGroup | null> {
   const currentPrice = row?.best_price != null ? Number(row.best_price) : Number(g.current_price)
   const bestBidId = row?.best_bid_id ?? null
 
-  // Escalera FUSIONADA (D5): el flujo de unirse ve la misma curva pública que la ficha
+  // Escalera FUSIONADA (D5): el flujo de unirse ve la misma curva pública que la ficha.
+  //
+  // P2-01b · `effective_demand` viaja con cada tramo. Antes se descartaba y el
+  // checkout medía el progreso con `total_units`, un único número: la demanda al
+  // precio de HOY. Pero "cuánto falta para 150 €" se responde con la demanda A
+  // 150 €, que es otra y siempre mayor o igual. Cada tramo trae la suya.
   const { data: ladder } = await supabaseAdmin.rpc('tier_demand', { p_group_id: id })
-  const tiers: { minUnits: number; price: number }[] =
+  const tiers: { minUnits: number; price: number; demand: number }[] =
     (Array.isArray(ladder) ? ladder : []).map((t: any) => ({
       minUnits: Number(t.min_units),
       price: Number(t.price),
+      demand: Number(t.effective_demand ?? 0),
     }))
 
   // P2-01 · Unidades que YA OCUPAN STOCK. No es `total_units`: ese campo es la
@@ -77,7 +83,6 @@ async function fetchGropo(id: string): Promise<JoinGroup | null> {
     pvp: Number((g as any).pvp ?? 0),
     current_price: currentPrice,
     image_url: ((g as any).image_url as string | null) ?? null,
-    total_units: Number(g.total_units ?? 0),
     committed_units: committedUnits,
     closes_at: g.closes_at as string,
     max_stock: maxStock,
