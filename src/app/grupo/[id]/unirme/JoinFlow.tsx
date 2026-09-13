@@ -47,6 +47,21 @@ export type JoinGroup = {
   tiers: Tier[];
 };
 
+/**
+ * Stock restante de la puja que da el mejor precio. `null` = sin límite conocido.
+ *
+ * ⚠️ `total_units` solo cuenta demanda FIRME: los esperadores no suman
+ * (`KNOWN_ISSUES.md` P2-01), así que este número **sobreestima** lo que queda.
+ * Por eso solo se usa para dejar de afirmar "En stock" cuando ya sabemos que
+ * no lo hay. Al sobreestimar, nunca marcará agotado antes de tiempo — puede
+ * marcarlo tarde, y de eso se encarga `prepare_join`, que rechaza en servidor.
+ *
+ * No mostramos la cifra exacta por la misma razón: sería una cifra falsa.
+ */
+function remainingStock(g: JoinGroup): number | null {
+  return g.max_stock > 0 ? g.max_stock - g.total_units : null;
+}
+
 // 549 € · 62,50 € — sin decimales si es entero, coma decimal y € al final
 const eur = (n: number) =>
   (Number.isInteger(n) ? String(n) : n.toFixed(2).replace('.', ',')) + ' €';
@@ -114,8 +129,11 @@ export default function JoinFlow({
   initialQuantity?: number
 }) {
   // Tope: 10 por comprador y nunca más del stock restante de la puja ganadora.
-  const remaining = group.max_stock > 0 ? Math.max(1, group.max_stock - group.total_units) : 10;
-  const maxQty = Math.min(10, remaining);
+  // El Math.max(1, …) de antes hacía que con stock 0 el selector siguiera
+  // permitiendo 1 unidad: el comprador rellenaba el formulario entero y
+  // `prepare_join` lo rechazaba al final. Ahora se ve antes de empezar.
+  const left = remainingStock(group);
+  const maxQty = left === null ? 10 : Math.min(10, Math.max(1, left));
 
   const [quantity, setQuantity] = useState(initialQuantity); // viene de la ficha via ?qty=N
   const [quote, setQuote] = useState<{ pricePerUnit: number | null }>({
@@ -266,10 +284,16 @@ export default function JoinFlow({
                     Envío incluido
                   </span>
                 )}
-                <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#E6F5EC] px-2.5 py-1.5 text-xs font-bold text-[#0B7B44]">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-                  En stock
-                </span>
+                {(remainingStock(group) ?? 1) > 0 ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#E6F5EC] px-2.5 py-1.5 text-xs font-bold text-[#0B7B44]">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                    En stock
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#FDEDED] px-2.5 py-1.5 text-xs font-bold text-[#B3261E]">
+                    Sin stock
+                  </span>
+                )}
               </div>
             </div>
           </section>
@@ -420,10 +444,16 @@ export default function JoinFlow({
                     Envío incluido
                   </span>
                 )}
-                <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#E6F5EC] px-2.5 py-1.5 text-xs font-bold text-[#0B7B44]">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-                  En stock
-                </span>
+                {(remainingStock(group) ?? 1) > 0 ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#E6F5EC] px-2.5 py-1.5 text-xs font-bold text-[#0B7B44]">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                    En stock
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#FDEDED] px-2.5 py-1.5 text-xs font-bold text-[#B3261E]">
+                    Sin stock
+                  </span>
+                )}
               </div>
             </div>
           </section>
@@ -567,10 +597,16 @@ export default function JoinFlow({
                     Envío incluido
                   </span>
                 )}
-                <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#E6F5EC] px-2.5 py-1.5 text-xs font-bold text-[#0B7B44]">
-                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-                  En stock
-                </span>
+                {(remainingStock(group) ?? 1) > 0 ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#E6F5EC] px-2.5 py-1.5 text-xs font-bold text-[#0B7B44]">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+                    En stock
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#FDEDED] px-2.5 py-1.5 text-xs font-bold text-[#B3261E]">
+                    Sin stock
+                  </span>
+                )}
               </div>
             </div>
           </section>
@@ -776,6 +812,7 @@ function InnerForm({
   /** Lo descongela si el checkout falla y el comprador vuelve al boton. */
   onCheckoutEnd: () => void;
 }) {
+  const noStock = (remainingStock(group) ?? 1) <= 0;
   const stripe = useStripe();
   const elements = useElements();
 
@@ -1065,7 +1102,7 @@ function InnerForm({
           <button
             type="button"
             onClick={handleSubmit}
-            disabled={loading || confirming || !stripe}
+            disabled={loading || confirming || !stripe || noStock}
             className="flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-brand text-[15px] font-semibold text-white transition-colors hover:bg-brand-dark disabled:opacity-50"
           >
             {confirming ? (
@@ -1075,7 +1112,7 @@ function InnerForm({
             ) : (
               <>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
-                {targetReached ? `Confirmar compra · ${eur(total)}` : `${visualMode === 'esperar' ? 'Reservar plaza' : 'Unirme al grupo'} (Hoy 0 €)`}
+                {noStock ? 'Sin unidades disponibles' : targetReached ? `Confirmar compra · ${eur(total)}` : `${visualMode === 'esperar' ? 'Reservar plaza' : 'Unirme al grupo'} (Hoy 0 €)`}
               </>
             )}
           </button>
