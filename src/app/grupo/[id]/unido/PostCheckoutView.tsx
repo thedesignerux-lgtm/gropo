@@ -8,6 +8,7 @@ import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase-browser'
 import AuthPanel from '@/components/AuthPanel'
+import { readLocalIdentity } from '@/lib/local-identity'
 
 export type PostCheckoutGroup = {
   id: string
@@ -188,17 +189,14 @@ export default function PostCheckoutView({ group }: { group: PostCheckoutGroup }
 
   // ── Leer datos del miembro desde localStorage ──
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem('vonda_user')
-      if (raw) {
-        const u = JSON.parse(raw)
-        setMemberEmail(u.email ?? '')
-        setMemberName(u.name ?? '')
-        if (u.quantity) setMemberQty(Number(u.quantity))
-        if (u.price) setMemberPrice(Number(u.price))
-        if (u.address_line1) setMemberAddress(u.address_line1)
-      }
-    } catch {}
+    // `readLocalIdentity` no lanza y devuelve {} si no hay nada, así que los
+    // valores por defecto ('' , 1, null) se mantienen solos.
+    const u = readLocalIdentity()
+    setMemberEmail(u.email ?? '')
+    setMemberName(u.name ?? '')
+    if (u.quantity) setMemberQty(Number(u.quantity))
+    if (u.price) setMemberPrice(Number(u.price))
+    if (u.address_line1) setMemberAddress(u.address_line1)
   }, [])
 
   // ── Comprobar si ya tiene sesión ──

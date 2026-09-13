@@ -575,9 +575,47 @@ aparece cuando hay algo que cierre.
 
 ## UX-16 · `localStorage` sigue guardando `vonda_user`
 
-Verificado en el navegador contra producción. Es el último resto de marca antigua en runtime
-(P3-02). **No lo he tocado**: renombrar la clave desloguea a todos los que la tengan. Requiere
-código de migración, no un reemplazo.
+> ✅ **RESUELTO — 13-sep-2026.** Con esto cae el último resto de marca antigua en runtime (P3-02).
+
+Verificado en el navegador contra producción.
+
+> ⚠️ **Corrección al diagnóstico inicial.** La primera versión de este apartado decía que
+> renombrar la clave *"desloguea a todos los que la tengan"*. **Es falso.** `vonda_user` **no es
+> una sesión**: la sesión es la cookie de Supabase (`sb-…-auth-token`). Se comprobó leyendo los
+> seis puntos de uso.
+
+**Qué guarda de verdad:** `{ name, email, phone }` más los datos de la última compra
+(`quantity`, `price`, `address_line1`). Sirve para dos cosas:
+
+| Uso | Qué pasa si se pierde |
+|---|---|
+| Prefill de formularios (checkout, petición, Pulse, perfil) | hay que volver a teclear los datos |
+| `/notificaciones` → `get_my_groups(phone, email)` | la pantalla queda vacía hasta reidentificarse |
+
+`/mis-grupos` **no** depende de ella: usa `/api/my-groups` con el JWT. Así que el coste real de
+perderla es molestia, no pérdida de acceso.
+
+### Lo que se hizo
+
+Módulo nuevo, **`src/lib/local-identity.ts`**, con `readLocalIdentity()`, `saveLocalIdentity()` y
+`clearLocalIdentity()`. La clave pasa a llamarse **`gropo_user`**, y la lectura **migra sola**: si
+no encuentra la nueva, lee `vonda_user`, la reescribe con el nombre nuevo y la devuelve. Nadie
+pierde su prefill y la clave antigua deja de usarse por sí sola. `clearLocalIdentity()` borra las
+dos, para que cerrar sesión no deje la vieja atrás.
+
+**Dos cosas más que salieron gratis:**
+
+- **La lectura estaba copiada en seis ficheros**, cada uno con su `try/catch` y su forma de
+  fallar. Ahora hay una sola implementación, que además no lanza nunca: si el JSON está corrupto o
+  el navegador tiene el almacenamiento bloqueado (modo privado), devuelve `{}` y cada pantalla
+  conserva sus valores por defecto.
+- **Un bug real, corregido de paso.** `saveContact` en el perfil escribía el objeto entero, así
+  que **editar tu nombre borraba la cantidad y el precio** que el checkout había guardado de tu
+  última compra. `saveLocalIdentity()` fusiona en vez de sobrescribir.
+
+**La compatibilidad tiene fecha de caducidad, no de expiración:** el respaldo de lectura sobre
+`vonda_user` puede retirarse dentro de unos meses, cuando los navegadores activos ya se hayan
+migrado solos. Está anotado en el propio módulo.
 
 ---
 

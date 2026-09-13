@@ -10,6 +10,7 @@ import { useRouter } from 'next/navigation'
 import { loadStripe } from '@stripe/stripe-js'
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js'
 import { PROVINCIAS_ES } from '@/lib/provincias'
+import { readLocalIdentity } from '@/lib/local-identity'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!)
 
@@ -40,10 +41,8 @@ export default function PulseAcceptModal({ groupId, productName, tierPrice, quan
   useEffect(() => {
     setMounted(true)
     // Prefill desde la identidad local (la misma que usa Mis Grupos)
-    try {
-      const u = JSON.parse(localStorage.getItem('vonda_user') ?? '{}')
-      setForm((f) => ({ ...f, name: u.name ?? '', email: u.email ?? '', phone: u.phone ?? '' }))
-    } catch { /* sin prefill */ }
+    const u = readLocalIdentity()
+    setForm((f) => ({ ...f, name: u.name ?? '', email: u.email ?? '', phone: u.phone ?? '' }))
   }, [])
 
   const set = (k: keyof FormData) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>

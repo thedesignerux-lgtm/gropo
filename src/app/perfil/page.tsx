@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase-browser'
 import AuthPanel from '@/components/AuthPanel'
 import DesktopNavbar from '@/components/desktop/DesktopNavbar'
 import BottomNav from '@/components/BottomNav'
+import { readLocalIdentity, saveLocalIdentity, clearLocalIdentity } from '@/lib/local-identity'
 
 // ── Datos ──────────────────────────────────────────────
 interface Addr {
@@ -57,15 +58,14 @@ export default function PerfilPage() {
     try { await sb.auth.signOut() } catch { /* best-effort */ }
     // Barrido server-side de cookies sb-* huérfanas (chunks de sesiones previas).
     try { await fetch('/auth/signout', { method: 'POST' }) } catch { /* best-effort */ }
-    try { localStorage.removeItem('vonda_user') } catch { /* ignorar */ }
+    clearLocalIdentity()
     window.location.href = '/'
   }
 
   // Cargar identidad y traer el perfil (direcciones + preferencias) del servidor
   useEffect(() => {
-    let u: VUser
-    try { const raw = localStorage.getItem('vonda_user'); u = raw ? JSON.parse(raw) : { name: '', email: '', phone: '' } }
-    catch { u = { name: '', email: '', phone: '' } }
+    const stored = readLocalIdentity()
+    let u: VUser = { name: stored.name ?? '', email: stored.email ?? '', phone: stored.phone ?? '' }
     // El email de la sesión manda sobre el de localStorage
     if (sessionEmail) u = { ...u, email: sessionEmail }
     setUser(u)
@@ -118,7 +118,9 @@ export default function PerfilPage() {
     if (!user) return
     const next = { ...user, [field]: value }
     setUser(next); setEditField(null)
-    try { localStorage.setItem('vonda_user', JSON.stringify(next)) } catch {}
+    // Fusiona: antes esto sobrescribía el objeto entero y borraba la cantidad y
+    // el precio de la última compra que había guardado el checkout.
+    saveLocalIdentity(next)
     showToast('ok', 'Datos actualizados')
   }
 

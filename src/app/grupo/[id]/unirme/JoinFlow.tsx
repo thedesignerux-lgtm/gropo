@@ -26,6 +26,7 @@ import { PROVINCIAS_ES } from '@/lib/provincias';
 import { normalizePhone } from '@/lib/phone';
 import { supabase } from '@/lib/supabase';
 import HowGropoSheet from '@/components/HowGropoSheet';
+import { readLocalIdentity, saveLocalIdentity } from '@/lib/local-identity';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -860,12 +861,8 @@ function InnerForm({
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      let u: { name?: string; email?: string; phone?: string } | null = null;
-      try {
-        const raw = localStorage.getItem('vonda_user');
-        u = raw ? JSON.parse(raw) : null;
-      } catch { u = null; }
-      if (!u?.email && !u?.phone) return;
+      const u = readLocalIdentity();
+      if (!u.email && !u.phone) return;
 
       const full = (u.name ?? '').trim();
       const sp = full.indexOf(' ');
@@ -980,16 +977,14 @@ function InnerForm({
 
     // Recordar identidad (teléfono + email) para la auto-carga de "Mis grupos".
     // Se guarda antes de confirmPayment para sobrevivir a redirecciones 3DS.
-    try {
-      localStorage.setItem('vonda_user', JSON.stringify({
-        name: fullName,
-        email: c.email.trim(),
-        phone: normalizePhone(c.phone),
-        quantity,
-        price: Math.round((total / quantity) * 100) / 100,
-        address_line1: s.line1,
-      }));
-    } catch {}
+    saveLocalIdentity({
+      name: fullName,
+      email: c.email.trim(),
+      phone: normalizePhone(c.phone),
+      quantity,
+      price: Math.round((total / quantity) * 100) / 100,
+      address_line1: s.line1,
+    });
 
     const { error: confirmError } = await stripe.confirmPayment({
       elements,

@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import DesktopNavbar from '@/components/desktop/DesktopNavbar'
 import BottomNav from '@/components/BottomNav'
 import { useLadders, derive, type Membership } from '@/components/desktop/MisGruposDesktop'
+import { readLocalIdentity } from '@/lib/local-identity'
 
 type NType = 'success' | 'urgent' | 'info' | 'default'
 interface Noti { id: string; type: NType; title: string; sub: string; groupId: string }
@@ -41,8 +42,7 @@ export default function NotificacionesPage() {
   const ladders = useLadders(memberships)
 
   useEffect(() => {
-    let u: { phone?: string; email?: string } = {}
-    try { const raw = localStorage.getItem('vonda_user'); u = raw ? JSON.parse(raw) : {} } catch {}
+    const u = readLocalIdentity()
     if (u.phone && u.email) {
       supabase.rpc('get_my_groups', { p_phone: u.phone, p_email: u.email }).then(({ data }) => {
         const groups = ((data as any)?.groups ?? []) as Membership[]
