@@ -183,6 +183,14 @@ Y la pregunta **"¿Cuál es el máximo que pagarías?"** se añadió sobre el sl
   Ponerlo también en la ficha duplicaría el control y abriría la puerta a que ambos se
   desincronicen.
 
+**Una trampa que costó una regresión, anotada para la próxima.** Al colgar los bloques como
+hermano posterior de `GroupLiveSection`, **la barra de compra dejó de quedarse fija**: una barra
+`sticky bottom-*` se desancla en cuanto su posición natural en el flujo queda por encima del borde
+inferior, y antes funcionaba solo porque era el último elemento de la página. Detectado al
+verificar en producción y corregido pasando el contenido por la prop `belowContent`, de modo que
+la barra siga siendo el último hijo. **Cualquier cosa que se añada a esa pantalla tiene que ir por
+esa prop, no detrás del componente.**
+
 **Sigue pendiente:** la ficha móvil no tiene descripción de producto ni información de envío. No es
 un problema de paridad con escritorio —tampoco están ahí— sino un hueco de las dos.
 

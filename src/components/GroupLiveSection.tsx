@@ -30,6 +30,14 @@ interface Props {
   closesAt: string
   /** When true, title/countdown/spec are in the hero overlay — hide them here */
   heroMode?: boolean
+  /**
+   * Contenido que va DEBAJO de la card y ENCIMA de la barra sticky.
+   * Tiene que renderizarse aquí y no como hermano posterior: una barra
+   * `sticky bottom-*` se desancla en cuanto su posición natural en el flujo
+   * queda por encima, así que cualquier cosa que se ponga después la haría
+   * desaparecer al hacer scroll.
+   */
+  belowContent?: React.ReactNode
 }
 
 const AVATAR_LETTERS = ['A', 'B', 'C']
@@ -37,7 +45,7 @@ const AVATAR_LETTERS = ['A', 'B', 'C']
 export default function GroupLiveSection({
   groupId, name, spec, pvp,
   initialBestPrice, initialTotalUnits,
-  tiers, closesAt, heroMode = false,
+  tiers, closesAt, heroMode = false, belowContent,
 }: Props) {
   const { open } = useCheckout()
   const router = useRouter()
@@ -176,6 +184,8 @@ export default function GroupLiveSection({
           )}
         </div>
       </div>
+
+      {belowContent}
 
       {/* ── BARRA STICKY: CTA que cambia de color ── */}
       <div className="sticky bottom-16 z-20 bg-white border-t border-[#EEEEEE] px-4 py-3">

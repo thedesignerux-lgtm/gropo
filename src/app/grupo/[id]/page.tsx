@@ -178,13 +178,16 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
             minExecution={group.minExecution}
             closesAt={group.closesAt}
             heroMode
+            /* UX-05 · Estos bloques vivían solo en escritorio: la ficha móvil no
+               respondía "¿cuándo me cobráis?" ni "¿y si el grupo no sale?".
+               Van como prop, no como hermano posterior, para que la barra de
+               compra siga siendo el último hijo y no se desancle al hacer scroll. */
+            belowContent={
+              <div className="px-4 pb-6">
+                <GroupHowAndTrust />
+              </div>
+            }
           />
-
-          {/* UX-05 · Estos bloques vivían solo en escritorio. La ficha móvil no
-              respondía "¿cuándo me cobráis?" ni "¿y si el grupo no sale?". */}
-          <div className="px-4 pb-6">
-            <GroupHowAndTrust />
-          </div>
         </div>
         <BottomNav />
       </div>
