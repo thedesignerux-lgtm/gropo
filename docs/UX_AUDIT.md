@@ -272,14 +272,48 @@ falso botón. Retirado.
 
 ## UX-08 · El estado vacío de la home es lo que verá el tráfico frío
 
+> ✅ **RESUELTO — 13-sep-2026.** Decisión de Benjamin: que esa pantalla capture la petición.
+
 Hoy mismo, `https://www.gropo.es` en móvil muestra: titular, buscador, seis chips y —centrado en
 mitad de la nada— *"No hay grupos abiertos"*. Nada más, y el resto de la pantalla en blanco.
 
 Es la pantalla que ve alguien que llega desde un reel. No explica qué es Gropo, no ofrece ninguna
 acción y no captura el interés (no hay "avísame", no hay "pide un producto").
 
-El contraste de ese texto era **2,42:1** — ya corregido abajo. Lo que no he tocado es el contenido:
-qué debe decir esa pantalla es tuyo.
+El contraste de ese texto era **2,42:1** — corregido antes en esta misma sesión.
+
+### Lo que se hizo
+
+Componente nuevo, **`src/components/EmptyShowcase.tsx`**, compartido por la home móvil y la de
+escritorio. Hace las tres cosas que esa pantalla no hacía:
+
+1. **Explica el modelo** en una frase: *"Gropo junta a gente que quiere el mismo producto para
+   conseguir el precio que da el volumen."*
+2. **Da una acción real**: *"Pedir un producto"* → `/crear-peticion`, que ya existe y funciona.
+   Crea el grupo sin puja y guarda nombre, email y teléfono.
+3. **No deja marchar al visitante sin rastro.** Una visita sin catálogo deja demanda registrada,
+   que es justo el argumento con el que se negocia con una marca.
+
+**El copy promete exactamente lo mismo que la pantalla de éxito de la petición** —*"te avisamos
+por email en cuanto encontremos un vendedor"*— y ni una palabra más. Es una intención de buscar,
+no un compromiso de conseguirlo.
+
+Contrastes: título `#1a1a1f` **16,62:1**, cuerpo `#57545e` **7,10:1**, botón blanco sobre `brand`
+**10,26:1**.
+
+**De paso, tres cosas más que colgaban de aquí:**
+
+- En escritorio, sin ningún grupo, se apilaban **dos estados vacíos** — *"No hay grupos
+  destacados"* arriba y *"No hay más grupos abiertos en esta categoría"* abajo. Ahora el hueco del
+  destacado lleva el `EmptyShowcase` y la sección de rejilla no se renderiza.
+- Ese segundo mensaje hablaba de *"esta categoría"*, que ya no existe.
+- El buscador decía *"Busca un producto o categoría"*. Ahora, *"Busca un producto"*.
+
+### Encontrado al hacerlo, no arreglado
+
+En la cabecera de la rejilla de escritorio hay un **"Ordenar por: Recomendados"** que es un
+`<span>` estático: parece un control de ordenación y no lo es. Mismo patrón que los chips y el
+"Ver todas →". Pendiente.
 
 ---
 

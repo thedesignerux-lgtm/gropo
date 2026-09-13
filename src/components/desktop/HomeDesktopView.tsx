@@ -10,6 +10,7 @@ import FavoriteButton from '@/components/FavoriteButton'
 import GropoTargetSlider, { type Detent } from '@/components/GropoTargetSlider'
 import DesktopNavbar from '@/components/desktop/DesktopNavbar'
 import { modeAccent } from '@/lib/brand-colors'
+import EmptyShowcase from '@/components/EmptyShowcase'
 
 const fmt = (n: number) => (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
 
@@ -181,14 +182,15 @@ export default function HomeDesktopView({ products, favoriteIds = [], isAuthed =
           {featured ? (
             <FeaturedCard product={featured} isFavorited={favSet.has(featured.id)} isAuthed={isAuthed} countdown={countdown} />
           ) : (
-            <div className="rounded-[26px] bg-white grid place-items-center text-neutral-400 text-sm" style={{ border: '1px solid #EFEDE7', minHeight: 380 }}>
-              No hay grupos destacados
+            <div className="rounded-[26px] bg-white" style={{ border: '1px solid #EFEDE7' }}>
+              <EmptyShowcase minHeight={380} />
             </div>
           )}
         </div>
       </section>
 
-      {/* ══════════ GRID ══════════ */}
+      {/* ══════════ GRID — sobra cuando no hay ni un grupo: el bloque de arriba ya lo dice ══════════ */}
+      {products.length > 0 && (
       <section className="bg-white border-t" style={{ borderColor: '#EFEDE7' }}>
         <div className="max-w-[1240px] mx-auto px-8 pt-8 pb-16">
           {/* Heading */}
@@ -207,7 +209,7 @@ export default function HomeDesktopView({ products, favoriteIds = [], isAuthed =
           {/* Grid */}
           {gridProducts.length === 0 ? (
             <div className="py-20 text-center text-neutral-400 text-lg">
-              {query.trim() ? `No se encontraron productos para "${query}"` : 'No hay más grupos abiertos en esta categoría'}
+              {query.trim() ? `No se encontraron productos para "${query}"` : 'No hay más grupos abiertos'}
             </div>
           ) : (
             <div className="grid grid-cols-4 gap-5 pt-5">
@@ -218,6 +220,7 @@ export default function HomeDesktopView({ products, favoriteIds = [], isAuthed =
           )}
         </div>
       </section>
+      )}
     </div>
   )
 }

@@ -11,6 +11,7 @@ import FavoriteButton from '@/components/FavoriteButton'
 import GropoTargetSlider, { type Detent } from '@/components/GropoTargetSlider'
 import HowGropoSheet from '@/components/HowGropoSheet'
 import { modeAccent } from '@/lib/brand-colors'
+import EmptyShowcase from '@/components/EmptyShowcase'
 
 /**
  * UX-07 · Los tres carruseles se construyen sobre el MISMO conjunto de grupos,
@@ -118,7 +119,7 @@ export default function GroupsGrid({ products, favoriteIds = [], isAuthed = fals
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Busca un producto o categoría"
+              placeholder="Busca un producto"
               className="flex-1 text-[13.5px] text-neutral-700 placeholder:text-neutral-400 bg-transparent ml-3 focus:outline-none"
             />
             <button type="button" className="w-10 h-10 rounded-full bg-brand grid place-items-center shrink-0" aria-label="Buscar">
@@ -172,7 +173,7 @@ export default function GroupsGrid({ products, favoriteIds = [], isAuthed = fals
           <div className="h-16" />
         </>
       ) : (
-        <div className="px-[18px] py-16 text-center text-sm" style={{ color: '#6B6B76' }}>No hay grupos abiertos</div>
+        <EmptyShowcase />
       )}
 
       {/* ── Bottom sheet ¿Cómo funciona Gropo? ── */}
