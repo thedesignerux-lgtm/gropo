@@ -160,13 +160,23 @@ fotos reales **no es estética: es legibilidad**.
 
 ---
 
-### 🟠 A-06 · El mismo producto aparece hasta tres veces en la misma pantalla
+### 🟠 A-06 · El mismo producto aparecía hasta tres veces en la misma pantalla — ✅ CORREGIDO 14 sep 2026
 Con 14 grupos y tres carruseles de nueve, la repetición es matemáticamente inevitable. Hoy la
 Orbea sale en «Cerca del siguiente precio» **y** en «Más han bajado hoy»; el Shimano está en la
 destacada **y** en un carrusel. El catálogo parece más pequeño y menos cuidado de lo que es.
 
 Además **«Más han bajado hoy» es una afirmación factual que no se sostiene**: ninguno de estos
 grupos ha bajado hoy. Y «Gropos populares», ¿según qué?
+
+**Corregido (14 sep 2026), las dos mitades:**
+
+1. **Los carruseles son disjuntos.** Cada grupo cae en el que mejor lo describe y no vuelve a
+   salir: primero «cerca del siguiente precio» —la razón más accionable para entrar hoy—, luego el
+   ahorro, y el resto por tamaño. El comentario de `CAROUSEL_MIN` ya decía que hacerlos disjuntos
+   era el arreglo de fondo; esto es ese arreglo.
+2. **Los títulos dicen el criterio real.** «Más han bajado hoy» → **«Los que más ahorran frente a
+   tienda»** (que es lo que ordena: `savings`, no bajadas, y menos aún «hoy»). «Gropos populares» →
+   **«Los que más gente ha reunido»**.
 
 ---
 
@@ -264,7 +274,7 @@ botón queda gris con «Este grupo ya ha cerrado».
 > navegador quien lo corrige al hidratar. Comprobar este arreglo con `curl` da un falso negativo:
 > hay que mirarlo en un navegador. Se perdió un despliegue por no caer en ello.
 
-### 🟠 A-11c · El arreglo apagó la acción, pero la tarjeta sigue vendiendo — ABIERTO
+### 🟠 A-11c · El arreglo apagó la acción, pero la tarjeta seguía vendiendo — ✅ CORREGIDO 14 sep 2026
 Con el botón ya deshabilitado, en esa misma pantalla siguen leyéndose:
 
 - **«PRECIO ACTUAL · 1499 €»** — no hay precio actual: el grupo está cerrado
@@ -276,6 +286,19 @@ Es decir: se arregló **el estado y la acción**, no **el discurso**. Un grupo c
 otra cosa —qué pasó, a qué precio se quedó, y si habrá otra ronda— en vez de seguir invitando a
 unirse con el botón apagado. Enlaza con A-13 (el subtítulo fijo que no consulta el estado) y con
 el hueco de G13/G14: **nadie ha diseñado el después**.
+
+**Corregido (14 sep 2026), en móvil y en escritorio.** Con el plazo vencido:
+
+- «PRECIO ACTUAL» pasa a **«PRECIO AL CIERRE»** — no hay precio actual si no se puede comprar.
+- El badge de ahorro **no se pinta**.
+- La pregunta «¿Cuál es el máximo que pagarías?» y el slider **desaparecen**, y con ellos el nudge.
+  En su lugar, un bloque que cuenta lo que pasó: **«Este grupo ya ha cerrado. Se quedó en 1499 €
+  con 15 unidades. Ya no admite nuevas compras.»**
+- En escritorio, el selector de cantidad también se oculta.
+
+Sigue sin responderse **si habrá otra ronda**. Eso no es copy: es una decisión de producto que no
+está tomada, y prefiero dejar el hueco visible antes que insinuar algo que el sistema no puede
+cumplir.
 
 ### ⚠️ A-11b · `confirm_join` no comprueba el estado del grupo — ABIERTO
 Comprobado: **cero** referencias a `v_group.status` en `confirm_join`. El guard de `prepare_join`
@@ -322,7 +345,7 @@ y no tres.
 
 ---
 
-### 🟠 A-13 · «Bajará si entran más compradores» cuando ya no puede bajar
+### 🟠 A-13 · «Bajará si entran más compradores» cuando ya no podía bajar — ✅ CORREGIDO 14 sep 2026
 Misma pantalla, separados por unos 40 px:
 
 > **Precio de tu plaza** — *bajará si entran más compradores* — **89 €**
@@ -333,15 +356,29 @@ El subtítulo de la tarjeta de precio es un texto fijo que no consulta el estado
 donde queda escalera es cierto; en G05 y G06, donde ya no queda, es falso y además choca con el
 mensaje de la barra de progreso, que sí acierta.
 
+**Corregido (14 sep 2026).** El subtítulo consulta `nextTier`: con escalera por delante sigue
+diciendo «bajará si entran más compradores»; sin ella, **«es el mejor precio del grupo»**, que es
+lo mismo que dice la barra 40 px más abajo.
+
 ---
 
-### 🟠 A-14 · El ahorro desaparece justo cuando hay que decidir
-En la home, cada tarjeta lleva su badge verde: «Ahorras 347 €», «−150,99 €». En el checkout, el
-PVP queda reducido a **«Precio tienda ~~197 €~~»** en gris, arriba, pequeño, y **el ahorro no se
-calcula en ninguna parte**.
+### 🟡 A-14 · El ahorro estaba, pero donde no se mira — ✅ CORREGIDO 14 sep 2026
 
-En G06 son 89 € frente a 197 €: un **55 %**. El argumento económico más fuerte del producto se
-desvanece en la pantalla donde se firma.
+> **Corrección de este hallazgo.** Lo escribí como «**el ahorro no se calcula en ninguna parte**».
+> **Era falso.** `savingsPerUnit` existe, se pasa al bloque de dinero y se pintaba como *«Ahorras X
+> frente a tienda»*. Lo vi al ir a implementarlo. Baja de 🟠 a 🟡: no era una ausencia, era
+> jerarquía.
+
+Lo que sí pasaba: en la home cada tarjeta lleva un badge verde bien visible, y en el checkout el
+ahorro iba en **12 px, alineado a la derecha y por debajo del párrafo legal**, al final del bloque.
+El sitio donde menos se mira de toda la pantalla.
+
+En G06 son 89 € frente a 197 €: un **55 %**. El argumento económico más fuerte del producto,
+enterrado justo en la pantalla donde se firma.
+
+**Corregido.** El ahorro sube a la fila inmediatamente siguiente al total, con el PVP tachado al
+lado: «Precio en tienda ~~197 €~~ · **Ahorras 108 €**». Se multiplica por las unidades, igual que
+el total, para que las tres cifras cuadren a la vista.
 
 ---
 
@@ -565,7 +602,7 @@ no se alcanzó el objetivo, sin cargos».
 
 ---
 
-### 🟠 A-19 · La barra de progreso se pone su propio listón cuando ya no queda escalera
+### 🟠 A-19 · La barra de progreso se ponía su propio listón — ✅ CORREGIDO 14 sep 2026
 `derive()`:
 
 ```ts
@@ -582,9 +619,20 @@ el «Objetivo no alcanzado» de A-18. Cuando no queda escalera lo honesto es dec
 alcanzado»— y quitar la barra, que es justo lo que hace la etiqueta de la derecha en los estados
 normales (`d.nextObj == null ? 'Precio mínimo'`). El estado `noalc` se salta esa rama.
 
+**Corregido (14 sep 2026).** `derive()` devuelve ahora `hasNextTier`, y sin tramo siguiente no se
+pinta barra ni porcentaje: la tarjeta dice **«18 uds en el grupo»** y el panel **«18 uds en el
+grupo · Mejor precio alcanzado»**.
+
+**Verificado ejecutando `derive()` con los datos reales:**
+
+| Grupo | Antes | Ahora |
+|---|---|---|
+| Gafas (todos los tramos abiertos) | «18 / 18 uds · 100 % completado» | **«18 uds · Mejor precio alcanzado»** |
+| Sillín (queda un tramo) | «12 / 25 uds · 48 %» | «12 / 25 uds · 48 %» (sin cambio) |
+
 ---
 
-### 🟠 A-20 · «5 activos» cuenta también lo cancelado y lo liberado
+### 🟠 A-20 · «5 activos» contaba también lo cancelado y lo liberado — ✅ CORREGIDO 14 sep 2026
 `MisGruposDesktop.tsx:121`:
 
 ```ts
@@ -594,6 +642,10 @@ const active = memberships.length
 No filtra nada. Con esta sesión el encabezado dice **«5 activos»** cuando lo activo es **uno**: el
 sillín. Los otros cuatro son dos liberados y dos cancelados. El único número de la pantalla que
 resume la situación es el único que está mal.
+
+**Corregido (14 sep 2026).** Activo = hay algo en marcha: retención viva o pago pendiente
+(`authorized` o `instructed`) en un grupo que no se ha cancelado. `paid` no cuenta: está terminado.
+Con esta misma sesión, el encabezado pasa de **«5 activos» a «1 activo»**.
 
 (Solo afecta a escritorio: `MisGruposMobile` no pinta contador — que es el problema simétrico, ver
 A-22.)
@@ -798,7 +850,7 @@ la comparación ya lo hace, y cambiar cómo se escriben los datos de producción
 
 ---
 
-### 🟠 A-26 · «Completa todos los campos» no dice cuál, y se pinta donde no se ve
+### 🟠 A-26 · «Completa todos los campos» no decía cuál, y se pintaba donde no se ve — ✅ CORREGIDO 14 sep 2026
 Ocho campos obligatorios —nombre, apellidos, email, teléfono, dirección, código postal, ciudad,
 provincia— y **un solo booleano** para todos:
 
@@ -823,9 +875,18 @@ Lo correcto es marcar el campo que falla, poner el mensaje junto a él y llevar 
 (`ref.focus()`, no solo `scrollIntoView`). El `role="alert"` ya está puesto; lo que falta es que
 el mensaje esté donde se mira.
 
+**Corregido (14 sep 2026).** Se revisan los ocho campos y se marca **cada uno** que falla, con su
+mensaje debajo, borde rojo, `aria-invalid` y `aria-describedby`. El foco va al **primero en orden
+de pantalla** —que es lo que anuncia un lector de pantalla y lo que abre el teclado del móvil— y el
+mensaje de un campo desaparece en cuanto se corrige.
+
+«Completa todos los campos» → **«Falta tu nombre»**, **«Falta el código postal»**, **«Elige tu
+provincia»**… El aviso global se reserva para lo que sí es global: fallos de Stripe, de red y
+rechazos del servidor.
+
 ---
 
-### 🟠 A-27 · Ocho campos sin etiqueta y sin autocompletado
+### 🟠 A-27 · Ocho campos sin etiqueta y sin autocompletado — ✅ CORREGIDO 14 sep 2026 (parcial)
 Todos los campos usan **solo `placeholder`**: ni `<label>`, ni `id`/`htmlFor`, ni un solo
 `autoComplete`.
 
@@ -848,6 +909,18 @@ Hay un matiz a favor del diseño actual: el checkout **precarga** nombre, teléf
 dirección de quien ya compró antes (`readLocalIdentity` + `get_profile`), y lo avisa con *«Tu
 dirección guardada · puedes editarla»*. Eso está bien resuelto. Pero solo cubre al comprador
 recurrente; el primero, que es el que importa para crecer, teclea los ocho campos.
+
+**Corregido (14 sep 2026) — y digo *parcial* a propósito.** Nuevo componente `Field` con `id`,
+`<label>` asociada y el `autoComplete` que le toca a cada campo: `given-name`, `family-name`,
+`email`, `tel-national` (+ `type="tel"`), `address-line1`, `postal-code`, `address-level2` y
+`address-level1`.
+
+Eso arregla los puntos **1 y 3**: el autorrelleno del móvil funciona y cada campo tiene nombre
+accesible.
+
+**El punto 2 sigue abierto**, y es deliberado: la etiqueta va en `sr-only`, así que al escribir
+sigue sin verse qué es cada caja. Hacerla visible cambia la altura del formulario y el aspecto de
+la pantalla, y **eso es criterio visual de Benjamin, no mío**. Queda propuesto, no hecho.
 
 ---
 
@@ -1066,10 +1139,17 @@ Estado a 14 de septiembre de 2026:
 
 | Severidad | Total | Corregidos | Abiertos |
 |---|---|---|---|
-| 🔴 crítico | 11 | **10** — A-01, A-02, A-11, A-12, A-15, A-18 (con A-18b), A-21, A-25, A-29, A-30 | **1** |
-| 🟠 importante | 15 | 0 | 15 |
-| 🟡 mejora | 10 | 0 | 10 |
+| 🔴 crítico | 11 | **10** — A-01, A-02, A-11, A-12, A-15, A-18 (con A-18b), A-21, A-25, A-29, A-30 | **1** — A-28 |
+| 🟠 importante | 14 | **7** — A-06, A-11c, A-13, A-19, A-20, A-26, A-27 (parcial) | 7 |
+| 🟡 mejora | 11 | **1** — A-14 | 10 |
 | ⚠️ a la espera | 1 — A-11b | 0 | 1 (no tocado a propósito) |
+
+*(A-14 pasó de 🟠 a 🟡 al comprobarse que el ahorro sí se calculaba.)*
+
+**Los 🟠 que quedan:** A-03 (se pide la decisión antes de explicar el modelo), A-04 (tres
+vocabularios para «unidades»), A-05 (el nombre del producto es ilegible sobre foto clara), A-16 y
+A-22 (las dos superficies de `/notificaciones`), A-31 (dos vocabularios escritorio/móvil) y A-32
+(el checkout no tiene vista de escritorio).
 
 **El único crítico abierto es A-28**: el checkout no menciona términos, privacidad ni
 desistimiento. Requiere abogado, no código, y es la misma consulta que L-03 / RULE-063.
@@ -1087,6 +1167,18 @@ No es casualidad: es **DT-03** (dos árboles de UI duplicados) cobrando su preci
 que sale de aquí: **al cerrar cualquier hallazgo de ficha, home o mis-grupos, comprobar los dos
 componentes antes de marcarlo como corregido** — y si una prop se declara y no se usa, sospechar
 que en el gemelo pasa lo mismo.
+
+### Y una segunda lección, esta sobre cómo escribo los hallazgos
+Dos veces afirmé que algo **no existía** y las dos veces era falso:
+
+| Escribí | La realidad |
+|---|---|
+| A-25 · «el email no se valida en ninguna capa» | `get_my_groups` **sí** lo valida… al leer, devolviendo lista vacía en silencio. Peor de lo que yo decía, pero no lo que yo decía |
+| A-14 · «el ahorro no se calcula en ninguna parte» | `savingsPerUnit` existía y se pintaba; estaba mal **colocado**, no ausente |
+
+Las dos las descubrí al ir a implementar el arreglo, no al escribir el hallazgo. Una afirmación de
+ausencia («no hay», «en ninguna parte», «cero») exige buscar hasta agotar, no hasta convencerse.
+Cuando la duda persista, lo honesto es escribir **UNKNOWN**.
 
 **Los tres temas de fondo**, por debajo de los hallazgos sueltos:
 

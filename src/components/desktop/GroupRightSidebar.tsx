@@ -234,8 +234,19 @@ export default function GroupRightSidebar({
 
         <div className="border-t border-[#F1EFF5] my-5" />
 
+        {/* A-11c · Un grupo cerrado no pregunta cuánto pagarías: cuenta qué pasó. */}
+        {hasClosed && (
+          <div className="rounded-2xl px-4 py-3.5" style={{ background: '#F5F4F8', border: '1px solid #E8E6F0' }}>
+            <p className="text-[13px] font-bold text-neutral-700">Este grupo ya ha cerrado</p>
+            <p className="mt-1 text-[12px] leading-snug text-neutral-500">
+              Se quedó en {fmt(displayPrice)} con {committedUnits} {committedUnits === 1 ? 'unidad' : 'unidades'}.
+              Ya no admite nuevas compras.
+            </p>
+          </div>
+        )}
+
         {/* ── Target slider (reemplaza stepper + selector) ── */}
-        {detents.length > 1 ? (
+        {detents.length > 1 && !hasClosed ? (
           <GropoTargetSlider
             detents={detents}
             curIdx={curIdx}
@@ -257,7 +268,7 @@ export default function GroupRightSidebar({
 
         {/* ── Cantidad + CTA ── */}
         <div className="flex items-center gap-3 mt-4">
-          <div className="inline-flex items-center rounded-xl border border-[#E4E1DA] flex-shrink-0 overflow-hidden">
+          <div className={`inline-flex items-center rounded-xl border border-[#E4E1DA] flex-shrink-0 overflow-hidden ${hasClosed ? 'hidden' : ''}`}>
             <button type="button" onClick={() => setQuantity(q => Math.max(1, q - 1))} disabled={quantity <= 1 || hasClosed}
               className="flex h-[46px] w-[42px] items-center justify-center text-xl text-[#3a3a42] bg-white disabled:text-neutral-300 cursor-pointer" aria-label="Menos">−</button>
             <span className="w-9 text-center text-[15px] font-extrabold tabular-nums text-neutral-900">{quantity}</span>

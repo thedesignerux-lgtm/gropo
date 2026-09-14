@@ -63,6 +63,12 @@ export function derive(m: Membership, ladder: LadderRow[]) {
   const cur = Number(m.current_price)
   const currentUnits = ladder.length ? Math.max(...ladder.map(t => Number(t.effective_demand ?? 0))) : 0
   const nextTier = ladder.filter(t => !t.unlocked && Number(t.price) < cur).sort((a, b) => Number(b.price) - Number(a.price))[0] ?? null
+  // A-19 · Sin tramo siguiente NO hay objetivo, y ponerse uno mismo el listón
+  // (`target = currentUnits`) daba siempre «18 / 18 uds · 100 % completado»: no es
+  // «18 de las 18 que hacían falta», es «18 de las 18 que hay». Un denominador que se
+  // cumple solo. Cuando no queda escalera, la barra no se pinta: se dice que ya está
+  // el mejor precio, que es lo que de verdad ha pasado.
+  const hasNextTier = nextTier != null
   const target = nextTier ? Number(nextTier.min_units) : currentUnits || m.quantity || 1
   const missing = nextTier ? Math.max(0, Number(nextTier.min_units) - currentUnits) : 0
   const nextObj = nextTier ? Number(nextTier.price) : null
@@ -90,7 +96,7 @@ export function derive(m: Membership, ladder: LadderRow[]) {
   } else {
     state = 'encurso'
   }
-  return { commit, cur, currentUnits, target, missing, nextObj, pct, state, groupFailed, authFailed: ps === 'auth_failed' }
+  return { commit, cur, currentUnits, target, missing, nextObj, pct, state, hasNextTier, groupFailed, authFailed: ps === 'auth_failed' }
 }
 
 // Enriquecer con tier_demand (RPC anon, solo lectura) para la barra de progreso. Compartido desktop + móvil.
@@ -127,7 +133,14 @@ export default function MisGruposDesktop({ memberships, userName }: { membership
     return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = '' }
   }, [open])
 
-  const active = memberships.length
+  // A-20 · Esto era `memberships.length`: decía «5 activos» cuando lo activo era uno
+  // —el único con dinero retenido— y los otros cuatro eran dos liberados y dos
+  // cancelados. El único número que resumía la pantalla era el único que estaba mal.
+  // Activo = hay algo en marcha: retención viva o pago pendiente, en un grupo que no
+  // se ha cancelado. `paid` ya no es activo: está terminado.
+  const active = memberships.filter(
+    (m) => (m.payment_status === 'authorized' || m.payment_status === 'instructed') && m.status !== 'cancelled',
+  ).length
   const openMem = memberships.find(m => m.member_id === open) || null
 
   return (
@@ -235,7 +248,9 @@ export function MgCard({ m, ladder, onOpen }: { m: Membership; ladder: LadderRow
         </div>
       )}
       <div className="flex justify-between text-[12.5px] mt-2 mb-3">
-        <span className="text-neutral-500">{isOpen && d.state !== 'liberado' ? `${d.currentUnits} / ${d.target} uds en el grupo` : `${m.quantity} ud${m.quantity > 1 ? 's' : ''}`}</span>
+        <span className="text-neutral-500">{isOpen && d.state !== 'liberado'
+          ? (d.hasNextTier ? `${d.currentUnits} / ${d.target} uds en el grupo` : `${d.currentUnits} uds en el grupo`)
+          : `${m.quantity} ud${m.quantity > 1 ? 's' : ''}`}</span>
         <span className="font-bold" style={{ color: d.state === 'noalc' ? '#94A3B8' : t.c }}>{d.state === 'meta' ? 'Objetivo alcanzado' : d.state === 'liberado' ? (isOpen ? 'El grupo sigue abierto' : 'Ya no participas') : d.state === 'noalc' ? 'Objetivo no alcanzado' : d.nextObj == null ? 'Precio mínimo' : d.missing === 1 ? 'Falta 1 ud' : `Faltan ${d.missing} uds`}</span>
       </div>
       {/* estado / social */}
@@ -297,8 +312,16 @@ export function Drawer({ m, ladder, onClose }: { m: Membership; ladder: LadderRo
             <div className="text-center"><div className="text-[11px] text-neutral-500">Estado actual</div><div className="text-[19px] font-extrabold mt-1 whitespace-nowrap" style={{ color: '#0B7B44' }}>{fmt(d.cur)}</div>{saving > 0.005 && <div className="text-[11.5px] mt-0.5" style={{ color: '#0B7B44' }}>Estás ahorrando {fmt(saving)}</div>}</div>
             <div className="text-right"><div className="text-[11px] text-neutral-500">Próximo objetivo</div><div className="text-[19px] font-extrabold mt-1 whitespace-nowrap">{d.nextObj != null ? fmt(d.nextObj) : '—'}</div><div className="text-[11.5px] text-neutral-500 mt-0.5">{d.nextObj != null ? (d.missing === 1 ? 'Falta 1 ud' : `Faltan ${d.missing} uds`) : 'Precio mínimo'}</div></div>
           </div>
-          <div className="flex items-center mt-4"><div className="flex-1 h-1.5 rounded-full bg-neutral-200 overflow-hidden mr-1"><div className="h-full rounded-full" style={{ width: `${d.pct}%`, background: t.c }} /></div><span className="w-4 h-4 rounded-full bg-white shrink-0" style={{ border: `2.5px solid ${t.c}` }} /></div>
-          <div className="flex justify-between text-xs text-neutral-500 mt-2"><span>{d.currentUnits} / {d.target} uds</span><span>{d.pct}% completado</span></div>
+          {/* A-19 · Sin tramo siguiente no hay porcentaje que medir: la barra estaría
+              siempre llena contra un objetivo que se pone ella misma. */}
+          {d.hasNextTier ? (
+            <>
+              <div className="flex items-center mt-4"><div className="flex-1 h-1.5 rounded-full bg-neutral-200 overflow-hidden mr-1"><div className="h-full rounded-full" style={{ width: `${d.pct}%`, background: t.c }} /></div><span className="w-4 h-4 rounded-full bg-white shrink-0" style={{ border: `2.5px solid ${t.c}` }} /></div>
+              <div className="flex justify-between text-xs text-neutral-500 mt-2"><span>{d.currentUnits} / {d.target} uds</span><span>{d.pct}% completado</span></div>
+            </>
+          ) : (
+            <div className="flex justify-between text-xs mt-4"><span className="text-neutral-500">{d.currentUnits} uds en el grupo</span><span className="font-bold" style={{ color: t.c }}>Mejor precio alcanzado</span></div>
+          )}
           <p className="text-[12.5px] text-neutral-500 mt-5 leading-relaxed">Cuantas más personas entren, antes se cierra el grupo y antes aseguras tu precio. Comparte tu enlace y baja el precio para todos.</p>
         </div>
         <div className="px-[22px] py-4 border-t border-neutral-100">

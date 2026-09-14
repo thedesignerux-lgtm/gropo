@@ -77,8 +77,26 @@ export default function GroupsGrid({ products, favoriteIds = [], isAuthed = fals
     () => priced.filter((x) => x.nextTier && x.unitsToNext > 0 && x.p.id !== featured?.p.id).sort((a, b) => a.unitsToNext - b.unitsToNext),
     [priced, featured],
   )
-  const droppedMost = useMemo(() => [...priced].sort((a, b) => b.savings - a.savings), [priced])
-  const popular = useMemo(() => [...priced].sort((a, b) => b.p.currentUnits - a.p.currentUnits), [priced])
+  /**
+   * A-06 · Carruseles DISJUNTOS. Antes los tres se construían sobre el mismo conjunto
+   * entero, solo que ordenado distinto, así que el mismo producto salía en el
+   * destacado y en dos carruseles: el catálogo parecía más pequeño y menos cuidado de
+   * lo que es. El comentario de `CAROUSEL_MIN` ya decía que hacerlos disjuntos era el
+   * arreglo de fondo; esto es ese arreglo.
+   *
+   * El orden de reparto no es casual: cada grupo cae en el carrusel que MEJOR lo
+   * describe. Primero «cerca del siguiente precio», que es la razón más accionable
+   * para entrar hoy; después el ahorro; el resto, por tamaño.
+   */
+  const droppedMost = useMemo(() => {
+    const taken = new Set([featured?.p.id, ...nearNext.map((x) => x.p.id)])
+    return priced.filter((x) => !taken.has(x.p.id)).sort((a, b) => b.savings - a.savings)
+  }, [priced, featured, nearNext])
+
+  const popular = useMemo(() => {
+    const taken = new Set([featured?.p.id, ...nearNext.map((x) => x.p.id), ...droppedMost.map((x) => x.p.id)])
+    return priced.filter((x) => !taken.has(x.p.id)).sort((a, b) => b.p.currentUnits - a.p.currentUnits)
+  }, [priced, featured, nearNext, droppedMost])
   const rest = useMemo(() => priced.filter((x) => x.p.id !== featured?.p.id), [priced, featured])
 
   return (
@@ -159,9 +177,13 @@ export default function GroupsGrid({ products, favoriteIds = [], isAuthed = fals
           {/* ── Carruseles, solo con inventario suficiente (UX-07) ── */}
           {priced.length >= CAROUSEL_MIN ? (
             <>
+              {/* A-06 · Los títulos dicen ahora el criterio REAL de cada lista.
+                  «Más han bajado hoy» era una afirmación factual que no se sostenía:
+                  el orden es por ahorro frente al PVP, no por bajadas, y ninguno había
+                  bajado ese día. «Gropos populares» no decía según qué. */}
               {nearNext.length > 0 && <CarouselRow title="Cerca del siguiente precio" items={nearNext} favSet={favSet} first />}
-              {droppedMost.length > 0 && <CarouselRow title="Más han bajado hoy" items={droppedMost} favSet={favSet} />}
-              {popular.length > 0 && <CarouselRow title="Gropos populares" items={popular} favSet={favSet} />}
+              {droppedMost.length > 0 && <CarouselRow title="Los que más ahorran frente a tienda" items={droppedMost} favSet={favSet} />}
+              {popular.length > 0 && <CarouselRow title="Los que más gente ha reunido" items={popular} favSet={favSet} />}
             </>
           ) : rest.length > 0 ? (
             <section className="px-[18px] pt-4">

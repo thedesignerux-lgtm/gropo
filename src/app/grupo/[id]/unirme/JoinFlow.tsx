@@ -168,6 +168,54 @@ const SECTION = 'px-4 pt-6';
 const H = 'text-sm font-semibold text-neutral-900 mb-3';
 const INPUT =
   'w-full h-12 px-3.5 rounded-xl border border-neutral-200 bg-white text-[15px] text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand';
+const INPUT_ERR =
+  'w-full h-12 px-3.5 rounded-xl border border-red-400 bg-white text-[15px] text-neutral-900 placeholder:text-neutral-400 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500';
+
+/**
+ * A-27 · Campo del checkout con etiqueta y autocompletado.
+ *
+ * Los ocho campos usaban SOLO `placeholder`: sin `<label>`, sin `id`, y sin un solo
+ * `autoComplete`. Tres consecuencias, de más a menos cara:
+ *
+ *  1. El autorrelleno del móvil NO FUNCIONABA. Ocho campos tecleados a mano en una
+ *     pantalla pequeña, en el punto de máxima fricción del embudo. De todo lo que
+ *     encontró la auditoría, es lo que más cuesta en conversión.
+ *  2. Al escribir, la etiqueta desaparece (el defecto clásico del placeholder-como-
+ *     etiqueta): al repasar antes de pagar se ven ocho cajas con texto y ninguna dice
+ *     qué es cada cosa.
+ *  3. Sin `<label>` asociada no hay nombre accesible fiable (WCAG 3.3.2).
+ *
+ * La etiqueta va en `sr-only`: arregla 1 y 3 sin tocar el diseño aprobado. Hacerla
+ * visible resolvería también 2, pero cambia la altura del formulario y eso es
+ * decisión visual de Benjamin, no mía.
+ */
+function Field({
+  id, label, error, inputRef, className, ...rest
+}: React.InputHTMLAttributes<HTMLInputElement> & {
+  id: string
+  label: string
+  error?: string | null
+  inputRef?: React.RefObject<HTMLInputElement>
+}) {
+  return (
+    <div className={className}>
+      <label htmlFor={id} className="sr-only">{label}</label>
+      <input
+        id={id}
+        ref={inputRef}
+        className={error ? INPUT_ERR : INPUT}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${id}-error` : undefined}
+        {...rest}
+      />
+      {error && (
+        <p id={`${id}-error`} role="alert" className="mt-1.5 text-[12.5px] font-medium text-red-600">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
 
 export default function JoinFlow({
   group,
@@ -670,7 +718,13 @@ export default function JoinFlow({
               </div>
               <div>
                 <div className="text-[15px] font-bold text-brand">Precio de tu plaza</div>
-                <div className="mt-px text-xs font-medium" style={{ color: '#024947' }}>bajará si entran más compradores</div>
+                {/* A-13 · Este subtítulo era un texto FIJO que no consultaba el estado.
+                    En los grupos donde ya no queda escalera —G05, G06— era falso, y
+                    encima chocaba con el «Mejor precio ya desbloqueado 🎉» que la barra
+                    de progreso pinta 40 px más abajo. */}
+                <div className="mt-px text-xs font-medium" style={{ color: '#024947' }}>
+                  {nextTier ? 'bajará si entran más compradores' : 'es el mejor precio del grupo'}
+                </div>
               </div>
               <div className="ml-auto text-[22px] font-extrabold leading-none tracking-tight tabular-nums text-brand">{eur(displayPricePerUnit)}</div>
             </div>
@@ -902,12 +956,35 @@ function InnerForm({
   // Mientras la confirmamos no volvemos al boton ni cantamos exito.
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // A-25 · El error del email se pinta JUNTO AL CAMPO, no en el aviso global del
-  // final: ese está después de la sección 3 y el submit hace scroll hacia arriba,
-  // así que el comprador nunca llegaría a verlo (A-26).
-  const [emailError, setEmailError] = useState<string | null>(null);
+  /**
+   * A-26 · Los errores del formulario se pintan JUNTO AL CAMPO que falla.
+   *
+   * Antes había un único booleano para los ocho campos obligatorios y un solo
+   * mensaje —«Completa todos los campos antes de continuar»— que además se pintaba
+   * DESPUÉS de la sección «3. Pago seguro», mientras el submit hacía scroll hasta
+   * arriba. Es decir: la pantalla saltaba al principio y el aviso se quedaba fuera
+   * de vista, detrás de tres secciones y del footer fijo. El comprador veía que algo
+   * se movía y nada más.
+   *
+   * `error` sigue existiendo para lo que sí es global: fallos de Stripe, de red y
+   * rechazos del servidor.
+   */
+  type FieldKey = 'nombre' | 'apellidos' | 'email' | 'phone' | 'line1' | 'postal_code' | 'city' | 'province';
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<FieldKey, string>>>({});
+  const clearField = (k: FieldKey) =>
+    setFieldErrors((prev) => (prev[k] ? { ...prev, [k]: undefined } : prev));
+
   const datosRef = useRef<HTMLElement>(null);
-  const emailRef = useRef<HTMLInputElement>(null);
+  const refs: Record<FieldKey, React.RefObject<any>> = {
+    nombre: useRef<HTMLInputElement>(null),
+    apellidos: useRef<HTMLInputElement>(null),
+    email: useRef<HTMLInputElement>(null),
+    phone: useRef<HTMLInputElement>(null),
+    line1: useRef<HTMLInputElement>(null),
+    postal_code: useRef<HTMLInputElement>(null),
+    city: useRef<HTMLInputElement>(null),
+    province: useRef<HTMLSelectElement>(null),
+  };
   // Precarga: si el usuario ya compró antes, no debe volver a teclear sus datos
   // ni su dirección. La identidad vive en localStorage (la guarda este mismo
   // checkout al confirmar) y la dirección predeterminada en el perfil.
@@ -953,25 +1030,34 @@ function InnerForm({
 
   async function handleSubmit() {
     setError(null);
-    setEmailError(null);
+    setFieldErrors({});
     if (!stripe || !elements) return;
 
-    // Validar campos obligatorios — si faltan, scroll al formulario
-    const missing = !c.nombre.trim() || !c.apellidos.trim() || !c.email.trim() || !c.phone.trim() || !s.line1.trim() || !s.postal_code.trim() || !s.city.trim() || !s.province;
-    if (missing) {
-      datosRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-      setError("Completa todos los campos antes de continuar.");
-      return;
-    }
+    // A-26 · Se revisan los ocho campos y se marca CADA uno que falla, en orden de
+    // pantalla. El foco va al primero, que es lo que un lector de pantalla anuncia y
+    // lo que el teclado del móvil abre.
+    // A-25 · El email lleva además comprobación de formato: es la llave con la que se
+    // recupera el pedido (`get_my_groups` exige teléfono + email), y un fallo ahí no
+    // da error en ninguna parte — el dinero se retiene igual y el pedido desaparece
+    // de /mis-grupos y /notificaciones. El servidor lo valida también, en
+    // `create-intent`, que es la autoridad; esto avisa antes de pagar.
+    const errs: Partial<Record<FieldKey, string>> = {};
+    if (!c.nombre.trim()) errs.nombre = 'Falta tu nombre';
+    if (!c.apellidos.trim()) errs.apellidos = 'Faltan tus apellidos';
+    if (!c.email.trim()) errs.email = 'Falta tu email';
+    else if (!isValidEmail(c.email)) errs.email = 'Revisa tu email: no parece una dirección válida. Es a donde enviamos la confirmación y con lo que podrás consultar tu pedido.';
+    if (!c.phone.trim()) errs.phone = 'Falta tu teléfono';
+    if (!s.line1.trim()) errs.line1 = 'Falta la dirección de envío';
+    if (!s.postal_code.trim()) errs.postal_code = 'Falta el código postal';
+    if (!s.city.trim()) errs.city = 'Falta la ciudad';
+    if (!s.province) errs.province = 'Elige tu provincia';
 
-    // A-25 · El email es la llave con la que luego se recupera este pedido. Un fallo
-    // aquí no da error en ninguna parte: el dinero se retiene igual y el pedido
-    // desaparece de /mis-grupos y /notificaciones. El servidor lo valida también
-    // (create-intent, que es la autoridad); esto es para avisar antes de pagar.
-    if (!isValidEmail(c.email)) {
-      setEmailError('Revisa tu email: no parece una dirección válida. Es a donde enviamos la confirmación y con lo que podrás consultar tu pedido.');
-      emailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      emailRef.current?.focus({ preventScroll: true });
+    const order: FieldKey[] = ['nombre', 'apellidos', 'email', 'phone', 'line1', 'postal_code', 'city', 'province'];
+    const first = order.find((k) => errs[k]);
+    if (first) {
+      setFieldErrors(errs);
+      refs[first].current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      refs[first].current?.focus({ preventScroll: true });
       return;
     }
 
@@ -1110,6 +1196,21 @@ function InnerForm({
             <span className="text-lg font-bold text-neutral-900">{eur(total)}</span>
           </div>
 
+          {/* A-14 · El ahorro SÍ se calculaba, pero estaba al final del bloque, en
+              12 px y después del párrafo legal — mientras en la home es un badge verde
+              en cada tarjeta. En las gafas son 89 € frente a 197 €: un 55 %. El
+              argumento económico más fuerte del producto se desvanecía justo en la
+              pantalla donde se firma. Va junto al total, que es lo que se mira. */}
+          {savings > 0.01 && (
+            <div className="mt-1.5 flex items-baseline justify-between">
+              <span className="text-[13px] text-neutral-500">Precio en tienda</span>
+              <span className="text-[13px]">
+                <span className="text-neutral-400 line-through">{eur(group.pvp * quantity)}</span>
+                <span className="ml-2 font-bold text-[#0B7B44]">Ahorras {eur(savings)}</span>
+              </span>
+            </div>
+          )}
+
           {group.shipping_included && (
             <div className="mt-1.5 flex items-baseline justify-between text-sm">
               <span className="text-neutral-500">Envío</span>
@@ -1132,11 +1233,6 @@ function InnerForm({
                 : `Hoy no se te cobra nada: retenemos ${eur(holdTotal)} en tu tarjeta y al cierre se cobra el precio final, que puede ser menor.`}
           </p>
 
-          {savings > 0.01 && (
-            <div className="mt-2 text-right text-xs font-semibold text-brand">
-              Ahorras {eur(savings)} frente a tienda
-            </div>
-          )}
         </div>
       </section>
 
@@ -1144,32 +1240,24 @@ function InnerForm({
       <section ref={datosRef as any} className={SECTION}>
         <h2 className={H}>1. Tus datos</h2>
         <div className="grid grid-cols-2 gap-3">
-          <input className={INPUT} placeholder="Nombre"
-            value={c.nombre} onChange={(e) => setC({ ...c, nombre: e.target.value })} />
-          <input className={INPUT} placeholder="Apellidos"
-            value={c.apellidos} onChange={(e) => setC({ ...c, apellidos: e.target.value })} />
+          <Field id="nombre" label="Nombre" placeholder="Nombre" autoComplete="given-name"
+            error={fieldErrors.nombre} inputRef={refs.nombre}
+            value={c.nombre} onChange={(e) => { setC({ ...c, nombre: e.target.value }); clearField('nombre'); }} />
+          <Field id="apellidos" label="Apellidos" placeholder="Apellidos" autoComplete="family-name"
+            error={fieldErrors.apellidos} inputRef={refs.apellidos}
+            value={c.apellidos} onChange={(e) => { setC({ ...c, apellidos: e.target.value }); clearField('apellidos'); }} />
         </div>
-        <input
-          ref={emailRef}
-          className={`${INPUT} mt-3 ${emailError ? 'border-red-400 focus:border-red-500' : ''}`}
-          type="email"
-          placeholder="Email"
-          aria-invalid={emailError ? true : undefined}
-          aria-describedby={emailError ? 'email-error' : undefined}
-          value={c.email}
-          onChange={(e) => { setC({ ...c, email: e.target.value }); if (emailError) setEmailError(null); }}
-        />
-        {emailError && (
-          <p id="email-error" role="alert" className="mt-1.5 text-[12.5px] font-medium text-red-600">
-            {emailError}
-          </p>
-        )}
+        <Field id="email" label="Email" type="email" placeholder="Email" autoComplete="email"
+          className="mt-3" error={fieldErrors.email} inputRef={refs.email}
+          value={c.email} onChange={(e) => { setC({ ...c, email: e.target.value }); clearField('email'); }} />
         <div className="mt-3 flex items-stretch gap-2">
           <span className="inline-flex items-center rounded-xl border border-neutral-200 bg-neutral-50 px-3 text-[15px] text-neutral-500">
             +34
           </span>
-          <input className={`${INPUT} flex-1`} inputMode="numeric" placeholder="Teléfono móvil"
-            value={c.phone} onChange={(e) => setC({ ...c, phone: e.target.value })} />
+          <Field id="phone" label="Teléfono móvil" type="tel" inputMode="numeric"
+            placeholder="Teléfono móvil" autoComplete="tel-national" className="flex-1"
+            error={fieldErrors.phone} inputRef={refs.phone}
+            value={c.phone} onChange={(e) => { setC({ ...c, phone: e.target.value }); clearField('phone'); }} />
         </div>
       </section>
 
@@ -1182,23 +1270,39 @@ function InnerForm({
             Tu dirección guardada · puedes editarla
           </p>
         )}
-        <input className={INPUT} placeholder="Dirección (calle y número)"
-          value={s.line1} onChange={(e) => setS({ ...s, line1: e.target.value })} />
+        <Field id="line1" label="Dirección (calle y número)" placeholder="Dirección (calle y número)"
+          autoComplete="address-line1" error={fieldErrors.line1} inputRef={refs.line1}
+          value={s.line1} onChange={(e) => { setS({ ...s, line1: e.target.value }); clearField('line1'); }} />
         <div className="mt-3 grid grid-cols-2 gap-3">
-          <input className={INPUT} inputMode="numeric" placeholder="Código postal"
-            value={s.postal_code} onChange={(e) => setS({ ...s, postal_code: e.target.value })} />
-          <input className={INPUT} placeholder="Ciudad"
-            value={s.city} onChange={(e) => setS({ ...s, city: e.target.value })} />
+          <Field id="postal_code" label="Código postal" inputMode="numeric" placeholder="Código postal"
+            autoComplete="postal-code" error={fieldErrors.postal_code} inputRef={refs.postal_code}
+            value={s.postal_code} onChange={(e) => { setS({ ...s, postal_code: e.target.value }); clearField('postal_code'); }} />
+          <Field id="city" label="Ciudad" placeholder="Ciudad" autoComplete="address-level2"
+            error={fieldErrors.city} inputRef={refs.city}
+            value={s.city} onChange={(e) => { setS({ ...s, city: e.target.value }); clearField('city'); }} />
         </div>
-        <select
-          className={`${INPUT} mt-3 ${s.province ? 'text-neutral-900' : 'text-neutral-400'}`}
-          value={s.province} onChange={(e) => setS({ ...s, province: e.target.value })}
-        >
-          <option value="">Provincia</option>
-          {PROVINCIAS_ES.map((p) => (
-            <option key={p} value={p} className="text-neutral-900">{p}</option>
-          ))}
-        </select>
+        <div className="mt-3">
+          <label htmlFor="province" className="sr-only">Provincia</label>
+          <select
+            id="province"
+            ref={refs.province}
+            autoComplete="address-level1"
+            aria-invalid={fieldErrors.province ? true : undefined}
+            aria-describedby={fieldErrors.province ? 'province-error' : undefined}
+            className={`${fieldErrors.province ? INPUT_ERR : INPUT} ${s.province ? 'text-neutral-900' : 'text-neutral-400'}`}
+            value={s.province} onChange={(e) => { setS({ ...s, province: e.target.value }); clearField('province'); }}
+          >
+            <option value="">Provincia</option>
+            {PROVINCIAS_ES.map((p) => (
+              <option key={p} value={p} className="text-neutral-900">{p}</option>
+            ))}
+          </select>
+          {fieldErrors.province && (
+            <p id="province-error" role="alert" className="mt-1.5 text-[12.5px] font-medium text-red-600">
+              {fieldErrors.province}
+            </p>
+          )}
+        </div>
         <label className="mt-3 flex items-center gap-2 text-sm text-neutral-600">
           <input type="checkbox"
             className="h-4 w-4 rounded border-neutral-300 text-brand focus:ring-brand"

@@ -172,13 +172,16 @@ export default function GroupLiveSection({
               {/* A-01 · «PRECIO ACTUAL» sobre el fallback de un tramo cerrado era
                   falso. Mientras el grupo no arranca, ese número es el precio al que
                   SALDRÍA, no uno que nadie tenga garantizado. */}
+              {/* A-11c · Con el plazo vencido, «PRECIO ACTUAL» ya no describe nada:
+                  no hay compra posible a ese precio. */}
               <p className="text-[11px] font-extrabold uppercase tracking-wide text-neutral-400">
-                {notActivated ? 'Precio de salida' : 'Precio actual'}
+                {hasClosed ? 'Precio al cierre' : notActivated ? 'Precio de salida' : 'Precio actual'}
               </p>
               <div className="flex items-center flex-wrap gap-2.5 mt-1">
                 <span className="text-3xl font-extrabold leading-none text-neutral-900 tabular-nums">{fmt(displayPrice)}</span>
-                {/* Sin ahorro mientras no haya precio real del que ahorrar. */}
-                {savings > 0.01 && !notActivated && (
+                {/* Sin ahorro mientras no haya precio real del que ahorrar (A-01),
+                    ni cuando ya no se puede comprar (A-11c). */}
+                {savings > 0.01 && !notActivated && !hasClosed && (
                   <span className="inline-flex items-center gap-1 text-xs font-bold text-[#0B7B44] bg-[#E6F4EC] rounded-full px-2.5 py-1.5">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" /><line x1="7" y1="7" x2="7.01" y2="7" /></svg>
                     Ahorras {fmt(savings)}
@@ -225,7 +228,20 @@ export default function GroupLiveSection({
           )}
 
           {/* Target slider (con nudge, sin encabezado — estado va arriba) */}
-          {detents.length > 1 && (
+          {/* A-11c · Preguntar «¿cuál es el máximo que pagarías?» con un slider
+              arrastrable en un grupo cerrado es seguir vendiendo con el botón
+              apagado. En su lugar se cuenta lo que pasó. */}
+          {hasClosed && (
+            <div className="mt-3.5 rounded-xl px-3.5 py-3" style={{ background: '#F5F4F8', border: '1px solid #E8E6F0' }}>
+              <p className="text-[13px] font-bold text-neutral-700">Este grupo ya ha cerrado</p>
+              <p className="mt-1 text-[12px] leading-snug text-neutral-500">
+                Se quedó en {fmt(displayPrice)} con {totalParticipants} {totalParticipants === 1 ? 'unidad' : 'unidades'}.
+                Ya no admite nuevas compras.
+              </p>
+            </div>
+          )}
+
+          {detents.length > 1 && !hasClosed && (
             <div className="mt-3">
               {/* UX-05 · La pregunta rectora del producto solo existía en escritorio. */}
               <p className="text-[13px] font-bold text-neutral-900 mb-1.5">¿Cuál es el máximo que pagarías?</p>
