@@ -211,6 +211,53 @@ El usuario no lee: escanea. Cada palabra debe justificar su presencia.
 - **Social:** unirse, participar, compartir, grupo, invitar.
 - **Transaccional:** comprar, precio, máximo, pagar, ahorro.
 
+---
+
+### LÉXICO CERRADO — decidido el 14 de septiembre de 2026
+
+> Fijado por Benjamin tras la auditoría (A-04 y A-31 de `UX_AUDIT_2.md`), donde se encontró que el
+> producto usaba **tres nombres para el mismo número** y **dos verbos distintos** para la misma
+> acción según el tamaño de la pantalla. Esto no es una guía de estilo: es la lista de palabras que
+> se usan, y las que no.
+
+**Una sola historia, de principio a fin:**
+
+> Marcas tu máximo → aseguras tu plaza → el grupo crece → el precio baja → pagas el precio final.
+
+| Concepto | Se dice | **Nunca** |
+|---|---|---|
+| La acción principal | **Asegurar** | ~~Bloquear~~, ~~Fijar~~, ~~Reservar~~ (mezclados) |
+| El límite del comprador | **hasta X €** | ~~Máx. X €~~ (suelto) |
+| Lo que elige en el slider | **precio máximo** | ~~límite~~, ~~tope~~ |
+| Lo que acabará pagando | **precio final** | ~~precio de cierre~~ |
+| Su situación tras comprar | **plaza asegurada** | ~~confirmado~~, ~~dentro~~ |
+
+**CTA en las cuatro superficies de compra:** `Asegurar hasta 85 €`. Sin variantes.
+
+Por qué no «Bloquear precio»: afirma que el precio queda fijado, y **el modelo entero consiste en
+que puede bajar después**. Ya causó un problema real — el botón de escritorio llegó a decir
+«✓ Precio bloqueado» antes de que existiera ningún cargo (A-30).
+
+#### Personas ≠ unidades
+
+**Los tramos se desbloquean por UNIDADES.** Un comprador con 4 cámaras es **1 persona y 4
+unidades**. En producción, las cámaras tienen **20 personas y 57 unidades**: llamar «personas» a
+las 57 hacía que el contador y la escalera no cuadraran nunca.
+
+| Dónde | Formato |
+|---|---|
+| Ficha | «**20 personas** ya han pedido **57 unidades**» |
+| Tarjeta de la home | «20 compradores · 57 uds» |
+| Escalera y tooltips | «50 uds», «Faltan 3 uds» — se escanea, no se lee |
+| Prosa y nudges | «unidades», completo |
+
+**Cuando los dos números coinciden se dice solo uno.** Hoy pasa en 4 de cada 6 grupos, porque casi
+todo el mundo pide una unidad: «18 personas en el grupo», no «18 personas ya han pedido 18
+unidades». Repetir el mismo número con dos nombres es exactamente lo que este léxico viene a
+quitar.
+
+«**Confirmados**» queda prohibido: es vocabulario de banco para algo que **nadie ha pagado**.
+
 **Nunca mezclar ambos registros en el mismo momento de decisión.**
 
 ### Reglas para CTAs

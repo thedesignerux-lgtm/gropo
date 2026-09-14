@@ -261,7 +261,9 @@ export function MgCard({ m, ladder, onOpen }: { m: Membership; ladder: LadderRow
             ? <span>{d.authFailed ? 'No se pudo confirmar el pago · Sin cargos realizados' : 'Retención anulada · Sin cargos realizados'}</span>
             : d.state === 'noalc'
               ? <span>Retención liberada · Sin cargos realizados</span>
-              : <><span style={{ color: t.c }}>{I.shield}</span><span>Tu plaza está asegurada · Pago retenido</span></>}
+              /* A-31 · «Estado: plaza asegurada», con su límite. La cifra es el
+                 precio garantizado: el techo de lo que puede pagar. */
+              : <><span style={{ color: t.c }}>{I.shield}</span><span>Tu plaza está asegurada hasta {fmt(d.commit)}</span></>}
       </div>
       {/* CTA */}
       <div className="flex items-center justify-center gap-2 w-full rounded-xl py-2.5 text-[13.5px] font-bold bg-white" style={{ border: `1.5px solid ${t.bd}`, color: t.c }}>
@@ -304,7 +306,7 @@ export function Drawer({ m, ladder, onClose }: { m: Membership; ladder: LadderRo
           </div>
           <div className="flex gap-3 items-start rounded-2xl p-3.5 mt-4" style={{ background: t.secbg }}>
             <span className="w-[38px] h-[38px] rounded-xl flex items-center justify-center text-white shrink-0" style={{ background: t.c }}>{I.shield}</span>
-            <div><h5 className="text-sm font-bold">Tu plaza está asegurada</h5><p className="text-[11.5px] text-neutral-600 mt-1 leading-snug">Tu pago está retenido de forma segura. Solo se cargará si el grupo alcanza el objetivo.</p></div>
+            <div><h5 className="text-sm font-bold">Tu plaza está asegurada hasta {fmt(d.commit)}</h5><p className="text-[11.5px] text-neutral-600 mt-1 leading-snug">Solo pagarás el precio final del grupo, nunca más de {fmt(d.commit)}. El importe está retenido, no cobrado.</p></div>
             <div className="ml-auto text-right shrink-0"><span className="text-xs font-bold rounded-lg px-2.5 py-1 bg-white inline-block" style={{ color: t.c, border: `1px solid ${t.bd}` }}>stripe</span><small className="block text-[10.5px] text-neutral-400 mt-1.5">Retención activa</small></div>
           </div>
           <div className="flex justify-between gap-2 mt-[18px]">

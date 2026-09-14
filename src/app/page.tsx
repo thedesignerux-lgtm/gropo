@@ -42,6 +42,25 @@ async function fetchGroups(): Promise<GroupProduct[]> {
     maxStockByGroup.set((b as any).group_id, Math.max(prevSt, st))
   }
 
+  /**
+   * A-04 · PERSONAS por grupo — un dato distinto de las unidades.
+   *
+   * La tarjeta decía «15 confirmados» usando unidades: en las cámaras son 20
+   * personas y 57 unidades. Una sola consulta agregada para todo el catálogo, con los
+   * mismos estados de pago que `tier_demand`, y se cuenta en JS: `group_by` no existe
+   * en el cliente de Supabase y no merece una vista nueva por un contador.
+   */
+  const { data: memberRows } = await supabaseAdmin
+    .from('group_members')
+    .select('group_id')
+    .in('group_id', ids)
+    .in('payment_status', ['authorized', 'instructed', 'paid'])
+  const memberCountByGroup = new Map<string, number>()
+  for (const r of memberRows ?? []) {
+    const g = (r as any).group_id as string
+    memberCountByGroup.set(g, (memberCountByGroup.get(g) ?? 0) + 1)
+  }
+
   const ladders = await Promise.all(
     rows.map((r: any) => supabaseAdmin.rpc('tier_demand', { p_group_id: r.id }))
   )
@@ -81,6 +100,7 @@ async function fetchGroups(): Promise<GroupProduct[]> {
       imageUrl: (row.image_url as string | null) ?? undefined,
       closesAt: (row.closes_at as string | null) ?? undefined,
       maxStock: maxStockByGroup.get(row.id) ?? 0,
+      memberCount: memberCountByGroup.get(row.id) ?? 0,
       // La demanda efectiva es máxima en el tramo más barato, donde entran todos:
       // ese máximo es la suma de unidades vivas del grupo.
       committedUnits: asc.length > 0 ? Math.max(...asc.map(t => t.demand)) : 0,

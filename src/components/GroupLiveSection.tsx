@@ -26,6 +26,8 @@ interface Props {
   initialBestPrice: number
   initialTotalUnits: number
   bidCount: number
+  /** A-04 · Personas, no unidades. Dato distinto y nombre distinto. */
+  memberCount: number
   tiers: Tier[]
   maxStock: number
   minExecution: number
@@ -47,7 +49,7 @@ const AVATAR_LETTERS = ['A', 'B', 'C']
 export default function GroupLiveSection({
   groupId, name, spec, pvp,
   initialBestPrice, initialTotalUnits,
-  tiers, minExecution, closesAt, heroMode = false, belowContent,
+  tiers, minExecution, memberCount, closesAt, heroMode = false, belowContent,
 }: Props) {
   const { open } = useCheckout()
   const router = useRouter()
@@ -243,8 +245,15 @@ export default function GroupLiveSection({
 
           {detents.length > 1 && !hasClosed && (
             <div className="mt-3">
+              {/* A-03 · Se pedía fijar un precio máximo —una decisión que solo tiene
+                  sentido si ya entiendes la compra colectiva— ANTES de explicar el
+                  modelo: la explicación existe y es buena, pero está tras el scroll.
+                  Y la mitad del tráfico entra por un enlace compartido directo a una
+                  ficha, no por la home. Una línea, antes de la pregunta.
+                  Copy de Benjamin, versión corta para pantalla estrecha. */}
+              <p className="text-[12.5px] leading-snug text-neutral-500 mb-1">Cuantos más compramos, menos pagas. Tú marcas tu precio máximo.</p>
               {/* UX-05 · La pregunta rectora del producto solo existía en escritorio. */}
-              <p className="text-[13px] font-bold text-neutral-900 mb-1.5">¿Cuál es el máximo que pagarías?</p>
+              <p className="text-[13px] font-bold text-neutral-900 mb-1.5">¿Cuál es el precio máximo que pagarías?</p>
               <GropoTargetSlider
                 detents={detents}
                 curIdx={curIdx}
@@ -274,7 +283,21 @@ export default function GroupLiveSection({
                   <div className="w-7 h-7 rounded-full bg-brand/10 border-2 border-white flex items-center justify-center text-[10px] font-bold text-brand">+{extraCount}</div>
                 )}
               </div>
-              <span className="text-xs text-neutral-500">{totalParticipants} persona{totalParticipants !== 1 ? 's' : ''} en el grupo</span>
+              {/* A-04 · Dos datos, dos nombres. Antes este mismo número de UNIDADES
+                  se llamaba «personas»: con 20 personas y 57 unidades, el contador y
+                  la escalera no cuadraban nunca. */}
+              {/* Cuando personas y unidades COINCIDEN —hoy, 4 de cada 6 grupos: casi
+                  todo el mundo pide 1 unidad— decir las dos cosas es repetir el mismo
+                  número con dos nombres, que es justo lo que este arreglo venía a
+                  quitar. Ahí basta con las personas. Los dos datos aparecen solo
+                  cuando de verdad son dos datos. */}
+              <span className="text-xs text-neutral-500">
+                {memberCount <= 0
+                  ? <>{totalParticipants} {totalParticipants === 1 ? 'unidad' : 'unidades'} en el grupo</>
+                  : memberCount === totalParticipants
+                    ? <><b className="font-semibold text-neutral-700">{memberCount} {memberCount === 1 ? 'persona' : 'personas'}</b> en el grupo</>
+                    : <><b className="font-semibold text-neutral-700">{memberCount} personas</b> ya han pedido <b className="font-semibold text-neutral-700">{totalParticipants} unidades</b></>}
+              </span>
             </div>
           )}
         </div>
@@ -303,8 +326,12 @@ export default function GroupLiveSection({
               /* A-01 · No se puede «bloquear» un precio que todavía no existe: lo que
                  se hace aquí es reservar plaza para que el grupo arranque. */
               : notActivated
-                ? 'Reservar mi plaza · Hoy 0 €'
-                : isEsperar ? `Bloquear precio · Máx. ${fmt(effectiveSelected)}` : `Bloquear precio · ${fmt(effectiveSelected)}`}
+                ? 'Asegurar mi plaza · Hoy 0 €'
+                /* A-31 · Un solo verbo en todo el producto: ASEGURAR. «Bloquear
+                   precio» afirmaba que el precio quedaba fijado, y el modelo entero
+                   consiste en que puede BAJAR después. «hasta X €» dice lo que de
+                   verdad pasa: ese es tu techo, pagarás el precio final del grupo. */
+                : `Asegurar hasta ${fmt(effectiveSelected)}`}
         </button>
       </div>
     </>

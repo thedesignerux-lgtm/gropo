@@ -301,7 +301,16 @@ function FeaturedGropoCard({ x, isFavorited, isAuthed, onOpenSheet }: { x: Price
                 <span key={c} className="grid place-items-center rounded-full text-brand text-[7.5px] font-extrabold" style={{ width: 19, height: 19, background: '#DEEDEC', border: '2px solid #F2F7F7', marginLeft: i === 0 ? 0 : -6 }}>{c}</span>
               ))}
             </div>
-            <span className="text-[10.5px] font-bold text-[#1a1a1f] whitespace-nowrap">{p.currentUnits} confirmado{p.currentUnits !== 1 ? 's' : ''}</span>
+            {/* A-04 · «confirmados» era vocabulario de banco para algo que nadie ha
+                pagado, y además contaba UNIDADES. Formato de tarjeta: compacto, los
+                dos datos con su nombre. */}
+            <span className="text-[10.5px] font-bold text-[#1a1a1f] whitespace-nowrap">
+              {(p.memberCount ?? 0) <= 0
+                ? <>{p.currentUnits} uds</>
+                : p.memberCount === (p.committedUnits ?? p.currentUnits)
+                  ? <>{p.memberCount} {p.memberCount === 1 ? 'comprador' : 'compradores'}</>
+                  : <>{p.memberCount} compradores · {p.committedUnits} uds</>}
+            </span>
           </div>
         </div>
         <div className="rounded-[12px] overflow-hidden shrink-0" style={{ width: 104, height: 88, background: '#F0EEE8' }}>
@@ -349,7 +358,8 @@ function FeaturedGropoCard({ x, isFavorited, isAuthed, onOpenSheet }: { x: Price
           className="w-full mt-3.5 font-extrabold text-[15px] rounded-[13px] cursor-pointer transition-colors active:scale-[0.99] whitespace-nowrap overflow-hidden text-ellipsis"
           style={{ border: `2px solid ${accent}`, background: confirmed ? 'rgba(2, 73, 71,.10)' : 'rgba(232,148,74,.12)', color: accent, padding: 15, boxShadow: `0 12px 26px -14px ${confirmed ? 'rgba(2, 73, 71,.28)' : 'rgba(232,148,74,.28)'}` }}
         >
-          {confirmed ? `Asegurar hasta ${fmt(selectedPrice)}` : `Fijar límite en ${fmt(selectedPrice)}`}
+          {/* A-31 · «Fijar límite en X» era una tercera forma de decir lo mismo. */}
+          {`Asegurar hasta ${fmt(selectedPrice)}`}
         </button>
         {!confirmed && (
           <button
@@ -358,7 +368,8 @@ function FeaturedGropoCard({ x, isFavorited, isAuthed, onOpenSheet }: { x: Price
             className="w-full mt-2 font-extrabold text-[15px] rounded-[13px] cursor-pointer transition-colors whitespace-nowrap"
             style={{ border: '2px solid #D6E9E8', background: 'transparent', color: '#024947', padding: 15, animation: 'ctaIn .22s ease-out both' }}
           >
-            Asegurar {fmt(currentPrice)} ahora
+            {/* Segunda CTA: volver al precio ya disponible. El verbo es el mismo. */}
+            Asegurar hasta {fmt(currentPrice)} ahora
           </button>
         )}
 

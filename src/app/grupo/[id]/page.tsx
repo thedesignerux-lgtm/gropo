@@ -62,6 +62,27 @@ async function fetchGroup(id: string) {
     .eq('group_id', id)
     .eq('status', 'active')
 
+  /**
+   * A-04 · PERSONAS, que es un dato distinto de las UNIDADES.
+   *
+   * Hasta ahora la ficha decía «2 personas en el grupo» usando el número de
+   * unidades: un comprador con 4 cámaras contaba como 4 «personas». En las cámaras
+   * hay 20 personas y 57 unidades, así que el contador y la escalera no cuadraban.
+   *
+   * Decisión de producto (Benjamin, 14-sep-2026): se dicen LAS DOS COSAS, cada una
+   * con su nombre. Personas para la fuerza colectiva, unidades para lo que mueve el
+   * precio. Nunca el mismo número con dos nombres.
+   *
+   * Se cuenta aquí, en el servidor, y no con una RPC nueva: el número de personas
+   * cambia despacio y no merece otra superficie pública. Los mismos estados de pago
+   * que `group_committed_units` y `tier_demand`.
+   */
+  const { count: memberCount } = await supabaseAdmin
+    .from('group_members')
+    .select('*', { count: 'exact', head: true })
+    .eq('group_id', id)
+    .in('payment_status', ['authorized', 'instructed', 'paid'])
+
   return {
     id: group.id as string,
     name: group.product_name as string,
@@ -73,6 +94,7 @@ async function fetchGroup(id: string) {
     bestPrice,
     nextPrice,
     bidCount: bidCount ?? 0,
+    memberCount: memberCount ?? 0,
     tiers,
     maxStock,
     minExecution,
@@ -103,6 +125,7 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
           initialBestPrice={group.bestPrice}
           initialTotalUnits={group.totalUnits}
           bidCount={group.bidCount}
+          memberCount={group.memberCount}
           tiers={group.tiers}
           maxStock={group.maxStock}
           minExecution={group.minExecution}
@@ -173,6 +196,7 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
             initialBestPrice={group.bestPrice}
             initialTotalUnits={group.totalUnits}
             bidCount={group.bidCount}
+            memberCount={group.memberCount}
             tiers={group.tiers}
             maxStock={group.maxStock}
             minExecution={group.minExecution}

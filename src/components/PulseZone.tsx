@@ -299,7 +299,8 @@ export default function PulseZone({
         soft
         onClick={(e) => go(e, `/grupo/${groupId}/unirme${qty > 1 ? `?qty=${qty}` : ''}`)}
       >
-        Bloquear precio · {fmt(currentPrice)}
+        {/* A-31 · Mismo verbo que el resto del producto. */}
+        Asegurar hasta {fmt(currentPrice)}
       </Cta>
     )
   }

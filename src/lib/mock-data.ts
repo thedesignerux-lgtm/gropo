@@ -23,6 +23,11 @@ export interface GroupProduct {
    * stock hay que usar esta.
    */
   committedUnits?: number
+  /**
+   * A-04 · PERSONAS del grupo. Distinto de `currentUnits` y de `committedUnits`, que
+   * son unidades. Un comprador con 4 cámaras es 1 persona y 4 unidades.
+   */
+  memberCount?: number
 }
 
 export interface StepPricingResult {

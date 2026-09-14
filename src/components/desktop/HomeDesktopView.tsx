@@ -255,8 +255,9 @@ function useCardState(product: GroupProduct, isAuthed: boolean) {
   const accent = modeAccent(confirmed)
   const ctaBg = confirmed ? 'rgba(2, 73, 71,.10)' : 'rgba(232,148,74,.12)'
   const ctaText = confirmed
-    ? `Bloquear precio · ${fmt(selectedPrice)}`
-    : `Bloquear precio · Máx. ${fmt(selectedPrice)}`
+    // A-31 · «Asegurar hasta X €» en las cuatro superficies de compra.
+    ? `Asegurar hasta ${fmt(selectedPrice)}`
+    : `Asegurar hasta ${fmt(selectedPrice)}`
 
   const handleCheckout = () => {
     if (!confirmed && isAuthed) {

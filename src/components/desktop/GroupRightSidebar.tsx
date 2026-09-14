@@ -25,13 +25,15 @@ interface Props {
   tiers: Tier[]
   maxStock: number
   minExecution: number
+  /** A-04 · Personas, no unidades. */
+  memberCount: number
   closesAt: string
 }
 
 const AVATAR_LETTERS = ['A', 'B', 'C']
 
 export default function GroupRightSidebar({
-  groupId, name, spec, imageUrl, tiers, pvp, maxStock, minExecution, closesAt,
+  groupId, name, spec, imageUrl, tiers, pvp, maxStock, minExecution, memberCount, closesAt,
 }: Props) {
   // A-29 · Hasta el 14-sep-2026 estas tres props se declaraban, se pasaban desde
   // GroupDesktopView… y no se desestructuraban. Consecuencia: el arreglo de A-11
@@ -203,8 +205,13 @@ export default function GroupRightSidebar({
                 </div>
               )}
             </div>
+            {/* A-04 · Personas para la gente, unidades para el precio. */}
             <span className="text-sm text-neutral-500">
-              {committedUnits} persona{committedUnits !== 1 ? 's' : ''} en el grupo
+              {memberCount <= 0
+                ? <>{committedUnits} {committedUnits === 1 ? 'unidad' : 'unidades'} en el grupo</>
+                : memberCount === committedUnits
+                  ? <><b className="font-semibold text-neutral-700">{memberCount} {memberCount === 1 ? 'persona' : 'personas'}</b> en el grupo</>
+                  : <><b className="font-semibold text-neutral-700">{memberCount} personas</b> ya han pedido <b className="font-semibold text-neutral-700">{committedUnits} unidades</b></>}
             </span>
           </div>
         )}
@@ -243,6 +250,15 @@ export default function GroupRightSidebar({
               Ya no admite nuevas compras.
             </p>
           </div>
+        )}
+
+        {/* A-03 · En escritorio el slider no tenía NINGÚN encabezado: se pedía la
+            decisión sin enunciarla. Copy de Benjamin, versión larga: aquí hay sitio. */}
+        {detents.length > 1 && !hasClosed && (
+          <>
+            <p className="text-[12.5px] leading-snug text-neutral-500 mb-1">El precio baja si el grupo crece. Tú marcas el máximo que pagarías.</p>
+            <p className="text-[13.5px] font-bold text-neutral-900 mb-2">¿Cuál es el precio máximo que pagarías?</p>
+          </>
         )}
 
         {/* ── Target slider (reemplaza stepper + selector) ── */}
@@ -295,8 +311,9 @@ export default function GroupRightSidebar({
                   ? 'Abriendo…'
                   /* A-01 · No se puede «bloquear» un precio que aún no existe. */
                   : notActivated
-                    ? 'Reservar mi plaza · Hoy 0 €'
-                    : confirmed ? `Bloquear precio · ${fmt(selectedPrice)}` : `Bloquear precio · Máx. ${fmt(selectedPrice)}`}
+                    ? 'Asegurar mi plaza · Hoy 0 €'
+                    /* A-31 · Mismo verbo que en móvil. */
+                    : `Asegurar hasta ${fmt(selectedPrice)}`}
           </button>
         </div>
 

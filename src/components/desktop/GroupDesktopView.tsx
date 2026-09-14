@@ -21,6 +21,8 @@ interface Props {
   tiers: Tier[]
   maxStock: number
   minExecution: number
+  /** A-04 · Personas, no unidades. */
+  memberCount: number
   closesAt: string
 }
 
@@ -37,7 +39,7 @@ function ImagePlaceholder({ label }: { label: string }) {
 
 export default function GroupDesktopView({
   groupId, name, spec, pvp, imageUrl,
-  tiers, maxStock, minExecution, closesAt,
+  tiers, maxStock, minExecution, memberCount, closesAt,
 }: Props) {
   function handleShare() {
     const url = `${SITE_URL}/grupo/${groupId}`
@@ -124,6 +126,7 @@ export default function GroupDesktopView({
             tiers={tiers}
             maxStock={maxStock}
             minExecution={minExecution}
+            memberCount={memberCount}
             closesAt={closesAt}
           />
         </div>

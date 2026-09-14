@@ -115,7 +115,7 @@ grupo. La escasez se queda donde es cierta: en cada tarjeta.
 
 ---
 
-### 🟠 A-03 · Se pide la decisión antes de explicar el modelo
+### 🟠 A-03 · Se pedía la decisión antes de explicar el modelo — ✅ CORREGIDO 14 sep 2026
 En la ficha, el orden de lectura es:
 
 1. Precio
@@ -131,9 +131,32 @@ explicación existe y es buena; está en el sitio equivocado.
 En la home pasa lo mismo: la primera pantalla es un slider de precios sobre un producto de
 1.499 €, sin una sola línea de «qué es esto».
 
+**Corregido (14 sep 2026).** Una línea justo encima de la pregunta, con el copy de Benjamin
+adaptado a la densidad de cada pantalla —misma idea, distinto ritmo—, y sin mover el bloque
+explicativo, que sigue abajo para quien quiera más:
+
+| | |
+|---|---|
+| **Escritorio** | «El precio baja si el grupo crece. Tú marcas el máximo que pagarías.» |
+| **Móvil** | «Cuantos más compramos, menos pagas. Tú marcas tu precio máximo.» |
+
+La pregunta pasa a **«¿Cuál es el precio máximo que pagarías?»** (antes «¿Cuál es el máximo…?»), y
+**en escritorio se añade: no tenía encabezado ninguno.** Se pedía la decisión sin llegar a
+enunciarla.
+
+**Lo que no se hizo, y por qué.** La propuesta incluía una segunda frase *debajo* del slider («Si
+el grupo crece, tu precio puede bajar»). El nudge que ya hay ahí dice eso mismo **con los números
+reales del grupo** —«Si te unes hoy pagas 219 €, y menos si el grupo sigue creciendo. Con 4
+unidades más baja a 189 €»—, así que añadirla sería decir dos veces lo mismo, peor la segunda.
+Va contra *«un dato aparece una sola vez»*. Si aun así se quiere, es un minuto.
+
+**La home se queda como está**: ahí el slider va dentro de una tarjeta de producto con su contexto
+alrededor, y la primera pantalla es un problema distinto —de posicionamiento, no de microcopy— que
+merece su propia decisión.
+
 ---
 
-### 🟠 A-04 · Tres vocabularios para la misma cosa, y ninguno es «unidades»
+### 🟠 A-04 · Tres vocabularios para la misma cosa — ✅ CORREGIDO 14 sep 2026
 | Dónde | Cómo lo llama |
 |---|---|
 | Tarjeta destacada (home) | «15 **confirmados**» |
@@ -145,6 +168,26 @@ como 4. En G10 hay 20 personas y **57 unidades**. Con el vocabulario actual, ese
 personas» junto a una escalera que habla de 50 uds, y el comprador no puede cuadrar los números.
 
 Y «confirmados» es vocabulario de banco para algo que no ha ocurrido: nadie ha pagado.
+
+**Corregido (14 sep 2026).** Decisión de Benjamin: **se dicen las dos cosas, cada una con su
+nombre** — personas para la fuerza colectiva, unidades para lo que mueve el precio. El léxico
+completo queda fijado en `PRODUCT_PRINCIPLES.md` §7.
+
+Hizo falta traer un dato que no existía en la interfaz: el **conteo de personas**. Se cuenta en el
+servidor (en la ficha y en la home, con los mismos estados de pago que `tier_demand`) y no con una
+RPC nueva: el número cambia despacio y no merece otra superficie pública.
+
+| Dónde | Antes | Ahora |
+|---|---|---|
+| Ficha | «2 personas en el grupo» (eran unidades) | «**20 personas** ya han pedido **57 unidades**» |
+| Tarjeta | «15 confirmados» (eran unidades) | «20 compradores · 57 uds» |
+| Escalera | «8 uds» | «8 uds» (sin cambio) y el tooltip pasa a «Faltan 3 uds» |
+
+**Un ajuste sobre la propuesta, y conviene que conste.** Con los datos reales delante,
+**en 4 de cada 6 grupos personas y unidades coinciden** —casi todo el mundo pide una unidad— y
+«18 personas ya han pedido 18 unidades» es repetir el mismo número con dos nombres: justo lo que
+este arreglo venía a quitar. Así que los dos datos salen **solo cuando de verdad son dos datos**;
+si coinciden, se dice «18 personas en el grupo».
 
 ---
 
@@ -1049,7 +1092,7 @@ desaparecido**, porque en esa pantalla nunca hubo nada bloqueado.
 
 ---
 
-### 🟠 A-31 · Dos vocabularios completos para el mismo producto
+### 🟠 A-31 · Dos vocabularios completos para el mismo producto — ✅ CORREGIDO 14 sep 2026 (el CTA)
 No son matices de redacción; son palabras distintas para las mismas cosas, en las dos mitades del
 mismo producto:
 
@@ -1076,6 +1119,24 @@ Y hay cosas que existen en una mitad y no en la otra:
 
 Esto es DT-03 cobrándose su precio: cada arreglo de copy hay que hacerlo dos o tres veces, y los
 hallazgos de esta auditoría —A-01, A-04, A-12, A-13— habrá que corregirlos por duplicado.
+
+**Corregido (14 sep 2026) — el CTA, que es lo que más pesa.** Decisión de Benjamin: **fuera
+«Bloquear precio» de todo el producto**, y una sola jerarquía —Acción: *asegurar* · Límite: *hasta
+X €* · Concepto: *precio máximo* · Resultado: *precio final* · Estado: *plaza asegurada*—. El
+léxico queda fijado en `PRODUCT_PRINCIPLES.md` §7 para que no vuelva a divergir.
+
+`Asegurar hasta 85 €` es ahora el mismo texto en las **cuatro** superficies de compra (ficha móvil,
+ficha escritorio, tarjeta de la home, Mi Radar), y desaparecen «Bloquear precio · X», «Bloquear
+precio · Máx. X» y «Fijar límite en X».
+
+El motivo de fondo no es la consistencia: **«bloquear» afirma que el precio queda fijado, y el
+modelo entero consiste en que puede bajar después.** Ese verbo ya causó un problema real, el
+«✓ Precio bloqueado» de A-30.
+
+**Sigue abierto el resto de A-31:** «Explorar» vs «Inicio», «Grupo destacado» vs «★ Gropo
+destacada», «Ahorra» vs «Ahorras», «Grupos abiertos» vs «Más grupos abiertos», y el selector de
+cantidad que existe en escritorio y no en móvil. Son de navegación y de estructura, no del flujo de
+compra.
 
 ---
 
@@ -1140,16 +1201,16 @@ Estado a 14 de septiembre de 2026:
 | Severidad | Total | Corregidos | Abiertos |
 |---|---|---|---|
 | 🔴 crítico | 11 | **10** — A-01, A-02, A-11, A-12, A-15, A-18 (con A-18b), A-21, A-25, A-29, A-30 | **1** — A-28 |
-| 🟠 importante | 14 | **7** — A-06, A-11c, A-13, A-19, A-20, A-26, A-27 (parcial) | 7 |
+| 🟠 importante | 14 | **10** — A-03, A-04, A-06, A-11c, A-13, A-19, A-20, A-26, A-27 y A-31 (estos dos, en parte) | 4 |
 | 🟡 mejora | 11 | **1** — A-14 | 10 |
 | ⚠️ a la espera | 1 — A-11b | 0 | 1 (no tocado a propósito) |
 
 *(A-14 pasó de 🟠 a 🟡 al comprobarse que el ahorro sí se calculaba.)*
 
-**Los 🟠 que quedan:** A-03 (se pide la decisión antes de explicar el modelo), A-04 (tres
-vocabularios para «unidades»), A-05 (el nombre del producto es ilegible sobre foto clara), A-16 y
-A-22 (las dos superficies de `/notificaciones`), A-31 (dos vocabularios escritorio/móvil) y A-32
-(el checkout no tiene vista de escritorio).
+**Los 🟠 que quedan:** A-05 (el nombre del producto es ilegible sobre foto clara), A-16 y A-22 (las
+dos superficies de `/notificaciones`: qué es cada una está sin decidir) y A-32 (el checkout no
+tiene vista de escritorio). Más las dos mitades pendientes: la etiqueta visible del formulario
+(A-27) y el vocabulario de navegación (A-31).
 
 **El único crítico abierto es A-28**: el checkout no menciona términos, privacidad ni
 desistimiento. Requiere abogado, no código, y es la misma consulta que L-03 / RULE-063.
