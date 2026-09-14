@@ -26,7 +26,7 @@ export interface Membership {
   target_price: number | null
 }
 interface LadderRow { min_units: number; price: number; effective_demand: number; unlocked: boolean }
-type StateKey = 'encurso' | 'apunto' | 'meta' | 'noalc'
+type StateKey = 'encurso' | 'apunto' | 'meta' | 'liberado' | 'noalc'
 
 const fmt = (n: number) => (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
 
@@ -34,6 +34,7 @@ const THEME: Record<StateKey, { c: string; bg: string; tx: string; bd: string; f
   encurso: { c: '#024947', bg: '#F0F7F7', tx: '#013230', bd: '#E0EEEE', finbg: '#F6F3FE', secbg: '#F1F8F7' },
   apunto:  { c: '#F0531F', bg: '#FDEBE3', tx: '#C2410C', bd: '#FCD9C6', finbg: '#FEF4EE', secbg: '#FEF1EA' },
   meta:    { c: '#0B7B44', bg: '#E7F7EF', tx: '#0B7B44', bd: '#BBF0D8', finbg: '#EEFAF3', secbg: '#E7F7EF' },
+  liberado:{ c: '#2563EB', bg: '#EFF6FF', tx: '#1E40AF', bd: '#DBEAFE', finbg: '#F5F9FF', secbg: '#EFF6FF' },
   noalc:   { c: '#94A3B8', bg: '#F1F5F9', tx: '#475569', bd: '#E2E8F0', finbg: '#F6F8FA', secbg: '#F1F5F9' },
 }
 
@@ -67,10 +68,18 @@ export function derive(m: Membership, ladder: LadderRow[]) {
   const nextObj = nextTier ? Number(nextTier.price) : null
   const pct = target > 0 ? Math.min(100, Math.round((currentUnits / target) * 100)) : 100
 
-  // payment_status real: authorized (hold vivo) | paid | instructed | released | cancelled | auth_failed
+  // DOS EJES DISTINTOS, no colapsarlos (A-18):
+  //   eje 1 — mi pago:  authorized (hold vivo) | paid | instructed | released | cancelled | auth_failed
+  //   eje 2 — el grupo: open | closing | closed | cancelled
+  // Que mi plaza se haya liberado NO significa que el grupo haya fracasado: hoy en producción hay
+  // liberaciones en grupos `open` y `closed` que siguen adelante. Solo `groups.status = 'cancelled'`
+  // significa que el grupo no salió.
   const ps = m.payment_status
+  const groupFailed = m.status === 'cancelled'
   let state: StateKey
-  if (ps === 'released' || ps === 'cancelled' || ps === 'auth_failed' || m.status === 'cancelled') {
+  if (ps === 'released' || ps === 'cancelled' || ps === 'auth_failed') {
+    state = groupFailed ? 'noalc' : 'liberado'
+  } else if (groupFailed) {
     state = 'noalc'
   } else if (ps === 'paid' || ps === 'instructed') {
     state = 'meta'
@@ -81,7 +90,7 @@ export function derive(m: Membership, ladder: LadderRow[]) {
   } else {
     state = 'encurso'
   }
-  return { commit, cur, currentUnits, target, missing, nextObj, pct, state }
+  return { commit, cur, currentUnits, target, missing, nextObj, pct, state, groupFailed, authFailed: ps === 'auth_failed' }
 }
 
 // Enriquecer con tier_demand (RPC anon, solo lectura) para la barra de progreso. Compartido desktop + móvil.
@@ -161,10 +170,18 @@ export function MgCard({ m, ladder, onOpen }: { m: Membership; ladder: LadderRow
   const d = derive(m, ladder)
   const t = THEME[d.state]
   const paid = m.payment_status === 'paid'
-  const badge = d.state === 'encurso' ? 'En curso' : d.state === 'apunto' ? 'A punto' : d.state === 'meta' ? 'Meta alcanzada' : 'No alcanzado'
-  const badgeIcon = d.state === 'encurso' ? I.plus : d.state === 'apunto' ? I.fire : d.state === 'meta' ? I.check : I.xc
-  const time = d.state === 'meta' ? (paid ? 'Compra realizada' : 'Objetivo alcanzado') : d.state === 'noalc' ? 'Finalizado' : timeLeft(m.closes_at)
   const isOpen = m.status === 'open'
+  const badge = d.state === 'encurso' ? 'En curso'
+    : d.state === 'apunto' ? 'A punto'
+    : d.state === 'meta' ? 'Meta alcanzada'
+    : d.state === 'liberado' ? (d.authFailed ? 'Pago no confirmado' : 'Plaza liberada')
+    : 'No alcanzado'
+  const badgeIcon = d.state === 'encurso' ? I.plus : d.state === 'apunto' ? I.fire : d.state === 'meta' ? I.check : I.xc
+  // El grupo del que te has salido puede seguir vivo: enseñar su tiempo real, no «Finalizado».
+  const time = d.state === 'meta' ? (paid ? 'Compra realizada' : 'Objetivo alcanzado')
+    : d.state === 'noalc' ? 'Finalizado'
+    : d.state === 'liberado' ? (isOpen ? timeLeft(m.closes_at) : 'Grupo finalizado')
+    : timeLeft(m.closes_at)
   const saving = Math.max(0, d.commit - d.cur)
 
   return (
@@ -191,6 +208,8 @@ export function MgCard({ m, ladder, onOpen }: { m: Membership; ladder: LadderRow
         <div className="text-right">
           {d.state === 'meta' ? (
             <><p className="text-[10px] font-bold uppercase tracking-wide text-neutral-500">Precio final</p><p className="text-[18px] font-extrabold mt-0.5 tabular-nums whitespace-nowrap flex items-center gap-1 justify-end" style={{ color: t.c }}>{fmt(Number(m.final_price ?? m.guaranteed_price))} {I.check}</p></>
+          ) : d.state === 'liberado' ? (
+            <><p className="text-[10px] font-bold uppercase tracking-wide text-neutral-500">Tu plaza</p><p className="text-[16px] font-extrabold mt-1" style={{ color: t.c }}>{d.authFailed ? 'Sin confirmar' : 'Liberada'}</p></>
           ) : d.state === 'noalc' ? (
             <><p className="text-[10px] font-bold uppercase tracking-wide text-neutral-500">Estado final</p><p className="text-[16px] font-extrabold mt-1 text-neutral-600">No alcanzado</p></>
           ) : (
@@ -199,7 +218,7 @@ export function MgCard({ m, ladder, onOpen }: { m: Membership; ladder: LadderRow
         </div>
       </div>
       {/* barra — GROPO PULSE completa en grupos vivos; barra simple en estados finales */}
-      {isOpen && (d.state === 'encurso' || d.state === 'apunto') && ladder.length > 0 ? (
+      {d.state === 'liberado' ? null : isOpen && (d.state === 'encurso' || d.state === 'apunto') && ladder.length > 0 ? (
         <PulseBar
           groupId={m.group_id}
           current={d.currentUnits}
@@ -216,20 +235,22 @@ export function MgCard({ m, ladder, onOpen }: { m: Membership; ladder: LadderRow
         </div>
       )}
       <div className="flex justify-between text-[12.5px] mt-2 mb-3">
-        <span className="text-neutral-500">{isOpen ? `${d.currentUnits} / ${d.target} uds en el grupo` : `${m.quantity} ud${m.quantity > 1 ? 's' : ''}`}</span>
-        <span className="font-bold" style={{ color: d.state === 'noalc' ? '#94A3B8' : t.c }}>{d.state === 'meta' ? 'Objetivo alcanzado' : d.state === 'noalc' ? 'Objetivo no alcanzado' : d.nextObj == null ? 'Precio mínimo' : d.missing === 1 ? 'Falta 1 ud' : `Faltan ${d.missing} uds`}</span>
+        <span className="text-neutral-500">{isOpen && d.state !== 'liberado' ? `${d.currentUnits} / ${d.target} uds en el grupo` : `${m.quantity} ud${m.quantity > 1 ? 's' : ''}`}</span>
+        <span className="font-bold" style={{ color: d.state === 'noalc' ? '#94A3B8' : t.c }}>{d.state === 'meta' ? 'Objetivo alcanzado' : d.state === 'liberado' ? (isOpen ? 'El grupo sigue abierto' : 'Ya no participas') : d.state === 'noalc' ? 'Objetivo no alcanzado' : d.nextObj == null ? 'Precio mínimo' : d.missing === 1 ? 'Falta 1 ud' : `Faltan ${d.missing} uds`}</span>
       </div>
       {/* estado / social */}
       <div className="flex items-center gap-2 mb-3.5 text-[12px] text-neutral-600">
         {d.state === 'meta'
           ? <>{I.check}<span>{paid ? 'Compra confirmada · Pago realizado' : 'Objetivo alcanzado · Pago pendiente'}</span></>
-          : d.state === 'noalc'
-            ? <span>Retención liberada · Sin cargos realizados</span>
-            : <><span style={{ color: t.c }}>{I.shield}</span><span>Tu plaza está asegurada · Pago retenido</span></>}
+          : d.state === 'liberado'
+            ? <span>{d.authFailed ? 'No se pudo confirmar el pago · Sin cargos realizados' : 'Retención anulada · Sin cargos realizados'}</span>
+            : d.state === 'noalc'
+              ? <span>Retención liberada · Sin cargos realizados</span>
+              : <><span style={{ color: t.c }}>{I.shield}</span><span>Tu plaza está asegurada · Pago retenido</span></>}
       </div>
       {/* CTA */}
       <div className="flex items-center justify-center gap-2 w-full rounded-xl py-2.5 text-[13.5px] font-bold bg-white" style={{ border: `1.5px solid ${t.bd}`, color: t.c }}>
-        {d.state === 'meta' ? (paid ? 'Ver compra / Ticket' : 'Ver instrucciones de pago') : d.state === 'noalc' ? 'Ver devolución' : 'Ver estado de tu plaza'} →
+        {d.state === 'meta' ? (paid ? 'Ver compra / Ticket' : 'Ver instrucciones de pago') : d.state === 'liberado' ? 'Ver qué ha pasado' : d.state === 'noalc' ? 'Ver devolución' : 'Ver estado de tu plaza'} →
       </div>
     </div>
   )
@@ -314,6 +335,47 @@ export function Drawer({ m, ladder, onClose }: { m: Membership; ladder: LadderRo
     )
   }
 
+  // PLAZA LIBERADA — mi plaza ya no existe, pero el grupo NO ha fracasado (A-18).
+  // No afirmamos el motivo de la liberación: el sistema no lo sabe.
+  if (d.state === 'liberado') {
+    const grupoVivo = m.status === 'open'
+    return (
+      <>
+        {head(d.authFailed ? 'Pago no confirmado' : 'Tu plaza liberada')}
+        <div className="px-[22px] py-5 overflow-y-auto flex-1">
+          <div className="flex gap-3 items-center mb-2">
+            <div className="w-[52px] h-[52px] rounded-xl bg-neutral-100 shrink-0 overflow-hidden">{m.image_url && <img src={m.image_url} alt="" className="w-full h-full object-cover" />}</div>
+            <div><div className="text-base font-bold">{m.product_name}</div>{spec && <div className="text-[12.5px] text-neutral-500 mt-0.5">{spec}</div>}</div>
+          </div>
+          <div className="flex gap-2.5 rounded-2xl p-3.5 mt-4 text-[12.5px] leading-relaxed" style={{ background: '#EFF6FF', color: '#1E3A8A' }}>
+            <span className="shrink-0">{I.shield}</span>
+            <span>La retención de <b>{fmt(d.commit)}</b> ha sido <b>anulada</b>. El fondo ya no está bloqueado y no se ha realizado ningún cargo.</span>
+          </div>
+          <div className="border border-neutral-200 rounded-2xl p-4 mt-4">
+            <h4 className="text-[11px] font-bold uppercase tracking-wide text-neutral-500 mb-2">Qué ha pasado</h4>
+            <p className="text-[13px] text-neutral-600 leading-relaxed">
+              {d.authFailed
+                ? 'No pudimos confirmar la autorización de tu tarjeta, así que tu plaza no llegó a reservarse.'
+                : 'Tu plaza en este grupo se ha liberado, así que ya no participas en esta compra.'}
+            </p>
+            {grupoVivo && (
+              <p className="text-[13px] text-neutral-600 leading-relaxed mt-2">
+                <b>El grupo sigue abierto.</b> Si quieres volver a entrar y queda stock, puedes unirte otra vez.
+              </p>
+            )}
+          </div>
+        </div>
+        <div className="px-[22px] py-4 border-t border-neutral-100">
+          {grupoVivo ? (
+            <Link href={`/grupo/${m.group_id}`} className="w-full rounded-xl py-3.5 text-[14.5px] font-bold text-white flex items-center justify-center" style={{ background: t.c }}>Ver el grupo</Link>
+          ) : (
+            <Link href="/" className="w-full rounded-xl py-3.5 text-[14.5px] font-bold flex items-center justify-center bg-white" style={{ color: t.c, border: `1.5px solid ${t.bd}` }}>Explorar grupos similares</Link>
+          )}
+        </div>
+      </>
+    )
+  }
+
   // NO ALCANZADO
   return (
     <>
@@ -329,7 +391,8 @@ export function Drawer({ m, ladder, onClose }: { m: Membership; ladder: LadderRo
         </div>
         <div className="border border-neutral-200 rounded-2xl p-4 mt-4">
           <h4 className="text-[11px] font-bold uppercase tracking-wide text-neutral-500 mb-2">Por qué no se alcanzó</h4>
-          <p className="text-[13px] text-neutral-600 leading-relaxed">El grupo no llegó al volumen mínimo a tiempo. Cuando esto pasa, nadie paga: es la garantía de Gropo.</p>
+          {/* Este panel solo se alcanza con groups.status = 'cancelled' (ver derive), así que la causa es cierta. */}
+          <p className="text-[13px] text-neutral-600 leading-relaxed">El grupo se canceló sin llegar al volumen mínimo. Cuando esto pasa, nadie paga: es la garantía de Gropo.</p>
         </div>
       </div>
       <div className="px-[22px] py-4 border-t border-neutral-100">

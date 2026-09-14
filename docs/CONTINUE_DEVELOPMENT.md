@@ -303,15 +303,20 @@ Stripe — **test y live son listas separadas** —, probar en un móvil real y 
 restaurarlos. El registro en modo test quedó como **UNKNOWN**: `GetPaymentMethodDomains` devolvió
 permiso denegado en las dos modalidades.
 
-### RULE-062 · El botón de liberar del admin, sin probar de extremo a extremo
-Desplegado y verificado que compila y que la ruta responde. **No se ha ejecutado nunca** contra un
-hold real: no hay acceso de admin desde la sesión de IA y no había holds vivos. Plan de prueba en
-modo test:
-1. Unirse a un grupo con tarjeta de test → hold visible en Stripe.
-2. Admin → grupo → miembros → **Liberar**.
-3. Esperado: aviso de éxito, fila en *Liberado*, PaymentIntent en `canceled`.
-4. **La prueba que importa:** con dos compradores, intentar liberar a uno de forma que el precio
-   suba de tramo. Debe **negarse**, decir a quién afectaría y no tocar Stripe.
+### RULE-062 · El botón de liberar del admin — ✅ PROBADO 13-sep-2026, falta el aviso al comprador
+Verificado de extremo a extremo con tres holds reales en modo test: dos liberados (PaymentIntent en
+`canceled`) y uno **rechazado por el guard** de precio mínimo con **Stripe intacto**
+(`canceled_at: null`), lo que confirma el orden BD-primero.
+
+Lo que sigue abierto de esta regla:
+
+1. **Nadie avisa al comprador.** `releaseMember` no envía ningún email (ver P2-06). Desde el
+   14-sep la pantalla ya no miente —`/mis-grupos` distingue «Plaza liberada» de «Objetivo no
+   alcanzado», A-18 en `UX_AUDIT_2.md`—, pero solo lo ve quien entra con sesión, y 26 de 28
+   compradores no tienen cuenta. Falta plantilla en `src/lib/emails/` y decidir **qué motivo se
+   comunica**: hoy el sistema no guarda por qué se liberó una plaza.
+2. **El bloqueo mutuo.** Cuando sacar a cualquiera subiría el precio por encima del mínimo
+   garantizado, no se puede liberar a nadie. Sin decidir si debe existir una confirmación forzada.
 
 ## 3 · Deuda conocida que sigue viva
 
@@ -321,7 +326,7 @@ modo test:
 | P2-02 | Adjudicación sin relleno: si el siguiente miembro no cabe entero, quedan fuera él y todos los posteriores. **UNKNOWN** si es deliberado | `KNOWN_ISSUES.md` |
 | P2-03 | `rate_limits` crece sin límite y no tiene primary key | `KNOWN_ISSUES.md` |
 | P2-04 | Copy de compartir desactualizado tras el cambio de `next_price` | `KNOWN_ISSUES.md` |
-| P2-06 | **Nadie avisa a quien se queda fuera.** Esperadores no alcanzados, cancelados por RULE-032 y grupos cancelados: el hold desaparece sin explicación | `KNOWN_ISSUES.md` |
+| P2-06 | **Nadie avisa a quien se queda fuera.** Esperadores no alcanzados, cancelados por RULE-032, grupos cancelados y **liberaciones del admin (RULE-062)**: el hold desaparece sin un solo email | `KNOWN_ISSUES.md` |
 | P2-08 | La cookie de admin **es** el `ADMIN_SECRET`: sin rotación, sin caducidad, sin 2FA, sin auditoría. El panel mueve dinero real | `SECURITY.md` SEC-03 |
 | DT-03 | Móvil y escritorio son árboles de UI duplicados. Cada cambio de copy hay que hacerlo dos o tres veces | `TECHNICAL_DEBT.md` |
 | RULE-041/062 | `withdrawBid` y `releaseMember` recalculan **sin lock**. Suposición operativa: "solo Benjamin usa el admin" | `BUSINESS_RULES.md` |

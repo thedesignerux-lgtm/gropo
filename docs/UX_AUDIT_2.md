@@ -202,6 +202,27 @@ cumplir**, solo una fecha que el cron consulta una vez por semana.
 | `prepare_join` en G06 pidiendo más del stock | rechazaba | **sigue rechazando** |
 | `prepare_join` en G13 (`closed`) | rechazaba | **sigue rechazando** |
 
+**Verificado en pantalla (14 sep 2026, 375 px).** La píldora de la tarjeta pasa a «Cerrado» y el
+botón queda gris con «Este grupo ya ha cerrado».
+
+> ⚠️ **Nota de método.** `hasClosed` se calcula **después de montar** —a propósito, para no romper
+> la hidratación—, así que **el HTML que sirve el servidor sigue diciendo «Disponible»**. Es el
+> navegador quien lo corrige al hidratar. Comprobar este arreglo con `curl` da un falso negativo:
+> hay que mirarlo en un navegador. Se perdió un despliegue por no caer en ello.
+
+### 🟠 A-11c · El arreglo apagó la acción, pero la tarjeta sigue vendiendo — ABIERTO
+Con el botón ya deshabilitado, en esa misma pantalla siguen leyéndose:
+
+- **«PRECIO ACTUAL · 1499 €»** — no hay precio actual: el grupo está cerrado
+- **«Ahorras 347 €»** — un ahorro sobre una compra que ya no se puede hacer
+- **«¿Cuál es el máximo que pagarías?»** con el slider **todavía arrastrable**
+- **«Este precio ya está disponible. Si te unes hoy pagas 1499 €… Con 1 unidad más baja a 1399 €»**
+
+Es decir: se arregló **el estado y la acción**, no **el discurso**. Un grupo cerrado debería contar
+otra cosa —qué pasó, a qué precio se quedó, y si habrá otra ronda— en vez de seguir invitando a
+unirse con el botón apagado. Enlaza con A-13 (el subtítulo fijo que no consulta el estado) y con
+el hueco de G13/G14: **nadie ha diseñado el después**.
+
 ### ⚠️ A-11b · `confirm_join` no comprueba el estado del grupo — ABIERTO
 Comprobado: **cero** referencias a `v_group.status` en `confirm_join`. El guard de `prepare_join`
 cierra la puerta de entrada, pero si el grupo se cierra —por el cron o a mano desde el admin—
@@ -259,6 +280,351 @@ desvanece en la pantalla donde se firma.
 
 ---
 
+## PARTE 3 · DESPUÉS DE COMPRAR (`/mis-grupos`, `/notificaciones`, emails)
+
+### 🔴 A-15 · El comprador invitado se queda sin rastro de su pedido
+**Reproducir:** comprar sin crear cuenta, saltarse la invitación de la pantalla de éxito, y buscar
+el pedido desde otro navegador o con los datos del navegador borrados.
+
+Gropo usa el patrón **«compra primero, cuenta después»**, que es el correcto para no meter fricción
+en el checkout. Y está bien implementado: `create-intent` no exige sesión, y `PostCheckoutView`
+ofrece crear cuenta con un argumento razonable (*«para ver el precio en tiempo real, gestionar tus
+reservas y recibir alertas»*).
+
+El problema es lo que pasa si la saltan. **Y la mayoría la salta.**
+
+| | |
+|---|---|
+| Compradores con compra viva **sin cuenta vinculada** | **26 de 28** (`users.auth_id is null`) |
+| `/mis-grupos` | exige **sesión** de Supabase |
+| `/notificaciones` | usa la **identidad local del navegador** (`readLocalIdentity` → `get_my_groups`) |
+| Enlaces a la web en los emails transaccionales | **ninguno** |
+
+Ese último punto es el que cierra la trampa. Comprobado en `joinConfirmation.ts`,
+`purchaseConfirmation.ts` y `paymentInstructions.ts`: **cero `href`**. `SITE_URL` solo se usa para
+pintar el logo (`brand.ts`). El único email con enlace es el del Pulse.
+
+Así que el comprador invitado tiene **un único rastro**: el `localStorage` del navegador donde
+compró. Cambia de móvil, o borra datos, y su pedido desaparece de su vista — **con el dinero
+retenido en su tarjeta**.
+
+**Lo más frustrante: la vía de recuperación ya existe y funciona.** `/api/my-groups` busca por
+**email**, no por `auth_id`, así que si entrara con el mismo email que usó al comprar, vería sus
+pedidos. **Nadie se lo dice nunca.** Ni la pantalla de éxito al saltarla, ni el email, ni la
+pantalla de login («Entra para ver tus grupos» no menciona que valga el email de la compra).
+
+**Coste de arreglarlo:** un enlace en los emails y una frase en el login. El mecanismo ya está.
+
+### 🟠 A-16 · Dos superficies para lo mismo, con dos identidades distintas — ⬆️ ver **A-21** (demostrado, sube a 🔴)
+`/mis-grupos` (sesión) y `/notificaciones` (identidad local) responden a la misma pregunta —*¿qué
+he comprado y cómo va?*— con dos mecanismos que no se hablan. Un mismo comprador puede ver su
+pedido en una y no en la otra según desde dónde entre, sin ninguna explicación.
+
+Ver también DT-03: no es duplicación de UI, es duplicación de **concepto de identidad**.
+
+### 🟡 A-17 · El rescate de `/api/my-groups` se degrada en silencio
+Si el registro de `users` no tiene teléfono, el endpoint cae a un plan B: cargar los **50
+`group_members` más recientes de toda la plataforma** y recorrerlos haciendo una consulta de
+usuario por fila, comparando emails.
+
+Dos problemas: es un N+1 de hasta 50 consultas secuenciales, y está acotado a los 50 últimos
+**globales** — con catálogo real, un comprador cuya compra no esté entre las 50 últimas de toda la
+plataforma simplemente **no se encuentra**, sin error ni aviso. Hoy no se dispara casi nunca
+(`prepare_join` normaliza y exige teléfono), pero es una trampa que empeora al crecer.
+
+---
+
+## PARTE 4 · `/mis-grupos` Y `/notificaciones` CON SESIÓN INICIADA
+
+**Sesión usada:** `benxaque@gmail.com` / `612278765`, que es la cuenta con la que Benjamin probó
+los tres holds reales del 13 de septiembre. Devuelve exactamente 5 membresías, verificado contra
+producción con `get_my_groups('612278765','benxaque@gmail.com')`:
+
+| Producto | Grupo | Mi pago | Precio |
+|---|---|---|---|
+| Bicicleta Orbea Orca M30 | `open` | **released** | 1749 € |
+| Sillín Fizik Antares R3 | `open` | **authorized** (hold vivo) | 85 € |
+| Gafas Oakley Sutro Lite | `open` | **released** | 89 € |
+| TEST · Algoritmo precio | `cancelled` | cancelled | 60 € |
+| TEST · Algoritmo precio | `cancelled` | cancelled | 100 € |
+
+Es el mejor caso de prueba posible: **los tres estados personales** (retenido, liberado,
+cancelado) sobre **grupos que siguen abiertos**. Y es justo ahí donde la pantalla se rompe.
+
+---
+
+### 🔴 A-18 · A un comprador liberado a mano se le dice que el grupo fracasó — ✅ CORREGIDO 14 sep 2026
+**Reproducir:** `/mis-grupos` con esa sesión, tarjeta de las **Gafas Oakley**.
+
+Estado real, comprobado en producción con `tier_demand`:
+
+| min_units | precio | demanda efectiva | desbloqueado |
+|---|---|---|---|
+| 1 | 115 € | 14 | ✅ |
+| 10 | 99 € | 14 | ✅ |
+| 18 | **89 €** | 18 | ✅ |
+
+El grupo está **abierto, con 18 unidades y el mejor tramo ya desbloqueado**. Es el grupo que mejor
+va del catálogo. A este comprador lo sacó el admin con el botón de liberar (RULE-062), no el
+mercado. Y la pantalla le cuenta esto:
+
+| Dónde | Lo que dice |
+|---|---|
+| Badge de la tarjeta | **«No alcanzado»** con icono de aspa |
+| Donde va el contador | **«Finalizado»** |
+| Bloque financiero | **«ESTADO FINAL · No alcanzado»** |
+| Bajo la barra | **«18 / 18 uds en el grupo»** · **«Objetivo no alcanzado»** |
+| Drawer, titular fijo | **«Por qué no se alcanzó»** |
+| Drawer, explicación fija | **«El grupo no llegó al volumen mínimo a tiempo.»** |
+
+Seis afirmaciones, las seis falsas, y la última **inventa una causa**. El grupo sí llegó al volumen
+mínimo; de hecho llegó al tramo más barato. Lo que pasó es otra cosa que nadie le cuenta.
+
+**Causa exacta.** `derive()` (`MisGruposDesktop.tsx:69-78`) colapsa **dos ejes distintos** en una
+sola variable:
+
+```ts
+if (ps === 'released' || ps === 'cancelled' || ps === 'auth_failed' || m.status === 'cancelled')
+  state = 'noalc'
+```
+
+- Eje 1 — **mi pago**: `authorized` / `released` / `paid` / `cancelled`
+- Eje 2 — **el grupo**: `open` / `closed` / `cancelled`
+
+`released` (eje 1) y `cancelled` del grupo (eje 2) acaban en el mismo cajón, `noalc`, y a partir de
+ahí toda la tarjeta —badge, tiempo, colores, copy, drawer— se pinta como si hubiera fracasado el
+grupo. El drawer «Devolución» tiene el texto de la causa **escrito a mano en el componente**
+(línea 330), sin consultar nada.
+
+**Agravante: nadie se lo dice.** Comprobado en `admin/grupos/[id]/actions.ts`: `releaseMember`
+**no envía ningún email**. Cero. El comprador se entera —mal— solo si entra a `/mis-grupos` con
+sesión, y 26 de 28 compradores no tienen cuenta (A-15). En la práctica: se le quita la plaza, se
+le suelta el dinero, y no se le comunica.
+
+**Por qué importa más de lo que parece.** Liberar es la única salida que tiene el operador cuando
+alguien quiere salirse (decisión de producto ya tomada: no hay baja autoservicio). O sea que este
+camino **no es un caso raro: es el camino previsto**. Y hoy termina en una pantalla que miente.
+
+**Corregido (14 sep 2026).** `derive()` ya no colapsa los dos ejes. Nuevo estado **`liberado`**:
+
+```ts
+const groupFailed = m.status === 'cancelled'
+if (ps === 'released' || ps === 'cancelled' || ps === 'auth_failed') {
+  state = groupFailed ? 'noalc' : 'liberado'
+} else if (groupFailed) {
+  state = 'noalc'
+} else if (...)
+```
+
+La regla es: **`noalc` solo si `groups.status = 'cancelled'`**. Comprobado contra producción, hoy
+hay liberaciones en grupos `open` (2) y `closed` (1) que siguen adelante; ninguna de las tres es un
+fracaso del grupo.
+
+Lo que ve ahora un comprador liberado en un grupo vivo:
+
+| Dónde | Antes | Ahora |
+|---|---|---|
+| Badge | «No alcanzado» + aspa | **«Plaza liberada»** (azul informativo, no gris de fracaso) |
+| Contador | «Finalizado» | **el tiempo real del grupo**, que sigue corriendo |
+| Bloque financiero | «ESTADO FINAL · No alcanzado» | **«TU PLAZA · Liberada»** |
+| Barra + «18 / 18 uds» | barra llena al 100 % | **sin barra** (no participa: no hay progreso suyo que medir) |
+| Etiqueta derecha | «Objetivo no alcanzado» | **«El grupo sigue abierto»** |
+| Línea de estado | «Retención liberada · Sin cargos» | «Retención anulada · Sin cargos realizados» |
+| CTA | «Ver devolución» | **«Ver qué ha pasado»** |
+| Panel, titular | «Por qué no se alcanzó» | **«Tu plaza liberada»** |
+| Panel, causa | «El grupo no llegó al volumen mínimo a tiempo» | **«Tu plaza en este grupo se ha liberado, así que ya no participas en esta compra»** + «El grupo sigue abierto» + botón **«Ver el grupo»** |
+
+**Nota de honestidad en el copy:** el sistema **no sabe** por qué se liberó la plaza (¿la pidió el
+comprador? ¿lo sacó el operador?). Así que el texto no lo afirma: dice *«tu plaza se ha
+liberado»*, nunca *«has salido»* ni *«te hemos sacado»*. Si algún día se guarda el motivo, ese es
+el sitio donde ponerlo.
+
+`auth_failed` entra en el mismo estado con su propio texto («Pago no confirmado» / «No pudimos
+confirmar la autorización de tu tarjeta»), en vez de heredar el de fracaso del grupo como hasta
+ahora.
+
+El panel `noalc` se queda solo para el fracaso real, y su causa fija pasa a ser cierta por
+construcción: *«El grupo se canceló sin llegar al volumen mínimo.»*
+
+**Tabla de verdad verificada** (`derive()` ejecutada con las 11 combinaciones, incluidas las 8 que
+existen hoy en producción):
+
+| mi pago | grupo | estado |
+|---|---|---|
+| released | open | **liberado** ✅ cambia |
+| released | closed | **liberado** ✅ cambia |
+| released | cancelled | noalc (sin cambio) |
+| cancelled | cancelled | noalc (sin cambio) |
+| auth_failed | open | **liberado** ✅ cambia |
+| authorized | open | encurso / apunto (sin cambio) |
+| authorized | closing | encurso (sin cambio) |
+| paid / instructed | closing, closed | meta (sin cambio) |
+
+**Lo que NO se ha hecho y sigue abierto:** `releaseMember` **sigue sin enviar ningún email**. La
+pantalla ya no miente, pero el comprador solo se entera si entra con sesión. Requiere plantilla
+nueva en `src/lib/emails/` y decidir qué motivo se comunica — decisión de producto pendiente.
+
+**A-18b · La notificación heredaba la misma mentira — ✅ CORREGIDO.** `buildNotis()` decía
+«Retención liberada · no se alcanzó el objetivo» para cualquier `released`. Ahora distingue:
+«Tu plaza se ha liberado · retención anulada, sin cargos» frente a «El grupo no salió adelante ·
+no se alcanzó el objetivo, sin cargos».
+
+---
+
+### 🟠 A-19 · La barra de progreso se pone su propio listón cuando ya no queda escalera
+`derive()`:
+
+```ts
+const target = nextTier ? Number(nextTier.min_units) : currentUnits || m.quantity || 1
+const pct    = target > 0 ? Math.min(100, Math.round((currentUnits / target) * 100)) : 100
+```
+
+Si no hay tramo siguiente, **el objetivo pasa a ser el número actual**. De ahí salen el
+**«18 / 18 uds»** y el **«100 % completado»** del drawer: no es «18 de las 18 que hacían falta»,
+es «18 de las 18 que hay». Un denominador que se cumple siempre.
+
+En un grupo que ya tiene el mejor precio esa barra no comunica nada, y encima choca de frente con
+el «Objetivo no alcanzado» de A-18. Cuando no queda escalera lo honesto es decirlo —«Precio mínimo
+alcanzado»— y quitar la barra, que es justo lo que hace la etiqueta de la derecha en los estados
+normales (`d.nextObj == null ? 'Precio mínimo'`). El estado `noalc` se salta esa rama.
+
+---
+
+### 🟠 A-20 · «5 activos» cuenta también lo cancelado y lo liberado
+`MisGruposDesktop.tsx:121`:
+
+```ts
+const active = memberships.length
+```
+
+No filtra nada. Con esta sesión el encabezado dice **«5 activos»** cuando lo activo es **uno**: el
+sillín. Los otros cuatro son dos liberados y dos cancelados. El único número de la pantalla que
+resume la situación es el único que está mal.
+
+(Solo afecta a escritorio: `MisGruposMobile` no pinta contador — que es el problema simétrico, ver
+A-22.)
+
+---
+
+### 🔴 A-21 · `/notificaciones` dice «Todo tranquilo por ahora» con un pago retenido vivo — ✅ CORREGIDO 14 sep 2026
+Esto es A-16 demostrado, y sube de 🟠 a 🔴.
+
+Con la **misma sesión iniciada**, en la misma máquina, al mismo tiempo:
+
+- `/mis-grupos` → 5 grupos, uno con **85 € retenidos en la tarjeta**
+- `/notificaciones` → **«Todo tranquilo por ahora»** y el botón «Explorar grupos»
+
+Y debajo, la frase que remata: *«Cuando te unas a un grupo, aquí verás cómo baja el precio y
+cuándo se cierra»*. Se ha unido a cinco.
+
+**Causa.** `notificaciones/page.tsx:45` no mira la sesión de Supabase en ningún momento:
+
+```ts
+const u = readLocalIdentity()
+if (u.phone && u.email) { supabase.rpc('get_my_groups', { p_phone: u.phone, p_email: u.email }) }
+else { setLoaded(true) }          // ← sin identidad local: vacío, sin decir por qué
+```
+
+`/mis-grupos` va por `/api/my-groups`, que **sí** lee la cookie de sesión y resuelve el teléfono
+desde `users`. Dos pantallas hermanas, dos mecanismos de identidad, y ni uno consulta al otro. El
+`else` silencioso es lo peor: no hay error, no hay «inicia sesión», hay una pantalla feliz de
+usuario nuevo.
+
+El estado vacío está **bien diseñado y mal condicionado**: es correcto para quien no ha comprado
+nunca, y es una mentira para todos los demás. Y es la superficie a la que un comprador iría
+precisamente a mirar cómo va su retención.
+
+**Corregido (14 sep 2026).** La carga pasa a tener tres escalones, en este orden:
+
+1. **La sesión.** `fetch('/api/my-groups')` — el mismo endpoint que ya usa `/mis-grupos`, que lee
+   la cookie, resuelve el teléfono desde `users` y llama a `get_my_groups`. Si devuelve
+   membresías, se acabó.
+2. **La identidad local.** Solo si no hay sesión, o si la sesión no devuelve nada, se usa
+   `readLocalIdentity()` como hasta ahora. Así el comprador invitado sigue funcionando igual.
+3. **Nadie.** Si no hay ninguna de las dos, `identified = false`.
+
+Y el estado vacío deja de mentir según el escalón. Con identidad conocida y cero grupos, sigue
+diciendo «Todo tranquilo por ahora», que es correcto. **Sin identidad**, ahora dice:
+
+> **No sabemos cuáles son tus grupos**
+> Si ya has comprado en Gropo, entra con el mismo email que usaste y verás tus grupos y sus
+> retenciones.
+> **[Entrar con mi email]** · Explorar grupos
+
+Eso además ataca la mitad barata de **A-15**: la vía de recuperación por email existía y nadie la
+comunicaba. Ahora se comunica al menos en esta pantalla. Falta hacerlo en los emails
+transaccionales y en el propio login.
+
+---
+
+### 🟠 A-22 · `/notificaciones` no es un feed de novedades, es `/mis-grupos` otra vez
+`buildNotis()` mapea **una notificación por membresía, siempre**. No hay eventos, ni fechas, ni
+leído/no leído, ni nada que aparezca o desaparezca. Un comprador con 5 grupos verá para siempre
+las mismas 5 filas, con títulos en presente continuo: *«Tu plaza sigue asegurada»*, *«El precio
+sigue bajando mientras entra gente»*.
+
+Eso no es una notificación: es un estado, y ya está —mejor contado— en la tarjeta de
+`/mis-grupos`. La pantalla promete novedades y entrega un duplicado.
+
+Es la otra cara de A-16: no sobra una pantalla, **falta decidir qué es cada una**. Una opción
+razonable es que `/notificaciones` muestre solo lo que ha **cambiado** (bajó el tramo, quedan menos
+de 24 h, se cerró, te liberamos) con marca de tiempo, y que el estado permanente viva solo en
+`/mis-grupos`.
+
+---
+
+### 🟡 A-23 · El botón «Comparte con un amigo» no hace nada
+`MisGruposDesktop.tsx:284`:
+
+```tsx
+<button className="w-full rounded-xl py-3.5 ...">{I.share} Comparte con un amigo</button>
+```
+
+Sin `onClick`. Es el **único** botón del panel «Ver estado de tu plaza», el que sale en móvil y en
+escritorio, y justo encima el propio panel pide compartir: *«Comparte tu enlace y baja el precio
+para todos»*. El mecanismo ya está resuelto en otros tres sitios del código
+(`PostCheckoutView.tsx`, `GroupDesktopView.tsx`, `RadarCardMenu.tsx`, todos con `navigator.share`
+y copia al portapapeles). Aquí solo falta enchufarlo.
+
+Que la palanca de crecimiento del modelo sea un botón muerto en la pantalla donde el comprador ya
+está comprometido es, de todos los hallazgos pequeños, el más caro.
+
+---
+
+### 🟡 A-24 · Datos de prueba dentro de la cuenta de un comprador
+Dos tarjetas **«TEST · Algoritmo precio»** (grupos `a0000000-…-0001`, `cancelled` desde el 8 de
+septiembre, sin imagen) aparecen en `/mis-grupos` como pedidos del usuario, con su placeholder gris
+y su «Retención liberada · Sin cargos realizados».
+
+Hoy solo lo ven las dos cuentas de Benjamin. Pero esas filas son `group_members` reales en la base
+de datos de producción: **no hay ninguna separación entre datos de prueba y datos de cliente**. El
+día que un test se ejecute con un email real, ese comprador verá el pedido. Conviene decidir un
+convenio —prefijo de UUID reservado, o una columna `is_test`— y filtrarlo en `get_my_groups` antes
+de que haya clientes de verdad.
+
+---
+
+### Lo que sí está bien en estas pantallas
+No todo es hallazgo. Conviene dejarlo escrito para no «arreglarlo» por error:
+
+- **Los números son correctos.** `currentUnits = max(effective_demand)` sí equivale a las unidades
+  comprometidas del grupo (la demanda efectiva es máxima en el tramo más barato, donde entran
+  todos), y `missing` cuadra: sillín 12 / 25 → faltan 13. Verificado contra `tier_demand`. No es
+  otro caso de la familia P2-01.
+- **El panel del hold es excelente.** «Mi compromiso 85 € / Estado actual 85 € / Próximo objetivo
+  75 € · Faltan 13 uds», el escudo con *«Solo se cargará si el grupo alcanza el objetivo»* y el
+  sello de Stripe con «Retención activa» explican el modelo mejor que cualquier pantalla previa a
+  la compra. **Parte de esto debería estar antes de pagar, no después** (ver A-03).
+- **El placeholder de imagen es el diseñado**, no una foto rota: `MgCard` pinta un icono gris
+  cuando `image_url` es `null`. Lo que sobra son los grupos, no el icono.
+- **El estado liberado se cuenta bien en la parte del dinero**: «Retención liberada · Sin cargos
+  realizados» y, en el drawer, *«La retención de 89 € ha sido anulada»*. Lo que falla es todo lo
+  que lo rodea (A-18).
+
+---
+
 ## PENDIENTE DE AUDITAR
-G02 · G03 · G05 · G07 · G08 (con sesión) · G10 · G11 · G12 · G13 · G14 · G15,
-el checkout completo, `/mis-grupos`, `/notificaciones` y la vista de escritorio.
+G02 · G03 · G05 · G07 · G10 · G11 · G12 · G13 · G14 · G15,
+**el checkout completo** y **la vista de escritorio** (ninguno necesita sesión).
+
+`/mis-grupos` y `/notificaciones` con sesión: **auditados** (Parte 4, 14 sep 2026).

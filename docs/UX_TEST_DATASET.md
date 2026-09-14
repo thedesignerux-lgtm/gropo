@@ -34,6 +34,17 @@ para poder sustituirla.
 > archivo.** Un HTTP 200 no es una verificación. Refuerza la regla: las fotos las aporta el
 > vendedor.
 
+> 💳 **Hay una retención viva en el dataset (14 sep 2026).** Benjamin se unió de verdad a tres
+> grupos el 13 de septiembre con tarjeta de prueba. Dos se liberaron con el botón del admin
+> (G06 · 89 € y G07 · 1.749 €, ambos `canceled` en Stripe, verificado). **El tercero sigue vivo a
+> propósito**: G08 · sillín Fizik, 85 €, `requires_capture`, cuenta **sandbox**. Decisión de
+> Benjamin: mantenerlo para poder analizar el estado «usuario esperando» con datos reales.
+>
+> **Consecuencia: el SQL de borrado de abajo NO es seguro todavía.** Borraría esa fila y dejaría el
+> hold huérfano en Stripe. Antes de borrar el dataset hay que cancelar ese PaymentIntent
+> (`pi_3UFHmXA…`) desde el panel de Stripe — el botón del admin **no puede**: el grupo está en el
+> punto muerto de RULE-062.
+
 ### Borrarlo todo
 
 ```sql

@@ -19,8 +19,11 @@ function buildNotis(memberships: Membership[], ladders: Record<string, any[]>): 
       const paid = m.payment_status === 'paid'
       return { id: m.member_id, type: 'success', title: paid ? '¡Compra confirmada!' : 'Tu grupo alcanzó la meta', sub: `${p} · ${paid ? 'pago realizado' : 'pago pendiente'}`, groupId: m.group_id }
     }
+    if (d.state === 'liberado') {
+      return { id: m.member_id, type: 'info', title: d.authFailed ? 'No pudimos confirmar tu pago' : 'Tu plaza se ha liberado', sub: `${p} · retención anulada, sin cargos`, groupId: m.group_id }
+    }
     if (d.state === 'noalc') {
-      return { id: m.member_id, type: 'info', title: 'Retención liberada', sub: `${p} · no se alcanzó el objetivo, sin cargos`, groupId: m.group_id }
+      return { id: m.member_id, type: 'info', title: 'El grupo no salió adelante', sub: `${p} · no se alcanzó el objetivo, sin cargos`, groupId: m.group_id }
     }
     if (d.state === 'apunto') {
       return { id: m.member_id, type: 'urgent', title: 'Tu grupo está a punto de cerrar', sub: d.nextObj != null ? `${p} · faltan ${d.missing} uds para bajar a ${d.nextObj} €` : `${p} · cierra pronto`, groupId: m.group_id }
@@ -39,16 +42,44 @@ const ICONS: Record<NType, { bg: string; fg: string; svg: React.ReactNode }> = {
 export default function NotificacionesPage() {
   const [memberships, setMemberships] = useState<Membership[]>([])
   const [loaded, setLoaded] = useState(false)
+  const [identified, setIdentified] = useState(true)
   const ladders = useLadders(memberships)
 
+  // A-21 — Esta pantalla miraba SOLO la identidad local del navegador, así que a un comprador con
+  // sesión iniciada y un pago retenido vivo le enseñaba el estado vacío de usuario nuevo.
+  // Orden correcto: 1) la sesión (misma fuente que /mis-grupos), 2) la identidad local, 3) nada.
   useEffect(() => {
-    const u = readLocalIdentity()
-    if (u.phone && u.email) {
-      supabase.rpc('get_my_groups', { p_phone: u.phone, p_email: u.email }).then(({ data }) => {
+    let cancelled = false
+
+    async function load() {
+      // 1. Sesión iniciada → /api/my-groups resuelve el teléfono desde `users` y llama a get_my_groups.
+      try {
+        const res = await fetch('/api/my-groups')
+        if (res.ok) {
+          const data = await res.json()
+          const groups = (data?.groups ?? []) as Membership[]
+          if (groups.length > 0) {
+            if (!cancelled) { setMemberships(groups); setLoaded(true) }
+            return
+          }
+        }
+      } catch { /* sin sesión o endpoint caído → seguimos con la identidad local */ }
+
+      // 2. Sin sesión (o sesión sin membresías): identidad guardada en este navegador.
+      const u = readLocalIdentity()
+      if (u.phone && u.email) {
+        const { data } = await supabase.rpc('get_my_groups', { p_phone: u.phone, p_email: u.email })
         const groups = ((data as any)?.groups ?? []) as Membership[]
-        setMemberships(groups); setLoaded(true)
-      })
-    } else { setLoaded(true) }
+        if (!cancelled) { setMemberships(groups); setLoaded(true) }
+        return
+      }
+
+      // 3. No sabemos quién es: el estado vacío no debe afirmar que no ha comprado nada.
+      if (!cancelled) { setIdentified(false); setLoaded(true) }
+    }
+
+    load()
+    return () => { cancelled = true }
   }, [])
 
   const notis = buildNotis(memberships, ladders)
@@ -67,9 +98,20 @@ export default function NotificacionesPage() {
               <div className="w-14 h-14 rounded-full bg-brand/10 text-brand flex items-center justify-center mx-auto mb-4">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 01-3.4 0" /></svg>
               </div>
-              <p className="text-[15px] font-bold text-neutral-900">Todo tranquilo por ahora</p>
-              <p className="text-sm text-neutral-500 mt-1 max-w-xs mx-auto">Cuando te unas a un grupo, aquí verás cómo baja el precio y cuándo se cierra.</p>
-              <Link href="/" className="inline-block mt-5 bg-brand text-white font-bold text-sm rounded-xl px-6 py-3">Explorar grupos</Link>
+              <p className="text-[15px] font-bold text-neutral-900">{identified ? 'Todo tranquilo por ahora' : 'No sabemos cuáles son tus grupos'}</p>
+              <p className="text-sm text-neutral-500 mt-1 max-w-xs mx-auto">
+                {identified
+                  ? 'Cuando te unas a un grupo, aquí verás cómo baja el precio y cuándo se cierra.'
+                  : 'Si ya has comprado en Gropo, entra con el mismo email que usaste y verás tus grupos y sus retenciones.'}
+              </p>
+              {identified ? (
+                <Link href="/" className="inline-block mt-5 bg-brand text-white font-bold text-sm rounded-xl px-6 py-3">Explorar grupos</Link>
+              ) : (
+                <div className="mt-5 flex flex-col items-center gap-2">
+                  <Link href="/mis-grupos" className="inline-block bg-brand text-white font-bold text-sm rounded-xl px-6 py-3">Entrar con mi email</Link>
+                  <Link href="/" className="text-sm font-semibold text-brand">Explorar grupos</Link>
+                </div>
+              )}
             </div>
           ) : (
             <div className="mt-6 flex flex-col gap-3">
