@@ -327,6 +327,21 @@
   cobra, el hold caduca solo, y la acción devuelve el id del PaymentIntent para cancelarlo a mano.
 - **También recalcula `total_units`** con la fórmula de `confirm_join`, que si no se quedaría alto.
 - **STATUS:** ⚠️ `PARTIALLY_IMPLEMENTED` — **sin lock**, misma carrera admitida que RULE-041.
+- **⚠️ LIMITACIÓN CONOCIDA (14 sep 2026): el candado puede dejar un grupo en punto muerto.**
+  Si la salida de **cualquier** miembro haría subir el precio por encima del `guaranteed_price`
+  mínimo de los que quedan, entonces **no se puede liberar a nadie** — ni siquiera al que provocó
+  el desbloqueo del tramo.
+
+  Caso real, grupo de pruebas `dd000000-…-0008` (sillín Fizik, escalera 1→99 € / 12→85 €):
+  12 unidades comprometidas, el tramo de 85 € recién desbloqueado, y **todos** los esperadores con
+  `guaranteed_price = 85`. Sacar a uno deja 11 < 12, el tramo se vuelve a cerrar y el precio sube a
+  99 € — por encima del 85 € garantizado al resto. El candado rechaza. Y lo mismo para cualquier
+  otro miembro: **el grupo queda bloqueado**.
+
+  No es un fallo del candado: está protegiendo exactamente lo que debe. Es que **no hay salida
+  prevista** para ese estado. Las vías hoy son cancelar el grupo entero o cancelar el
+  `PaymentIntent` a mano en Stripe. **Pendiente de decidir** si `releaseMember` debe ofrecer una
+  confirmación forzada (avisando de a quién deja fuera) o si el punto muerto es aceptable.
 
 ### RULE-063 · El desistimiento legal no se ve afectado por RULE-061
 - ⚖️ **UNKNOWN — pendiente de abogado.** En España el derecho de desistimiento son 14 días
