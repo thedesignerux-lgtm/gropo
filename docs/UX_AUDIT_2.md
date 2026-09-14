@@ -507,7 +507,7 @@ guarda el email sigue sin rastro. Eso ya no es un fallo de comunicación sino el
 «compra primero, cuenta después», y la salida sería un enlace firmado por pedido dentro del email
 — scope nuevo, no corrección.
 
-### 🟠 A-16 · Dos superficies para lo mismo, con dos identidades distintas — ⬆️ ver **A-21** (demostrado, sube a 🔴)
+### 🟠 A-16 · Dos superficies para lo mismo — ✅ CERRADO 14 sep 2026 (identidad en A-21, propósito aquí)
 `/mis-grupos` (sesión) y `/notificaciones` (identidad local) responden a la misma pregunta —*¿qué
 he comprado y cómo va?*— con dos mecanismos que no se hablan. Un mismo comprador puede ver su
 pedido en una y no en la otra según desde dónde entre, sin ninguna explicación.
@@ -781,7 +781,7 @@ transaccionales y en el propio login.
 
 ---
 
-### 🟠 A-22 · `/notificaciones` no es un feed de novedades, es `/mis-grupos` otra vez
+### 🟠 A-22 · `/notificaciones` no era un feed, era `/mis-grupos` otra vez — ✅ CORREGIDO 14 sep 2026
 `buildNotis()` mapea **una notificación por membresía, siempre**. No hay eventos, ni fechas, ni
 leído/no leído, ni nada que aparezca o desaparezca. Un comprador con 5 grupos verá para siempre
 las mismas 5 filas, con títulos en presente continuo: *«Tu plaza sigue asegurada»*, *«El precio
@@ -794,6 +794,31 @@ Es la otra cara de A-16: no sobra una pantalla, **falta decidir qué es cada una
 razonable es que `/notificaciones` muestre solo lo que ha **cambiado** (bajó el tramo, quedan menos
 de 24 h, se cerró, te liberamos) con marca de tiempo, y que el estado permanente viva solo en
 `/mis-grupos`.
+
+**Decidido e implementado (14 sep 2026).** Benjamin cerró la pregunta: se **mantiene**
+`/notificaciones`, convertida en **Purchase Activity Feed**. Cada pantalla responde una pregunta y
+no se pisan — `/mis-grupos` el estado actual, `/notificaciones` lo que ha cambiado. La
+especificación completa —los siete tipos, de dónde sale cada uno y qué queda fuera— está en
+`UX_AND_FLOWS.md` §3-bis, que es donde le toca vivir.
+
+Lo que hizo falta averiguar antes de escribir nada: **los eventos ya existían**. `events` guarda
+`member_joined`, `price_dropped` y `group_closed` desde el 29 de agosto, y su política RLS ya
+permite leerlos desde el cliente (todo menos `petition_created`), así que el feed no abre ninguna
+superficie nueva: lee la misma tabla que la ficha ya escucha en tiempo real.
+
+Dos de los siete tipos —«estás cerca del siguiente precio» y «tu grupo cierra pronto»— **no son
+eventos**: son estado vivo, no dejan rastro y se derivan al mirar. Van marcados aparte, bajo
+«Ahora», porque son lo único sobre lo que el comprador todavía puede actuar.
+
+**Verificado ejecutando la lógica contra los 24 eventos reales** de la cuenta de Benjamin, con
+siete comprobaciones: que salen los siete tipos, que un grupo ajeno queda fuera, que las pujas de
+vendedor no entran (INV-17), que una plaza liberada no genera avisos vivos, que tres entradas
+seguidas se agrupan en una, que los vivos van primero, y que **un cierre sin `result` no se inventa
+la causa** — ese último caso existe en producción y mi primera versión sí se la inventaba.
+
+**Y algo que apareció de camino:** la pantalla **no tenía ninguna entrada de navegación**. Ni en la
+barra inferior ni en la de escritorio, y la campana de la home llevaba a `/favoritos`. El feed
+existía y no se podía llegar a él.
 
 ---
 
@@ -1250,18 +1275,18 @@ Estado a 14 de septiembre de 2026:
 | Severidad | Total | Corregidos | Abiertos |
 |---|---|---|---|
 | 🔴 crítico | 11 | **10** — A-01, A-02, A-11, A-12, A-15, A-18 (con A-18b), A-21, A-25, A-29, A-30 | **1** — A-28 |
-| 🟠 importante | 14 | **11** — A-03, A-04, A-05, A-06, A-11c, A-13, A-19, A-20, A-26, A-27 y A-31 (estos dos, en parte) | 3 |
+| 🟠 importante | 14 | **13** — A-03, A-04, A-05, A-06, A-11c, A-13, A-16, A-19, A-20, A-22, A-26, A-27 y A-31 (estos dos, en parte) | 1 |
 | 🟡 mejora | 11 | **4** — A-14, A-17, A-23, A-35 | 7 |
 | ⚠️ a la espera | 1 — A-11b | 0 | 1 (no tocado a propósito) |
 
 *(A-14 pasó de 🟠 a 🟡 al comprobarse que el ahorro sí se calculaba.)*
 
-**25 de 37 cerrados.** Lo que queda, por lo que hace falta para cerrarlo:
+**27 de 37 cerrados.** Lo que queda, por lo que hace falta para cerrarlo:
 
 | Hace falta | Hallazgos |
 |---|---|
 | **Un abogado** | A-28 (checkout sin términos ni desistimiento), y con él L-03 / RULE-063 |
-| **Una decisión de producto tuya** | A-16 + A-22 (qué es `/notificaciones` frente a `/mis-grupos`), A-27 (¿etiqueta visible en el formulario?), A-05 (¿el nombre fuera de la foto?) |
+| **Una decisión de producto tuya** | A-27 (¿etiqueta visible en el formulario?), A-05 (¿el nombre fuera de la foto?) |
 | **Trabajo de diseño de pantalla** | A-32 (el checkout no tiene vista de escritorio) |
 | **Una pasada con prueba en modo test** | A-11b (`confirm_join` sin guard de estado) |
 | **Decidir y limpiar** | A-24 (datos TEST en cuentas reales), A-34 (710 líneas de componentes huérfanos), A-33 (avatares A/B/C inventados) |
@@ -1269,84 +1294,9 @@ Estado a 14 de septiembre de 2026:
 
 ---
 
-## LO QUE FALTA DECIDIR: `/notificaciones` vs `/mis-grupos` (A-16 + A-22)
+## `/notificaciones` vs `/mis-grupos` — DECIDIDO E IMPLEMENTADO (14 sep 2026)
 
-No lo arreglo porque **no es un bug, es una pregunta sin responder**, y la respuesta cambia lo que
-hay que construir. El estado de hoy, ya corregida la identidad (A-21):
-
-- `/mis-grupos` — una tarjeta por pedido, con su estado, su precio y su retención.
-- `/notificaciones` — **una fila por pedido, siempre, para siempre**, con títulos en presente
-  continuo: *«Tu plaza sigue asegurada»*, *«El precio sigue bajando mientras entra gente»*.
-
-Eso no son notificaciones: es el mismo estado contado peor. La pantalla promete novedades y entrega
-un duplicado.
-
-**Las dos salidas razonables:**
-
-1. **`/notificaciones` pasa a ser un feed de verdad** — solo lo que ha **cambiado**, con marca de
-   tiempo: bajó el tramo, quedan menos de 24 h, el grupo cerró, te liberamos la plaza. Requiere
-   guardar eventos por usuario (la tabla `events` ya existe para el grupo; habría que decidir qué
-   se considera notificable y cuánto se guarda), y con ello llega la campanita con contador, que es
-   lo que trae a la gente de vuelta.
-2. **`/notificaciones` desaparece** y `/mis-grupos` se queda como la única superficie de
-   seguimiento. Cuesta media hora y elimina la contradicción, a costa de renunciar al canal de
-   reenganche.
-
-Yo recomendaría **la 1**, pero no es una decisión técnica: es cuánto vale para Gropo tener un canal
-propio que devuelva al comprador a la web mientras su grupo está vivo. Eso lo sabes tú.
-
-**El único crítico abierto es A-28**: el checkout no menciona términos, privacidad ni
-desistimiento. Requiere abogado, no código, y es la misma consulta que L-03 / RULE-063.
-
-### La lección de esta tanda: «ya está arreglado» no vale sin comprobar los dos árboles
-Tres veces en el mismo día di por bueno un arreglo que solo existía en la mitad del producto:
-
-| Se creía | La realidad |
-|---|---|
-| A-11 corregido | solo en móvil; escritorio siguió vendiendo un grupo cerrado |
-| A-30 nuevo, solo de escritorio | el mismo `lockPhase` estaba en la ficha móvil |
-| `maxStock` / `minExecution` ignorados solo en `GroupRightSidebar` | `GroupLiveSection` **también** los declaraba sin desestructurar |
-
-No es casualidad: es **DT-03** (dos árboles de UI duplicados) cobrando su precio. La regla operativa
-que sale de aquí: **al cerrar cualquier hallazgo de ficha, home o mis-grupos, comprobar los dos
-componentes antes de marcarlo como corregido** — y si una prop se declara y no se usa, sospechar
-que en el gemelo pasa lo mismo.
-
-### Y una segunda lección, esta sobre cómo escribo los hallazgos
-Dos veces afirmé que algo **no existía** y las dos veces era falso:
-
-| Escribí | La realidad |
-|---|---|
-| A-25 · «el email no se valida en ninguna capa» | `get_my_groups` **sí** lo valida… al leer, devolviendo lista vacía en silencio. Peor de lo que yo decía, pero no lo que yo decía |
-| A-14 · «el ahorro no se calcula en ninguna parte» | `savingsPerUnit` existía y se pintaba; estaba mal **colocado**, no ausente |
-
-Las dos las descubrí al ir a implementar el arreglo, no al escribir el hallazgo. Una afirmación de
-ausencia («no hay», «en ninguna parte», «cero») exige buscar hasta agotar, no hasta convencerse.
-Cuando la duda persista, lo honesto es escribir **UNKNOWN**.
-
-**Los tres temas de fondo**, por debajo de los hallazgos sueltos:
-
-1. **Nadie ha diseñado el después.** El grupo cerrado, el grupo cancelado, la plaza liberada, el
-   comprador que se queda fuera: todo el producto está construido para el momento de entrar.
-   A-11c, A-15, A-16, A-18, P2-06.
-2. **Dos árboles de UI que se han separado.** No es duplicación de código: es que cuentan cosas
-   distintas, y los arreglos solo llegan a uno de los dos (A-11 y P0-03 siguen vivos en
-   escritorio). DT-03, A-29, A-30, A-31.
-3. **La escasez y la activación existen en los datos y no en la pantalla.** `min_execution`,
-   `max_stock` y `closes_at` se calculan bien, se hacen cumplir en servidor, y no se enseñan:
-   solo sirven para impedir, nunca para avisar. A-01, A-02, A-12, A-29.
-
-**Aparte, fuera del alcance de una auditoría de UX**, esta pasada encontró un problema de dinero
-que se ha registrado como **P0-09** en `KNOWN_ISSUES.md`: el cierre de un grupo puede fijarse
-cualquier día de la semana, pero el cron que cierra solo corre los domingos, así que las
-retenciones pueden llegar a la captura por encima del límite de 7 días de Stripe.
-
----
-
-## PENDIENTE DE AUDITAR
-Fichas individuales todavía no recorridas una a una: G02 · G03 · G05 · G07 · G10 · G11 · G12 ·
-G13 · G14 · G15. Los patrones ya salieron en las seis partes, así que lo que queda ahí es
-comprobar casos concretos, no descubrir tipos nuevos de problema.
-
-**Auditado:** home, ficha de grupo, escasez, checkout completo, `/mis-grupos` y `/notificaciones`
-(con y sin sesión), emails transaccionales y la vista de escritorio.
+Estaba planteado aquí como la decisión pendiente más importante. **Benjamin la tomó:** se mantiene
+`/notificaciones`, convertida en un **Purchase Activity Feed** orientado solo a cambios en las
+compras del usuario. La especificación vive en `UX_AND_FLOWS.md` §3-bis; el detalle de la
+implementación, en A-22.

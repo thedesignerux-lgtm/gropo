@@ -115,7 +115,12 @@ export default function GroupsGrid({ products, favoriteIds = [], isAuthed = fals
                 lleva la cuenta atrás real de su grupo. Nada fuerza el domingo: la
                 fecha la elige el admin (ver P0-09). Fuera la afirmación global; la
                 escasez va donde es cierta, en cada tarjeta. */}
-            <Link href="/favoritos" aria-label="Alertas" className="w-[30px] h-[30px] rounded-full grid place-items-center">
+            {/* La campana llevaba a /favoritos (Mi Radar): un icono de notificaciones
+                que abre otra cosa. Ahora lleva a la actividad de compra, que es lo
+                que significa. Sin contador todavía: saber si hay novedades exige
+                cargar membresías y eventos, y eso no se le mete a la home sin un
+                endpoint ligero propio. Anotado como pendiente. */}
+            <Link href="/notificaciones" aria-label="Actividad de tus compras" className="w-[30px] h-[30px] rounded-full grid place-items-center">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1a1a1f" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.5 0" /></svg>
             </Link>
             <Link href="/perfil" aria-label="Tu perfil" className="w-[30px] h-[30px] rounded-full grid place-items-center text-brand" style={{ background: '#DEEDEC' }}>

@@ -55,7 +55,7 @@ dirección previa en `group_members`. Si falta algo → `no_saved_card` / `no_sh
 | `/mis-grupos` | `mis-grupos/page.tsx` | Client | `/api/my-groups` | `undefined` = comprobando sesión → `null` = `AuthPanel` → loading → error → lista |
 | `/favoritos` ("Mi Radar") | `favoritos/page.tsx` (**685**) | Client | favoritos + `tier_demand` + `/pulse` | Vacío + sugerencias (excluye `is_demo`) |
 | `/perfil` | `perfil/page.tsx` (473) | Client | `get_profile`, `address_*`, `radar_prefs_save` (RPC directas) | `AuthPanel` si no hay sesión |
-| `/notificaciones` | `notificaciones/page.tsx` (97) | Client | **`supabase.rpc('get_my_groups')` directa** + `useLadders`/`derive` importados de `MisGruposDesktop` | Deriva avisos reales: `success`, `urgent`, `info`, `default` |
+| `/notificaciones` | `notificaciones/page.tsx` + **`lib/purchaseFeed.ts`** | Client | `/api/my-groups` (sesión) → `get_my_groups` (identidad local) + tabla `events` + `useLadders` | Cargando · tres estados vacíos distintos · «Ahora» / «Antes» |
 | `/mensajes` | `mensajes/page.tsx` | Server | ninguno | **Estado vacío estático** ("Aún no tienes mensajes") |
 | `/crear-peticion` | (293) | Client | `create_petition` RPC | Formulario |
 | `/peticion` | (5 líneas) | Server | ninguno | 🔵 **Placeholder:** *"Crear petición — próximamente"* |
@@ -64,6 +64,71 @@ dirección previa en `group_members`. Si falta algo → `no_saved_card` / `no_sh
 | `/admin` | `admin/page.tsx` + `layout.tsx` | Server | `groups`, `bids` | `AdminLoginForm` sin cookie |
 | `/admin/grupos/new` | (341) | Client | `createGroup` | Validación inline |
 | `/admin/grupos/[id]` | (329) | Server | `groups`, `group_members`+`users`, `bids`+`users` | Badges de estado |
+
+---
+
+## 3-bis. LAS DOS SUPERFICIES DE SEGUIMIENTO — decidido el 14 de septiembre de 2026
+
+> Decisión de producto de Benjamin, cerrando **A-16** y **A-22** de `UX_AUDIT_2.md`. Hasta ese día
+> `/notificaciones` y `/mis-grupos` eran **la misma pantalla dos veces**: la primera pintaba una
+> fila por membresía, siempre, con títulos en presente continuo («Tu plaza sigue asegurada»). Eso
+> no es una notificación: es el estado, ya contado —y mejor— en la otra.
+
+Cada una responde **una** pregunta, y no se pisan:
+
+| | Pregunta que responde | Qué es |
+|---|---|---|
+| **`/mis-grupos`** | *¿En qué compras estoy y cuál es su estado **ahora**?* | Centro de gestión: producto, precio actual, unidades, progreso, próximo tramo, tiempo restante, estado del pago |
+| **`/notificaciones`** | *¿Qué ha **cambiado** desde la última vez?* | Feed cronológico de actividad de compra colectiva |
+
+### La regla de admisión del feed
+**Si el evento no cambia nada en la compra del usuario, no entra.** No es un buzón: quedan fuera
+las bienvenidas, la creación de cuenta, el perfil, el marketing genérico, las novedades de
+producto, los mensajes corporativos y la actividad de otros usuarios que no le afecte.
+
+### Los siete tipos, y de dónde sale cada uno
+Cuatro son eventos reales que la base de datos ya guardaba en `events` desde el 29 de agosto; dos
+son **estado vivo**, que no deja rastro histórico y hay que derivar en el momento de mirar.
+
+| | Copy | Origen | ¿Histórico? |
+|---|---|---|---|
+| 🎯 | Nuevo precio desbloqueado — *el grupo ha alcanzado 12 unidades, ahora todos pagan 85 €* | `price_dropped` + el `member_joined` gemelo | sí |
+| 🟢 | El precio ha bajado — *99 € → 85 €* | `price_dropped` sin gemelo | sí |
+| 👥 | N compradores se han unido — *el grupo ya suma 18 unidades* | `member_joined`, agrupados por ventana de 6 h | sí |
+| ⚡ | Estás cerca del siguiente precio — *faltan 2 unidades para 1749 €* | tramos + demanda **ahora** (≤ 3 uds) | **no** |
+| ⏰ | Tu grupo cierra pronto — *quedan 3 horas* | `closes_at` **ahora** (< 24 h) | **no** |
+| ✅ | Compra colectiva cerrada — *4 unidades, precio final 60 €* | `group_closed` con `result: 'closed'` | sí |
+| ⚪ | El grupo se ha cerrado sin ejecutarse | `group_closed` con cualquier otro resultado | sí |
+
+**Por qué 🎯 y 🟢 son dos.** Una bajada de precio **es** un tramo desbloqueado, pero el evento
+`price_dropped` no guarda las unidades. El `member_joined` que la provocó se escribe en el **mismo
+instante** y sí las trae: emparejándolos por timestamp se puede decir la frase completa. Sin
+gemelo, se cae al mensaje corto en vez de inventarse un número.
+
+**Por qué ⚪ no dice la causa.** En producción hay cierres con `result: 'no_active_bids'` y otros
+con solo `{reason: 'manual_cleanup'}` —una limpieza del admin— sin `result` ninguno. Decir «no se
+alcanzó el volumen mínimo» sería inventarse el motivo, que es el error de A-18. Lo que sí se puede
+afirmar siempre, y es lo que al comprador le importa: **no se le ha cobrado nada**.
+
+### Lo que NO entra en el feed, a propósito
+`bid_placed` y `bid_improved` son actividad de vendedores. No cambian la compra del usuario y
+además revelarían la competencia entre pujas, **que el comprador nunca debe ver** (INV-17).
+
+### «Desde la última vez»
+La marca de visita vive en `localStorage` (`lib/lastSeen.ts`), no en la base de datos, y es
+deliberado: el feed tiene que funcionar para el comprador **invitado**, que es la mayoría —26 de 28
+con compra viva no tienen cuenta (A-15)—. Guardarlo en servidor exigiría identidad, que es justo lo
+que ese comprador no tiene. El coste: la marca es por navegador; quien mire desde el móvil y luego
+desde el portátil verá las novedades dos veces.
+
+### Navegación
+La pantalla **no tenía ninguna entrada**: ni en `BottomNav` ni en `DesktopNavbar`, y la campana de
+la cabecera de la home llevaba a `/favoritos`. Ahora esa campana lleva a la actividad —que es lo
+que un icono de campana significa— y el escritorio tiene la suya.
+
+**Pendiente:** el contador de novedades. Saber si hay algo nuevo exige cargar membresías y eventos,
+y eso no se le mete a la home sin un endpoint ligero propio. Sin él, la campana no promete nada que
+no pueda cumplir.
 
 ---
 

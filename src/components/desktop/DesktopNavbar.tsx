@@ -47,6 +47,15 @@ export default function DesktopNavbar() {
           >
             Crea tu grupo
           </Link>
+          {/* La actividad de compra no tenía NINGUNA entrada de navegación, ni aquí ni
+              en la barra inferior: la pantalla existía y no se podía llegar a ella. */}
+          <Link
+            href="/notificaciones"
+            aria-label="Actividad de tus compras"
+            className="w-9 h-9 rounded-full grid place-items-center text-neutral-600 hover:text-brand transition-colors"
+          >
+            <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 01-3.4 0" /></svg>
+          </Link>
           <Link
             href="/perfil"
             aria-label="Tu perfil"
