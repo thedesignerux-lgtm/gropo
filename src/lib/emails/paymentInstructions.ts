@@ -2,7 +2,7 @@
 // Se envía SOLO a miembros adjudicados (payment_status='instructed').
 // Remitente visible: Gropo.
 
-import { emailBrandHeader } from './brand'
+import { emailBrandHeader, emailTrackBlock } from './brand'
 
 export interface PaymentEmailData {
   nombre?: string
@@ -54,6 +54,9 @@ Concepto del pago (imprescindible): ${concepto}`
     : `Te enviaremos los datos de pago del vendedor por separado.
 Cuando los recibas, usa este concepto: ${concepto}`
 
+  // A-15 · Hasta ahora este email no tenía ni un enlace.
+  const track = emailTrackBlock(28)
+
   const text = `${saludo}
 
 El grupo de ${productName} se ha cerrado y tu pedido está confirmado.
@@ -66,6 +69,8 @@ ${pagoText}
 Plazo: antes del ${plazo} (48 horas).
 
 Gracias por participar.
+${track.text}
+
 — Gropo`
 
   // Bloque de pago (HTML)
@@ -112,6 +117,7 @@ Gracias por participar.
             </td></tr>
           </table>
         </td></tr>
+        ${track.html}
         <tr><td style="padding:18px 28px 28px 28px;">
           <p style="margin:0;font-size:14px;color:#555555;line-height:1.5;">
             Plazo: <strong style="color:#111111;">antes del ${plazo}</strong> (48 horas).

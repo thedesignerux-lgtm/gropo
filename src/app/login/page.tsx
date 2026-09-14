@@ -82,8 +82,13 @@ export default function LoginPage() {
             <img src="/logo.png" alt="Gropo" className="h-8 mx-auto" />
           </Link>
           <h1 className="text-xl font-bold text-neutral-900 text-center mb-2">Entra en Gropo</h1>
-          <p className="text-sm text-neutral-500 text-center mb-6">
+          <p className="text-sm text-neutral-500 text-center mb-2">
             Entra con Google o con un enlace por email. Sin contraseñas.
+          </p>
+          {/* A-15 · Quien ya compró sin crear cuenta puede recuperar su pedido con el
+              mismo email: `/api/my-groups` busca por email. Funcionaba y no se decía. */}
+          <p className="text-[13px] text-neutral-400 text-center mb-6">
+            ¿Ya has comprado en Gropo? Usa el mismo email de tu compra y verás tus pedidos.
           </p>
           <button
             type="button"

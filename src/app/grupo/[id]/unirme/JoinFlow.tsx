@@ -75,6 +75,45 @@ function remainingStock(g: JoinGroup): number | null {
   return g.max_stock > 0 ? g.max_stock - g.committed_units : null;
 }
 
+/**
+ * A-12 · El stock servía solo para IMPEDIR, nunca para AVISAR.
+ *
+ * `remainingStock` ya calculaba bien las unidades libres y el selector topaba ahí,
+ * pero el badge decía «✓ En stock» exactamente igual con 2 unidades que con 200. Y
+ * el peor sitio para callarlo es un grupo que ya tiene desbloqueado su mejor precio:
+ * ahí no queda ninguna palanca de precio y la única razón para decidir hoy es que se
+ * acaban — justo lo que no se decía.
+ *
+ * Umbral en 5 unidades: por debajo de eso el número comunica algo («quedan 2»);
+ * por encima, un número grande no aporta y además revela el inventario del vendedor
+ * sin necesidad.
+ */
+const LOW_STOCK_THRESHOLD = 5;
+
+function StockBadge({ left }: { left: number | null }) {
+  if (left !== null && left <= 0) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#FDEDED] px-2.5 py-1.5 text-xs font-bold text-[#B3261E]">
+        Sin stock
+      </span>
+    );
+  }
+  if (left !== null && left <= LOW_STOCK_THRESHOLD) {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#FEF3E2] px-2.5 py-1.5 text-xs font-bold text-[#B4541A]">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L4.09 12.11a1 1 0 00.77 1.64H11l-1 8.25 8.91-10.11a1 1 0 00-.77-1.64H12z" /></svg>
+        {left === 1 ? 'Queda 1 unidad' : `Quedan ${left} unidades`}
+      </span>
+    );
+  }
+  return (
+    <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#E6F5EC] px-2.5 py-1.5 text-xs font-bold text-[#0B7B44]">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
+      En stock
+    </span>
+  );
+}
+
 // 549 € · 62,50 € — sin decimales si es entero, coma decimal y € al final
 const eur = (n: number) =>
   (Number.isInteger(n) ? String(n) : n.toFixed(2).replace('.', ',')) + ' €';
@@ -323,16 +362,7 @@ export default function JoinFlow({
                     Envío incluido
                   </span>
                 )}
-                {(remainingStock(group) ?? 1) > 0 ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#E6F5EC] px-2.5 py-1.5 text-xs font-bold text-[#0B7B44]">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-                    En stock
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#FDEDED] px-2.5 py-1.5 text-xs font-bold text-[#B3261E]">
-                    Sin stock
-                  </span>
-                )}
+                <StockBadge left={remainingStock(group)} />
               </div>
             </div>
           </section>
@@ -483,16 +513,7 @@ export default function JoinFlow({
                     Envío incluido
                   </span>
                 )}
-                {(remainingStock(group) ?? 1) > 0 ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#E6F5EC] px-2.5 py-1.5 text-xs font-bold text-[#0B7B44]">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-                    En stock
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#FDEDED] px-2.5 py-1.5 text-xs font-bold text-[#B3261E]">
-                    Sin stock
-                  </span>
-                )}
+                <StockBadge left={remainingStock(group)} />
               </div>
             </div>
           </section>
@@ -636,16 +657,7 @@ export default function JoinFlow({
                     Envío incluido
                   </span>
                 )}
-                {(remainingStock(group) ?? 1) > 0 ? (
-                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#E6F5EC] px-2.5 py-1.5 text-xs font-bold text-[#0B7B44]">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
-                    En stock
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 rounded-lg bg-[#FDEDED] px-2.5 py-1.5 text-xs font-bold text-[#B3261E]">
-                    Sin stock
-                  </span>
-                )}
+                <StockBadge left={remainingStock(group)} />
               </div>
             </div>
           </section>

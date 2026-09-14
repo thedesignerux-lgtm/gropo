@@ -14,7 +14,7 @@ Severidad: 🔴 crítico (miente o impide comprar) · 🟠 importante (confunde 
 
 ## PARTE 1 · FICHA DE UN GRUPO NO ACTIVADO (G01) Y HOME
 
-### 🔴 A-01 · La ficha de un grupo que todavía no existe es idéntica a la de uno que sí
+### 🔴 A-01 · La ficha de un grupo que todavía no existe era idéntica a la de uno que sí — ✅ CORREGIDO 14 sep 2026
 **Reproducir:** `/grupo/dd000000-…-0001` — Casco Giro. 2 unidades, el primer tramo pide 5, la
 ejecución mínima son 5.
 
@@ -40,12 +40,45 @@ absoluta: nunca debe haber sorpresas*.
 
 **Lo que falta decir:** cuántas unidades necesita el grupo para salir adelante, cuántas lleva, y
 que hasta llegar ahí no hay compra. `min_execution` ya viaja hasta el componente
-(`grupo/[id]/page.tsx` lo pasa como `minExecution`); simplemente no se pinta. Las tarjetas de la
-home **sí** tienen el concepto (`getActivationState` → `activated`, `unitsToActivate`); la ficha no.
+(`grupo/[id]/page.tsx` lo pasa como `minExecution`); simplemente no se pinta.
+
+**Corregido (14 sep 2026), opción «precio de salida + meta visible»** (decisión de producto de
+Benjamin). Nuevo `src/lib/activation.ts` con una sola definición de «grupo activado»:
+
+```ts
+const firstTierUnits = Math.min(...tiers.map(t => t.minUnits))
+const targetUnits    = Math.max(minExecution, firstTierUnits)
+const activated      = committedUnits >= targetUnits
+```
+
+**Son dos condiciones, no una.** Un grupo arranca cuando tiene unidades para (1) desbloquear su
+primer tramo —si no, `compute_price` devuelve el precio de un tramo cerrado— y (2) llegar a la
+ejecución mínima —si no, al cerrar se cancela—. Para el comprador significan lo mismo, así que se
+resuelven en un solo listón: el mayor de los dos.
+
+*No se reutilizó `getActivationState`*: vive en `lib/mock-data.ts`, solo la usan componentes
+huérfanos (A-34) y **solo mira la ejecución mínima**, ignorando si hay tramo desbloqueado — con lo
+que en el Casco Giro habría dado el resultado correcto por casualidad.
+
+Qué ve ahora ese comprador, en móvil y en escritorio:
+
+| Dónde | Antes | Ahora |
+|---|---|---|
+| Píldora | «Disponible» + punto verde | **«Aún no activado»** en ámbar |
+| Encabezado | «PRECIO ACTUAL» | **«PRECIO DE SALIDA»** |
+| Badge verde | «Ahorras 40,99 €» | **no se pinta** (el PVP tachado se queda) |
+| Nudge del slider | «Este precio ya está disponible…» | **«Este grupo aún no ha arrancado: faltan 3 unidades. Si sale adelante, este tramo se paga a 289 €. Si no, no se cobra nada.»** |
+| — | *no existía* | **bloque de meta**: barra de progreso, «Faltan 3 unidades para que arranque», «2 / 5», y «si no llega, se cancela y no se cobra nada» |
+| Botón | «Bloquear precio · 289 €» | **«Reservar mi plaza · Hoy 0 €»** |
+
+**Verificado con los 12 grupos abiertos de producción:** 11 salen ACTIVADO y solo el Casco Giro
+NO ACTIVADO, con «faltan 3» — que coincide exactamente con el `bool_or(unlocked) = false` que
+devuelve `tier_demand` para ese grupo. Probados también los bordes: sin pujas, justo en el listón,
+una unidad por debajo, tramo por encima de la ejecución mínima y al revés.
 
 ---
 
-### 🔴 A-02 · La home no enseña ni el stock ni el tiempo del grupo destacado
+### 🔴 A-02 · La home no enseñaba ni el stock ni el tiempo del grupo destacado — ✅ CORREGIDO 14 sep 2026
 **Reproducir:** home a 375 px, con el Shimano 105 Di2 (G09) destacado.
 
 Ese grupo tiene **1 unidad de stock** y cierra en **9 horas**. La tarjeta destacada, que ocupa la
@@ -58,6 +91,27 @@ unidades en 1 **después**, ya dentro del checkout.
 
 La cabecera sí muestra una cuenta atrás global, **«Cierra Dom 22:00»**, que además contradice al
 grupo que tiene debajo: cada grupo cierra a su hora, no todos el domingo.
+
+**Corregido (14 sep 2026).** La tarjeta destacada lleva ahora una fila con las dos palancas:
+
+- **«Quedan N unidades»** en ámbar, cuando quedan 5 o menos. Mismo umbral que el badge del
+  checkout (A-12), para que la home y el checkout no se contradigan.
+- **La cuenta atrás real del grupo**, con el `GroupCountdown` que ya existía.
+
+Hizo falta traer dos datos que la home no cargaba: `max_stock` (se añadió al `select` de `bids`
+que ya se hacía para `min_execution`, sin consulta nueva) y las unidades comprometidas.
+
+> **Un detalle que casi me cuesta un número mal.** La home ya tenía `currentUnits`, pero **no sirve
+> para restar stock**: es un valor de *display* recortado al tramo siguiente
+> (`Math.min(nextLocked.minUnits - 1, …)`) para que la escalera de las tarjetas se lea bien.
+> Usarlo habría **subestimado lo ocupado** y anunciado más stock del que hay — exactamente el error
+> de P2-01. Se añadió `committedUnits` (el máximo de la demanda efectiva, que es la suma real de
+> unidades vivas) y se restó de ahí.
+
+**Y fuera el «Cierra Dom 22:00» de la cabecera.** Era una afirmación global falsa: de los 12 grupos
+abiertos, **ninguno cerraba en domingo**, y nada en el sistema fuerza ese día — la fecha la elige el
+admin (ver **P0-09**). Además contradecía a la tarjeta de debajo, que sí lleva el cierre real de su
+grupo. La escasez se queda donde es cierta: en cada tarjeta.
 
 ---
 
@@ -242,7 +296,7 @@ confirmarlo), **alta por el botón manual del admin**.
 
 ---
 
-### 🔴 A-12 · «En stock» significa lo mismo con 2 unidades que con 200
+### 🔴 A-12 · «En stock» significaba lo mismo con 2 unidades que con 200 — ✅ CORREGIDO 14 sep 2026
 **Reproducir:** `/grupo/dd000000-…-0006/unirme` — Gafas Oakley. **Quedan 2 de 20.**
 
 El badge dice **«✓ En stock»**, idéntico al de cualquier otro grupo. La escasez es binaria: hay o
@@ -254,6 +308,17 @@ que no se dice. El grupo con más urgencia real del catálogo es el que menos ur
 
 El dato existe y es correcto: `remainingStock()` ya calcula 2, y el selector topa ahí
 (verificado en P2-01). Solo se usa para **impedir**, nunca para **avisar**.
+
+**Corregido (14 sep 2026).** El badge pasa a tener tres estados en vez de dos: «En stock»,
+**«Quedan N unidades»** en ámbar por debajo de 5, y «Sin stock». En las gafas ahora dice
+**«Quedan 2 unidades»**.
+
+El umbral de 5 no es arbitrario: por debajo de ahí el número comunica urgencia real; por encima, un
+número grande no aporta nada y además publica el inventario del vendedor sin necesidad.
+
+De paso, el bloque estaba **copiado tres veces literalmente** en `JoinFlow` (tres variantes de
+diseño del checkout). Ahora es un `<StockBadge>`, así que el próximo cambio de copy se hace una vez
+y no tres.
 
 ---
 
@@ -282,7 +347,7 @@ desvanece en la pantalla donde se firma.
 
 ## PARTE 3 · DESPUÉS DE COMPRAR (`/mis-grupos`, `/notificaciones`, emails)
 
-### 🔴 A-15 · El comprador invitado se queda sin rastro de su pedido
+### 🔴 A-15 · El comprador invitado se quedaba sin rastro de su pedido — ✅ CORREGIDO 14 sep 2026
 **Reproducir:** comprar sin crear cuenta, saltarse la invitación de la pantalla de éxito, y buscar
 el pedido desde otro navegador o con los datos del navegador borrados.
 
@@ -314,6 +379,35 @@ pedidos. **Nadie se lo dice nunca.** Ni la pantalla de éxito al saltarla, ni el
 pantalla de login («Entra para ver tus grupos» no menciona que valga el email de la compra).
 
 **Coste de arreglarlo:** un enlace en los emails y una frase en el login. El mecanismo ya está.
+
+**Corregido (14 sep 2026).** Exactamente eso:
+
+1. **Los tres emails transaccionales llevan enlace.** Nuevo `emailTrackBlock()` en
+   `lib/emails/brand.ts`, insertado en `joinConfirmation`, `purchaseConfirmation` y
+   `paymentInstructions`, **en HTML y en texto plano**:
+
+   > **¿Quieres ver cómo va tu pedido?**
+   > Entra con el mismo email al que te hemos enviado este mensaje y verás tu grupo, el precio y el
+   > estado de tu pago. No hace falta contraseña.
+   > **[Ver mi pedido]** → `https://www.gropo.es/mis-grupos`
+
+   No hace falta pasarle el email del comprador: el bloque viaja **dentro** del correo que se le
+   manda, así que «el mismo email al que te hemos enviado este mensaje» siempre es exacto.
+
+2. **El login lo dice.** «¿Ya has comprado en Gropo? Usa el mismo email de tu compra y verás tus
+   pedidos.»
+
+3. **La pantalla de `/mis-grupos` sin sesión también.** El subtítulo pasa de «Tus pedidos y su
+   estado, en un sitio» a **«Usa el mismo email con el que compraste y verás tus pedidos, aunque no
+   te hayas creado una cuenta»**.
+
+**Verificado renderizando las tres plantillas:** cada una devuelve exactamente un `href` a
+`https://www.gropo.es/mis-grupos` y el texto plano incluye la URL. Antes: cero `href` en las tres.
+
+**Lo que sigue abierto de A-15:** el comprador invitado que borra los datos del navegador **y** no
+guarda el email sigue sin rastro. Eso ya no es un fallo de comunicación sino el límite del patrón
+«compra primero, cuenta después», y la salida sería un enlace firmado por pedido dentro del email
+— scope nuevo, no corrección.
 
 ### 🟠 A-16 · Dos superficies para lo mismo, con dos identidades distintas — ⬆️ ver **A-21** (demostrado, sube a 🔴)
 `/mis-grupos` (sesión) y `/notificaciones` (identidad local) responden a la misma pregunta —*¿qué
@@ -864,8 +958,13 @@ En el segundo 1,0 el botón afirma que el precio está bloqueado. En ese instant
 formulario de pago**. La confirmación llega 800 ms antes que el primer byte de la operación.
 
 Es el mismo error que **P0-03** —«JoinFlow muestra éxito sin esperar al webhook»—, que se dio por
-resuelto el 12 de septiembre… en el árbol móvil. Y choca de frente con el principio del propio
-proyecto: *nunca mostrar una confirmación económica que el sistema todavía no puede garantizar*.
+resuelto el 12 de septiembre. Y choca de frente con el principio del propio proyecto: *nunca
+mostrar una confirmación económica que el sistema todavía no puede garantizar*.
+
+> ⚠️ **Corrección (14 sep 2026).** Escribí que en móvil esto ya estaba corregido por P0-03. **Era
+> falso.** P0-03 corrigió `JoinFlow`, que es el **checkout**; la **ficha** móvil
+> (`GroupLiveSection`) tenía el mismo `lockPhase` con los mismos 1.000 y 1.800 ms, y el mismo
+> «✓ Precio bloqueado». Lo encontré al ir a implementar A-01 en ese archivo. Corregido en los dos.
 
 Además de mentir, **cuesta 1,8 segundos** de espera fabricada en la pantalla de máxima intención de
 compra. La animación no está esperando a nada: es un temporizador.
@@ -967,15 +1066,27 @@ Estado a 14 de septiembre de 2026:
 
 | Severidad | Total | Corregidos | Abiertos |
 |---|---|---|---|
-| 🔴 crítico | 11 | **6** — A-11, A-18 (con A-18b), A-21, A-25, A-29, A-30 | 5 |
+| 🔴 crítico | 11 | **10** — A-01, A-02, A-11, A-12, A-15, A-18 (con A-18b), A-21, A-25, A-29, A-30 | **1** |
 | 🟠 importante | 15 | 0 | 15 |
 | 🟡 mejora | 10 | 0 | 10 |
 | ⚠️ a la espera | 1 — A-11b | 0 | 1 (no tocado a propósito) |
 
-Los cinco críticos que siguen abiertos: **A-01** (la ficha de un grupo no activado miente),
-**A-02** (la home oculta stock y tiempo del destacado), **A-12** («En stock» con 2 unidades),
-**A-15** (el comprador invitado se queda sin rastro) y **A-28** (el checkout no menciona nada legal
-— esta requiere abogado, no código).
+**El único crítico abierto es A-28**: el checkout no menciona términos, privacidad ni
+desistimiento. Requiere abogado, no código, y es la misma consulta que L-03 / RULE-063.
+
+### La lección de esta tanda: «ya está arreglado» no vale sin comprobar los dos árboles
+Tres veces en el mismo día di por bueno un arreglo que solo existía en la mitad del producto:
+
+| Se creía | La realidad |
+|---|---|
+| A-11 corregido | solo en móvil; escritorio siguió vendiendo un grupo cerrado |
+| A-30 nuevo, solo de escritorio | el mismo `lockPhase` estaba en la ficha móvil |
+| `maxStock` / `minExecution` ignorados solo en `GroupRightSidebar` | `GroupLiveSection` **también** los declaraba sin desestructurar |
+
+No es casualidad: es **DT-03** (dos árboles de UI duplicados) cobrando su precio. La regla operativa
+que sale de aquí: **al cerrar cualquier hallazgo de ficha, home o mis-grupos, comprobar los dos
+componentes antes de marcarlo como corregido** — y si una prop se declara y no se usa, sospechar
+que en el gemelo pasa lo mismo.
 
 **Los tres temas de fondo**, por debajo de los hallazgos sueltos:
 

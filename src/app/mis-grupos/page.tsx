@@ -81,7 +81,11 @@ export default function MisGruposPage() {
           <div className="bg-white rounded-2xl border border-gray-200 p-6">
             <AuthPanel
               title="Entra para ver tus grupos"
-              subtitle="Tus pedidos y su estado, en un sitio"
+              /* A-15 · La recuperación por email ya funcionaba —`/api/my-groups` busca
+                 por email, no por cuenta— y nadie lo decía. 26 de 28 compradores con
+                 compra viva no tienen cuenta creada; sin esta frase no saben que el
+                 correo de su compra les sirve para entrar. */
+              subtitle="Usa el mismo email con el que compraste y verás tus pedidos, aunque no te hayas creado una cuenta"
               ctaLabel="Entrar con el email"
               icon={
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" className="text-brand">

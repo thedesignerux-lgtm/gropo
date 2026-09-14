@@ -12,6 +12,7 @@ import GropoTargetSlider, { type Detent } from '@/components/GropoTargetSlider'
 import HowGropoSheet from '@/components/HowGropoSheet'
 import { modeAccent } from '@/lib/brand-colors'
 import EmptyShowcase from '@/components/EmptyShowcase'
+import GroupCountdown from '@/components/GroupCountdown'
 
 /**
  * UX-07 · Los tres carruseles se construyen sobre el MISMO conjunto de grupos,
@@ -89,12 +90,12 @@ export default function GroupsGrid({ products, favoriteIds = [], isAuthed = fals
             <img src="/logo.png" alt="Gropo" className="h-7 w-auto object-contain" />
           </div>
           <div className="flex items-center gap-2.5">
-            {/* Sin ningún grupo abierto no cierra nada: anunciar la hora confunde. */}
-            {priced.length > 0 && (
-              <span className="text-[12px] font-semibold" style={{ color: '#6B6B76' }}>
-                Cierra <strong className="font-extrabold text-[#1a1a1f]">Dom 22:00</strong>
-              </span>
-            )}
+            {/* A-02 · Decía «Cierra Dom 22:00» para TODO el catálogo, y cada grupo
+                cierra a su hora: de los 12 grupos abiertos el 14-sep-2026, ninguno
+                cerraba en domingo. Además contradecía a la tarjeta de debajo, que sí
+                lleva la cuenta atrás real de su grupo. Nada fuerza el domingo: la
+                fecha la elige el admin (ver P0-09). Fuera la afirmación global; la
+                escasez va donde es cierta, en cada tarjeta. */}
             <Link href="/favoritos" aria-label="Alertas" className="w-[30px] h-[30px] rounded-full grid place-items-center">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1a1a1f" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.7 21a2 2 0 0 1-3.5 0" /></svg>
             </Link>
@@ -209,6 +210,13 @@ function FeaturedGropoCard({ x, isFavorited, isAuthed, onOpenSheet }: { x: Price
   const confirmed = selIdx <= curIdx
   const accent = modeAccent(confirmed)
 
+  // A-02 · Unidades libres, si quedan pocas. Se resta `committedUnits` (la demanda
+  // efectiva real), NO `currentUnits`, que es un numero de display recortado al tramo
+  // siguiente y subestimaria lo ocupado. Mismo umbral que el badge del checkout.
+  const LOW_STOCK = 5
+  const stockLeft = (p.maxStock ?? 0) > 0 ? Math.max(0, (p.maxStock as number) - (p.committedUnits ?? 0)) : null
+  const lowStock = stockLeft !== null && stockLeft <= LOW_STOCK ? stockLeft : null
+
   const handlePrimary = () => {
     if (!confirmed && isAuthed) {
       open({
@@ -281,6 +289,27 @@ function FeaturedGropoCard({ x, isFavorited, isAuthed, onOpenSheet }: { x: Price
           {p.imageUrl && <img src={p.imageUrl} alt={p.name} className="w-full h-full object-cover" loading="eager" fetchPriority="high" />}
         </div>
       </Link>
+
+      {/* A-02 · Las dos palancas de escasez del modelo —quedan pocas, queda poco
+          tiempo— faltaban justo en el sitio de máxima atención: esta tarjeta ocupa
+          la primera pantalla entera. El comprador se encontraba el tope de unidades
+          DESPUÉS, ya dentro del checkout. */}
+      {(lowStock !== null || p.closesAt) && (
+        <div className="flex items-center gap-2 flex-wrap mt-2.5">
+          {lowStock !== null && (
+            <span className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-bold" style={{ background: '#FEF3E2', color: '#B4541A' }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M13 2L4.09 12.11a1 1 0 00.77 1.64H11l-1 8.25 8.91-10.11a1 1 0 00-.77-1.64H12z" /></svg>
+              {lowStock === 1 ? 'Queda 1 unidad' : `Quedan ${lowStock} unidades`}
+            </span>
+          )}
+          {p.closesAt && (
+            <span className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-bold" style={{ background: '#F2F7F7', color: '#4A4A55' }}>
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9" /><polyline points="12 7 12 12 15 15" /></svg>
+              <GroupCountdown closesAt={p.closesAt} minimal />
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Price selector */}
       <div className="mt-2.5 pt-2.5" style={{ borderTop: '1px solid #DEEEED' }}>

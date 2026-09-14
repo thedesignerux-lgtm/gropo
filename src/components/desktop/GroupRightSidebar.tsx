@@ -8,6 +8,7 @@ import { useCheckout } from '@/components/checkout/CheckoutProvider'
 import { createClient } from '@/lib/supabase-browser'
 import GropoTargetSlider, { type Detent } from '@/components/GropoTargetSlider'
 import { modeAccent } from '@/lib/brand-colors'
+import { getActivation } from '@/lib/activation'
 
 function fmt(n: number): string {
   return (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
@@ -23,13 +24,14 @@ interface Props {
   pvp: number
   tiers: Tier[]
   maxStock: number
+  minExecution: number
   closesAt: string
 }
 
 const AVATAR_LETTERS = ['A', 'B', 'C']
 
 export default function GroupRightSidebar({
-  groupId, name, spec, imageUrl, tiers, pvp, maxStock, closesAt,
+  groupId, name, spec, imageUrl, tiers, pvp, maxStock, minExecution, closesAt,
 }: Props) {
   // A-29 · Hasta el 14-sep-2026 estas tres props se declaraban, se pasaban desde
   // GroupDesktopView… y no se desestructuraban. Consecuencia: el arreglo de A-11
@@ -101,6 +103,11 @@ export default function GroupRightSidebar({
   // precio; restarle las unidades ya comprometidas es el mismo cálculo que hace
   // `remainingStock()` en el checkout. La autoridad sigue siendo `prepare_join`:
   // esto solo evita pedir lo que ya no existe.
+  // A-01 · ¿Puede este grupo comprar hoy? Si no, el precio que se ve es el *fallback*
+  // de `compute_price`: el de un tramo todavía cerrado.
+  const activation = getActivation(tiers, committedUnits, minExecution)
+  const notActivated = tiers.length > 0 && !activation.activated
+
   const remaining = maxStock > 0 ? Math.max(0, maxStock - committedUnits) : null
   const noStock = remaining !== null && remaining === 0
   const maxQty = remaining === null ? 10 : Math.max(1, Math.min(10, remaining))
@@ -143,28 +150,37 @@ export default function GroupRightSidebar({
     <aside className="flex-shrink-0 sticky top-[24px]">
       <div className="bg-white rounded-[22px] border border-[#E6EDEC] p-6" style={{ boxShadow: '0 24px 60px -34px rgba(30,20,60,.4)' }}>
 
-        {/* ── Estado del grupo (A-11 en escritorio) ── */}
-        {hasClosed && (
+        {/* ── Estado del grupo (A-11 y A-01 en escritorio) ── */}
+        {hasClosed ? (
           <span className="inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-3 py-1.5 mb-4 bg-[#F1F5F9] text-[#475569]">
             <span className="w-1.5 h-1.5 rounded-full bg-[#94A3B8]" />
             Cerrado
           </span>
-        )}
+        ) : notActivated ? (
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-3 py-1.5 mb-4 bg-[#FEF3E2] text-[#B4541A]">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#E8944A]" />
+            Aún no activado
+          </span>
+        ) : null}
 
         {/* ── Precio actual + siguiente ── */}
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-[0.12em] mb-1">{hasClosed ? 'Precio al cierre' : 'Precio actual'}</p>
+            <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-[0.12em] mb-1">{hasClosed ? 'Precio al cierre' : notActivated ? 'Precio de salida' : 'Precio actual'}</p>
             <span className="text-4xl font-extrabold leading-none text-neutral-900 tabular-nums">{fmt(displayPrice)}</span>
-            {/* A-29 · `pvp` llegaba como prop y no se usaba: en escritorio no existía el ahorro. */}
-            {pvp > displayPrice && displayPrice > 0 && (
+            {/* A-29 · `pvp` llegaba como prop y no se usaba: en escritorio no existía el ahorro.
+                A-01 · Sin ahorro mientras no haya un precio real del que ahorrar. */}
+            {pvp > displayPrice && displayPrice > 0 && !notActivated && (
               <p className="mt-1.5 text-[12.5px] text-neutral-500">
                 <span className="line-through">{fmt(pvp)}</span>
                 <span className="ml-2 font-bold text-[#0B7B44]">Ahorras {fmt(pvp - displayPrice)}</span>
               </p>
             )}
+            {notActivated && pvp > 0 && (
+              <p className="mt-1.5 text-[12.5px] text-neutral-500 line-through">{fmt(pvp)}</p>
+            )}
           </div>
-          {nextTier && !hasClosed && (
+          {nextTier && !hasClosed && !notActivated && (
             <div className="text-right">
               <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-[0.12em] mb-1">Siguiente</p>
               <span className="text-2xl font-extrabold text-brand tabular-nums">{fmt(nextTier.price)}</span>
@@ -193,6 +209,29 @@ export default function GroupRightSidebar({
           </div>
         )}
 
+        {/* A-01 · La meta que faltaba: cuántas unidades necesita para arrancar. */}
+        {notActivated && (
+          <div className="mt-4 rounded-2xl px-4 py-3.5" style={{ background: '#FEF7ED', border: '1px solid #FBE3C7' }}>
+            <div className="flex items-baseline justify-between gap-2">
+              <span className="text-[13px] font-bold text-[#8A4B10]">
+                {activation.unitsToActivate === 1
+                  ? 'Falta 1 unidad para que arranque'
+                  : `Faltan ${activation.unitsToActivate} unidades para que arranque`}
+              </span>
+              <span className="text-[12px] font-bold tabular-nums text-[#B4541A]">
+                {committedUnits} / {activation.targetUnits}
+              </span>
+            </div>
+            <div className="mt-2 h-1.5 rounded-full overflow-hidden" style={{ background: '#FBE3C7' }}>
+              <div className="h-full rounded-full" style={{ width: `${Math.min(100, Math.round((committedUnits / Math.max(1, activation.targetUnits)) * 100))}%`, background: '#E8944A' }} />
+            </div>
+            <p className="mt-2 text-[12px] leading-snug text-[#8A4B10]">
+              Este grupo necesita {activation.targetUnits} unidades para salir adelante. Hasta
+              entonces no hay compra ni cargo: si no llega, se cancela y no se cobra nada.
+            </p>
+          </div>
+        )}
+
         <div className="border-t border-[#F1EFF5] my-5" />
 
         {/* ── Target slider (reemplaza stepper + selector) ── */}
@@ -209,6 +248,8 @@ export default function GroupRightSidebar({
             glow={pulseData?.glow}
             locked={busy}
             disabled={busy || hasClosed}
+            notActivated={notActivated}
+            udsToActivate={activation.unitsToActivate}
           />
         ) : (
           <div className="text-lg font-bold text-neutral-900">{fmt(displayPrice)}</div>
@@ -241,7 +282,10 @@ export default function GroupRightSidebar({
                 ? 'Sin unidades disponibles'
                 : busy
                   ? 'Abriendo…'
-                  : confirmed ? `Bloquear precio · ${fmt(selectedPrice)}` : `Bloquear precio · Máx. ${fmt(selectedPrice)}`}
+                  /* A-01 · No se puede «bloquear» un precio que aún no existe. */
+                  : notActivated
+                    ? 'Reservar mi plaza · Hoy 0 €'
+                    : confirmed ? `Bloquear precio · ${fmt(selectedPrice)}` : `Bloquear precio · Máx. ${fmt(selectedPrice)}`}
           </button>
         </div>
 

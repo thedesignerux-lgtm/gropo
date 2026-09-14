@@ -2,7 +2,7 @@
 // Se envía SOLO a miembros cuyo pago fue capturado con éxito (payment_status='paid').
 // Remitente visible: Gropo.
 
-import { emailBrandHeader } from './brand'
+import { emailBrandHeader, emailTrackBlock } from './brand'
 
 export interface PurchaseEmailData {
   nombre?: string
@@ -28,6 +28,9 @@ export function purchaseConfirmationEmail(data: PurchaseEmailData): {
 
   const subject = `Compra confirmada · ${productName}`
 
+  // A-15 · Hasta ahora este email no tenía ni un enlace.
+  const track = emailTrackBlock(28)
+
   const text = `${saludo}
 
 El grupo de ${productName} se ha cerrado con éxito y tu compra está confirmada.
@@ -40,6 +43,8 @@ Hemos realizado el cobro en tu tarjeta. Si tu banco muestra una retención por u
 Prepararemos tu envío y te avisaremos con los datos de seguimiento.
 
 Gracias por comprar en grupo.
+${track.text}
+
 — Gropo`
 
   const html = `<!DOCTYPE html>
@@ -78,6 +83,7 @@ Gracias por comprar en grupo.
             </td></tr>
           </table>
         </td></tr>
+        ${track.html}
         <tr><td style="padding:18px 28px 28px 28px;">
           <p style="margin:0;font-size:14px;color:#555555;line-height:1.5;">
             Prepararemos tu envío y te avisaremos con los datos de seguimiento.

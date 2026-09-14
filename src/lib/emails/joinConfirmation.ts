@@ -1,7 +1,7 @@
 // Plantilla del email de confirmación de unión a un grupo.
 // Remitente visible: Gropo.
 
-import { emailBrandHeader } from './brand'
+import { emailBrandHeader, emailTrackBlock } from './brand'
 
 export interface JoinEmailData {
   nombre?: string
@@ -38,6 +38,9 @@ export function joinConfirmationEmail(data: JoinEmailData): {
 
   const subject = `Te has unido al grupo · ${productName}`
 
+  // A-15 · Hasta ahora este email no tenía ni un enlace.
+  const track = emailTrackBlock(32)
+
   const text = `${saludo}
 
 Te has unido al grupo de compra de ${productName}.
@@ -46,6 +49,8 @@ Precio actual: ${precio}
 El grupo cierra el ${cierre}.
 
 Cuantos más seáis, mejor precio para todos. Te avisaremos cuando el grupo cierre.
+
+${track.text}
 
 — Gropo`
 
@@ -151,6 +156,8 @@ Cuantos más seáis, mejor precio para todos. Te avisaremos cuando el grupo cier
               </table>
             </td>
           </tr>
+
+          ${track.html}
 
           <!-- ============ CIERRE ============ -->
           <tr>

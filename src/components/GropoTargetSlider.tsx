@@ -78,6 +78,14 @@ interface Props {
   hideThumb?: boolean
   /** Precio bloqueado: reemplaza el thumb por el icono de candado con animación. */
   locked?: boolean
+  /**
+   * A-01 · El grupo todavía NO puede ejecutarse (le faltan unidades para desbloquear
+   * su primer tramo o para llegar a la ejecución mínima). Con esto puesto, ningún
+   * precio del slider está garantizado: el nudge deja de decir «ya está disponible».
+   */
+  notActivated?: boolean
+  /** Unidades que faltan para que el grupo arranque. Solo se usa con `notActivated`. */
+  udsToActivate?: number
   /** Muestra rectángulos discretos en el tramo curIdx→siguiente: uno por unidad,
    *  rellenos los ya conseguidos y en blanco los que faltan. */
   shortfallTicks?: boolean
@@ -90,6 +98,7 @@ export default function GropoTargetSlider({
   pulse, glow = 0, onCommit, minIdx = 0, disabled = false, anchorMode = false,
   anchorFading = false, hideThumb = false, locked = false,
   shortfallTicks = false, currentUnits,
+  notActivated = false, udsToActivate,
 }: Props) {
   const trackRef = useRef<HTMLDivElement | null>(null)
   const rootRef = useRef<HTMLDivElement | null>(null)
@@ -199,7 +208,15 @@ export default function GropoTargetSlider({
    * Ahora describe el estado del precio, no una participación inexistente.
    */
   let nudgeText: string
-  if (confirmed) {
+  if (notActivated) {
+    // A-01 · Mientras el grupo no arranca no hay ningún precio disponible: el que se
+    // ve es el del tramo al que saldría. Decir «ya está disponible» aquí era falso.
+    const faltanAct = Math.max(0, udsToActivate ?? 0)
+    nudgeText = faltanAct > 0
+      ? `Este grupo aún no ha arrancado: ${faltanAct === 1 ? 'falta 1 unidad' : `faltan ${faltanAct} unidades`}. ` +
+        `Si sale adelante, este tramo se paga a ${fmt(selP)}. Si no, no se cobra nada.`
+      : `Este grupo aún no ha arrancado. Si sale adelante, este tramo se paga a ${fmt(selP)}. Si no, no se cobra nada.`
+  } else if (confirmed) {
     if (selIdx < curIdx) {
       nudgeText = `Tu máximo sería ${fmt(selP)}, pero el grupo ya está en ${fmt(curP)}: eso es lo que pagarías.`
     } else {
@@ -213,10 +230,10 @@ export default function GropoTargetSlider({
       `Ahora está en ${fmt(curP)}, y cada persona que entra lo acerca.`
   }
   /** "Confirmado" es vocabulario de banco para algo que todavía no ha ocurrido. */
-  const statusLabel = confirmed ? 'Disponible' : 'En espera'
-  const statusBg = confirmed ? '#DEEDEC' : '#FCEEE0'
-  const nudgeBg = confirmed ? '#F5FAFA' : '#FCF4EA'
-  const nudgeBr = confirmed ? '#E6F1F1' : '#F3E3CC'
+  const statusLabel = notActivated ? 'Aún no activado' : confirmed ? 'Disponible' : 'En espera'
+  const statusBg = notActivated ? '#FEF3E2' : confirmed ? '#DEEDEC' : '#FCEEE0'
+  const nudgeBg = notActivated ? '#FEF7ED' : confirmed ? '#F5FAFA' : '#FCF4EA'
+  const nudgeBr = notActivated ? '#FBE3C7' : confirmed ? '#E6F1F1' : '#F3E3CC'
 
   // ── GROPO PULSE ──────────────────────────────────────────────
   // Capas de actividad en vivo mapeadas al sistema de posiciones del slider

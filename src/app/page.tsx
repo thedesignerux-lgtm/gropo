@@ -25,14 +25,21 @@ async function fetchGroups(): Promise<GroupProduct[]> {
   const ids = rows.map((r: any) => r.id)
   const { data: bidsMeta } = await supabaseAdmin
     .from('bids')
-    .select('group_id, min_execution')
+    .select('group_id, min_execution, max_stock')
     .eq('status', 'active')
     .in('group_id', ids)
   const minExecByGroup = new Map<string, number>()
+  const maxStockByGroup = new Map<string, number>()
   for (const b of bidsMeta ?? []) {
     const v = Number((b as any).min_execution ?? 0)
     const prev = minExecByGroup.get((b as any).group_id)
     minExecByGroup.set((b as any).group_id, prev == null ? v : Math.min(prev, v))
+    // A-02 · Con varias pujas activas nos quedamos con el stock mayor: es el techo
+    // de lo que se puede vender hoy. La autoridad al comprar sigue siendo
+    // `prepare_join`, que mira el stock de la puja concreta.
+    const st = Number((b as any).max_stock ?? 0)
+    const prevSt = maxStockByGroup.get((b as any).group_id) ?? 0
+    maxStockByGroup.set((b as any).group_id, Math.max(prevSt, st))
   }
 
   const ladders = await Promise.all(
@@ -73,6 +80,10 @@ async function fetchGroups(): Promise<GroupProduct[]> {
       minExecution: minExecByGroup.get(row.id) ?? 0,
       imageUrl: (row.image_url as string | null) ?? undefined,
       closesAt: (row.closes_at as string | null) ?? undefined,
+      maxStock: maxStockByGroup.get(row.id) ?? 0,
+      // La demanda efectiva es máxima en el tramo más barato, donde entran todos:
+      // ese máximo es la suma de unidades vivas del grupo.
+      committedUnits: asc.length > 0 ? Math.max(...asc.map(t => t.demand)) : 0,
     }]
   })
 }

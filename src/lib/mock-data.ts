@@ -14,6 +14,15 @@ export interface GroupProduct {
   minExecution: number
   imageUrl?: string
   closesAt?: string
+  /** A-02 · Stock de la puja que da el mejor precio. 0 = sin límite conocido. */
+  maxStock?: number
+  /**
+   * A-02 · Unidades realmente comprometidas (`max(tier_demand.effective_demand)`).
+   * NO es lo mismo que `currentUnits`, que es un valor de *display* recortado al
+   * tramo siguiente para que la escalera de las tarjetas se lea bien. Para restar
+   * stock hay que usar esta.
+   */
+  committedUnits?: number
 }
 
 export interface StepPricingResult {

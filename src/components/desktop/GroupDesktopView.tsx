@@ -37,7 +37,7 @@ function ImagePlaceholder({ label }: { label: string }) {
 
 export default function GroupDesktopView({
   groupId, name, spec, pvp, imageUrl,
-  tiers, maxStock, closesAt,
+  tiers, maxStock, minExecution, closesAt,
 }: Props) {
   function handleShare() {
     const url = `${SITE_URL}/grupo/${groupId}`
@@ -123,6 +123,7 @@ export default function GroupDesktopView({
             pvp={pvp}
             tiers={tiers}
             maxStock={maxStock}
+            minExecution={minExecution}
             closesAt={closesAt}
           />
         </div>
