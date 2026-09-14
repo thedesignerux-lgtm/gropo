@@ -271,3 +271,43 @@ mecanismo de sincronización.
 | DT-11 Sin categorías | Medio (bloquea features) | Bajo |
 | DT-15 `price_mode` a medias | Bajo | Medio (induce a error) |
 | DT-04, DT-08, DT-09, DT-16, DT-17, DT-18, DT-19 | Bajo | Bajo |
+
+---
+
+## DT-06 · 34 ficheros formatean dinero por su cuenta
+
+**Censo del 14 sep 2026.** No hay una función de formato de dinero. Hay **~27 copias** del mismo
+helper, repartidas por componentes, páginas y plantillas de email:
+
+```ts
+(n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
+```
+
+Más **11 sitios** que formatean a mano dentro de cadenas de texto, sin helper.
+
+**Dos comportamientos conviven sin que nadie lo decidiera:**
+- *«listo»* — oculta los decimales si el precio es entero: `49 €`. Es el de catálogo.
+- *«siempre dos decimales»* — `49,00 €`. Solo en `FastCheckoutModal` y en `ProductCard.fmt`.
+
+`ProductCard` tiene **las dos**, `fmt` y `fmtSmart`, una debajo de la otra. Puede ser deliberado
+(un importe que se cobra se escribe con céntimos) pero no está escrito en ninguna parte.
+
+**Lo que NO es deuda:** la ausencia de separador de millares. En español los números de cuatro
+cifras **se escriben sin separador** (RAE: *"esta separación mediante espacios no suele usarse en
+los números que solo tienen cuatro cifras"*), y `Intl.NumberFormat('es-ES')` hace exactamente eso:
+no agrupa por debajo de 10.000. `1849 €` está bien escrito. Queda anotado porque se diagnosticó
+como fallo el 13 sep y **no lo era**.
+
+**Por qué no se ha unificado todavía.** Son 34 ficheros con dinero en pantalla y el beneficio hoy
+es invisible: Gropo no tiene ningún producto por encima de 9.999 €, así que la agrupación no
+llegaría a verse. Y la auditoría heurística en curso puede cambiar cómo se muestran los precios;
+centralizar antes de esa decisión obliga a tocarlo dos veces.
+
+**Cuándo hacerlo.** Cuando la auditoría decida algo sobre formato de precios, o cuando entre el
+primer producto de cinco cifras. Entonces: `src/lib/money.ts` con dos funciones —la «lista» y la
+de céntimos— y las 34 llamando a ellas. **Excepción obligatoria:** `admin/grupos/[id]/csv/route.ts`
+no debe formatearse; ahí `1849.00` es un dato para una hoja de cálculo, no un texto.
+
+**Corregido ya (14 sep 2026):** `admin/grupos/[id]/actions.ts` escribía el error de `withdrawBid`
+con **punto** decimal (`1849.00 €`) mientras el de `releaseMember`, en el mismo fichero, usaba
+coma. La coma decimal en español no es opcional.

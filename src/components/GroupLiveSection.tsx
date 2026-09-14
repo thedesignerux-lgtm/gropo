@@ -85,12 +85,34 @@ export default function GroupLiveSection({
   const confirmed = selIdx <= curIdx
   const isEsperar = !confirmed
   const accent = modeAccent(confirmed)
-  const statusLabel = confirmed ? 'Disponible' : 'En espera'  // UX-02
-  const statusBg = confirmed ? '#DEEDEC' : '#FCEEE0'
+  /**
+   * A-11 · El plazo vencido tiene que apagar la pantalla.
+   *
+   * Antes, un grupo pasado de fecha enseñaba «Cerrado» sobre la foto y
+   * «Disponible» en la tarjeta de precio, con el botón de comprar activo. Y no
+   * era solo cosmético: `prepare_join` protegía por ESTADO, nunca por fecha, así
+   * que entre el cierre y la pasada del cron (domingos 21:00 UTC) el servidor
+   * seguía aceptando compras. El servidor ya lo rechaza; esto es la otra mitad.
+   *
+   * Se calcula después de montar, como `GroupCountdown`: en el servidor y en el
+   * cliente «ahora» no es el mismo instante, y hacerlo durante el render daría
+   * un desajuste de hidratación. El intervalo hace que la pantalla se apague
+   * sola si el plazo vence con la página abierta.
+   */
+  const [hasClosed, setHasClosed] = useState(false)
+  useEffect(() => {
+    const check = () => setHasClosed(new Date(closesAt).getTime() <= Date.now())
+    check()
+    const id = setInterval(check, 1000)
+    return () => clearInterval(id)
+  }, [closesAt])
+
+  const statusLabel = hasClosed ? 'Cerrado' : confirmed ? 'Disponible' : 'En espera'  // UX-02 · A-11
+  const statusBg = hasClosed ? '#F1EFF5' : confirmed ? '#DEEDEC' : '#FCEEE0'
 
   const [lockPhase, setLockPhase] = useState(0) // 0=idle, 1=spinning, 2=locked
   const handleCheckout = () => {
-    if (lockPhase > 0) return
+    if (lockPhase > 0 || hasClosed) return
     setLockPhase(1) // arrows start spinning
     setTimeout(() => setLockPhase(2), 1000) // after 1s → CTA changes
     setTimeout(() => {
@@ -193,16 +215,20 @@ export default function GroupLiveSection({
         <button
           type="button"
           onClick={handleCheckout}
-          disabled={lockPhase > 0}
+          disabled={lockPhase > 0 || hasClosed}
           className="w-full h-12 rounded-xl font-bold text-[14.5px] active:scale-[0.98] transition-all whitespace-nowrap"
           /* UX-06 · Era un botón fantasma (relleno al 8 % con borde) para la única
              acción de la pantalla, la que autoriza una retención en la tarjeta.
              Sólido: #024947 da 10,26:1 con blanco y #B24A00 da 5,42:1. */
-          style={lockPhase >= 2
-            ? { border: '2px solid #0B7B44', background: '#E8F5E9', color: '#0B7B44' }
-            : { background: accent, color: '#fff', boxShadow: `0 10px 24px -12px ${accent}` }}
+          style={hasClosed
+            ? { background: '#E8E6F0', color: '#6B6B76', cursor: 'not-allowed' }
+            : lockPhase >= 2
+              ? { border: '2px solid #0B7B44', background: '#E8F5E9', color: '#0B7B44' }
+              : { background: accent, color: '#fff', boxShadow: `0 10px 24px -12px ${accent}` }}
         >
-          {lockPhase >= 2 ? '✓ Precio bloqueado' : (isEsperar ? `Bloquear precio · Máx. ${fmt(effectiveSelected)}` : `Bloquear precio · ${fmt(effectiveSelected)}`)}
+          {hasClosed
+            ? 'Este grupo ya ha cerrado'
+            : lockPhase >= 2 ? '✓ Precio bloqueado' : (isEsperar ? `Bloquear precio · Máx. ${fmt(effectiveSelected)}` : `Bloquear precio · ${fmt(effectiveSelected)}`)}
         </button>
       </div>
     </>

@@ -202,7 +202,7 @@ export async function withdrawBid(
         .update({ status: 'active' })
         .eq('id', bidId)
       return {
-        error: `No se puede retirar: el nuevo precio (${newPrice.toFixed(2)} €) superaría el precio garantizado de algún miembro (${minGuaranteed.toFixed(2)} €). `
+        error: `No se puede retirar: el nuevo precio (${newPrice.toFixed(2).replace('.', ',')} €) superaría el precio garantizado de algún miembro (${minGuaranteed.toFixed(2).replace('.', ',')} €). `
           + `Para retirar esta puja, primero deben salir esos miembros o debe haber otra puja que cubra el precio.`,
       }
     }

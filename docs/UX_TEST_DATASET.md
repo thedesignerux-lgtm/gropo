@@ -22,6 +22,18 @@ riesgo pequeño, pero **no es material para producción**: cuando haya catálogo
 fotos las tiene que aportar el vendedor. Cada URL de origen está guardada en `groups.product_url`
 para poder sustituirla.
 
+> ⚠️ **Pasó de verdad, el 14 sep.** Dos de las quince imágenes eran malas y no se detectó al
+> montarlas porque solo se comprobó que **cargaran**, no que **mostraran el producto**:
+> - **G03 Garmin** traía incrustado *«Only available at biciescapa.com/es»*. Es decir: publicidad
+>   de otra tienda, servida en la home de Gropo.
+> - **G07 Orbea** no era una bicicleta: era una **tabla de tallas**.
+>
+> Corregidas (fotos de Deporvillage y Recambios Sánchez, revisadas una a una en una hoja de
+> contacto). La lección vale para producción, no solo para el dataset: **una imagen enlazada del
+> servidor de un tercero puede traer su marca de agua, o no ser lo que dice el nombre del
+> archivo.** Un HTTP 200 no es una verificación. Refuerza la regla: las fotos las aporta el
+> vendedor.
+
 ### Borrarlo todo
 
 ```sql
