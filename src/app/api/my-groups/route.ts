@@ -21,39 +21,37 @@ export async function GET() {
     .eq('email', authEmail)
     .maybeSingle()
 
-  let phone = gropoUser?.phone
-  let userEmail = gropoUser?.email ?? authEmail
+  const phone = gropoUser?.phone
+  const userEmail = gropoUser?.email ?? authEmail   // A-17 · ya no se reasigna
 
-  // 3. Fallback: if no users record, search group_members by shipping_phone
-  //    via the users table linked through user_id
+  /**
+   * A-17 · Aquí había un plan B que NO PODÍA FUNCIONAR, y que además costaba hasta
+   * 51 consultas.
+   *
+   * Cargaba los **50 `group_members` más recientes de toda la plataforma** y recorría
+   * uno a uno consultando su `users` para comparar el email. Dos problemas:
+   *
+   *  - **N+1**: 50 consultas secuenciales por cada visita que entrara por esa rama.
+   *  - **Acotado a 50 GLOBALES**: con catálogo real, un comprador cuya compra no
+   *    estuviera entre las 50 últimas de toda la plataforma no se encontraba nunca.
+   *    Sin error y sin aviso: simplemente «no tienes pedidos».
+   *
+   * Y sobre todo: **era inalcanzable**. Se entra aquí solo si el paso 2 no encontró
+   * teléfono, y eso pasa en dos casos, los dos sin salida por este camino:
+   *
+   *  1. Existe un `users` con ese email pero sin teléfono → el bucle acabaría
+   *     encontrando **esa misma fila**, con el mismo teléfono vacío.
+   *  2. No existe ningún `users` con ese email → el bucle compara emails de OTROS
+   *     usuarios y no coincide jamás. (`users_email_key` es UNIQUE, INV-14: no puede
+   *     haber una segunda fila con el mismo email.)
+   *
+   * Comprobado en producción: 39 usuarios sin teléfono y **ninguno con compras**.
+   * `prepare_join` exige y normaliza el teléfono, así que todo el que compra lo tiene;
+   * los que no lo tienen son cuentas creadas al iniciar sesión, sin pedidos que
+   * enseñar. Devolver la lista vacía es la respuesta correcta.
+   */
   if (!phone) {
-    // Try to find a group_member whose user record matches this auth email
-    const { data: member } = await supabaseAdmin
-      .from('group_members')
-      .select('user_id, shipping_phone')
-      .order('created_at', { ascending: false })
-      .limit(50)
-
-    if (member && member.length > 0) {
-      // Check if any member's user_id links to a user with this email
-      for (const m of member) {
-        if (m.user_id) {
-          const { data: u } = await supabaseAdmin
-            .from('users')
-            .select('phone, email')
-            .eq('id', m.user_id)
-            .maybeSingle()
-          if (u && u.email === authEmail) {
-            phone = u.phone
-            userEmail = u.email
-            break
-          }
-        }
-      }
-    }
-  }
-
-  if (!phone) {
+    console.warn('[api/my-groups] sin teléfono para', authEmail, '— sin pedidos que devolver')
     return NextResponse.json({ groups: [] })
   }
 

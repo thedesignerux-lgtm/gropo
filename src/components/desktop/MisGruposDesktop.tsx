@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import DesktopNavbar from './DesktopNavbar'
 import PulseBar from '@/components/PulseBar'
+import { SITE_URL } from '@/lib/site'
 
 // ── Tipos ──────────────────────────────────────────────
 export interface Membership {
@@ -265,11 +266,81 @@ export function MgCard({ m, ladder, onOpen }: { m: Membership; ladder: LadderRow
                  precio garantizado: el techo de lo que puede pagar. */
               : <><span style={{ color: t.c }}>{I.shield}</span><span>Tu plaza está asegurada hasta {fmt(d.commit)}</span></>}
       </div>
-      {/* CTA */}
-      <div className="flex items-center justify-center gap-2 w-full rounded-xl py-2.5 text-[13.5px] font-bold bg-white" style={{ border: `1.5px solid ${t.bd}`, color: t.c }}>
+      {/* CTA — A-35 · Era un <div> con aspecto de botón: funcionaba porque el onClick
+          está en la tarjeta entera, pero NO se alcanzaba con el tabulador ni se
+          anunciaba como botón. Un usuario de teclado no tenía forma de abrir el panel.
+          Ahora es un <button> real; el click en cualquier parte de la tarjeta sigue
+          funcionando igual porque el evento burbujea. */}
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onOpen() }}
+        className="flex items-center justify-center gap-2 w-full rounded-xl py-2.5 text-[13.5px] font-bold bg-white focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1"
+        style={{ border: `1.5px solid ${t.bd}`, color: t.c }}
+      >
         {d.state === 'meta' ? (paid ? 'Ver compra / Ticket' : 'Ver instrucciones de pago') : d.state === 'liberado' ? 'Ver qué ha pasado' : d.state === 'noalc' ? 'Ver devolución' : 'Ver estado de tu plaza'} →
-      </div>
+      </button>
     </div>
+  )
+}
+
+/**
+ * A-23 · El botón de compartir estaba MUERTO: sin `onClick` y sin `type`.
+ *
+ * Era la única acción del panel «Ver estado de tu plaza», en móvil y en escritorio,
+ * y justo encima el propio panel pide compartir («Comparte tu enlace y baja el precio
+ * para todos»). De todos los hallazgos pequeños de la auditoría, el más caro: la
+ * palanca de crecimiento del modelo, apagada en la pantalla donde el comprador ya
+ * está comprometido y tiene el máximo interés en que entre más gente.
+ *
+ * El mecanismo ya estaba resuelto en otros tres sitios (`PostCheckoutView`,
+ * `GroupDesktopView`, `RadarCardMenu`): `navigator.share` donde existe —móvil— y
+ * copia al portapapeles donde no. La URL sale de `SITE_URL`, no de
+ * `window.location.origin`: el enlace que se comparte tiene que ser el canónico, que
+ * es lo que arregló en su día el problema de los enlaces a `vonda.es`.
+ *
+ * El feedback es obligatorio: copiar al portapapeles sin decirlo es invisible, y el
+ * usuario pulsa otra vez creyendo que no ha funcionado.
+ */
+function ShareGroupButton({ groupId, productName, color }: { groupId: string; productName: string; color: string }) {
+  const [copied, setCopied] = useState(false)
+
+  async function handleShare() {
+    const url = `${SITE_URL}/grupo/${groupId}`
+    const shareData = { title: productName, text: `Estoy en este grupo de Gropo: cuantos más entremos, menos pagamos.`, url }
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share(shareData)
+        return
+      } catch {
+        // El usuario canceló el diálogo, o el navegador lo rechazó: caemos a copiar.
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Sin permiso de portapapeles (http, o navegador viejo): el input temporal.
+      const input = document.createElement('input')
+      input.value = url
+      document.body.appendChild(input)
+      input.select()
+      document.execCommand('copy')
+      document.body.removeChild(input)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleShare}
+      className="w-full rounded-xl py-3.5 text-[14.5px] font-bold text-white flex items-center justify-center gap-2 transition-[filter] hover:brightness-110 active:scale-[0.99]"
+      style={{ background: color }}
+    >
+      {copied ? <>{I.check} Enlace copiado</> : <>{I.share} Comparte con un amigo</>}
+    </button>
   )
 }
 
@@ -327,7 +398,7 @@ export function Drawer({ m, ladder, onClose }: { m: Membership; ladder: LadderRo
           <p className="text-[12.5px] text-neutral-500 mt-5 leading-relaxed">Cuantas más personas entren, antes se cierra el grupo y antes aseguras tu precio. Comparte tu enlace y baja el precio para todos.</p>
         </div>
         <div className="px-[22px] py-4 border-t border-neutral-100">
-          <button className="w-full rounded-xl py-3.5 text-[14.5px] font-bold text-white flex items-center justify-center gap-2" style={{ background: t.c }}>{I.share} Comparte con un amigo</button>
+          <ShareGroupButton groupId={m.group_id} productName={m.product_name} color={t.c} />
         </div>
       </>
     )

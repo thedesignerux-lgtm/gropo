@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { GroupProduct } from '@/lib/mock-data'
@@ -52,6 +52,7 @@ function price(p: GroupProduct): Priced {
 
 export default function GroupsGrid({ products, favoriteIds = [], isAuthed = false }: Props) {
   const [query, setQuery] = useState('')
+  const searchRef = useRef<HTMLInputElement>(null)  // A-35
   const [sheetOpen, setSheetOpen] = useState(false)
   const favSet = new Set(favoriteIds)
 
@@ -138,13 +139,17 @@ export default function GroupsGrid({ products, favoriteIds = [], isAuthed = fals
           <div className="flex items-center h-[52px] bg-white rounded-full pl-4 pr-1.5" style={{ border: '1px solid #E7E4DD', boxShadow: '0 10px 26px -16px rgba(30,20,60,.35)' }}>
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#9a97a2" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><line x1="16.5" y1="16.5" x2="21" y2="21" /></svg>
             <input
+              ref={searchRef}
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Busca un producto"
               className="flex-1 text-[13.5px] text-neutral-700 placeholder:text-neutral-400 bg-transparent ml-3 focus:outline-none"
             />
-            <button type="button" className="w-10 h-10 rounded-full bg-brand grid place-items-center shrink-0" aria-label="Buscar">
+            {/* A-35 · Era un <button> sin onClick: no hacía nada, pero parecía pulsable
+                (el filtrado ocurre al teclear). En vez de quitarlo, que haga lo único
+                coherente con su aspecto: llevar el foco al campo. */}
+            <button type="button" onClick={() => searchRef.current?.focus()} className="w-10 h-10 rounded-full bg-brand grid place-items-center shrink-0" aria-label="Buscar">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.4" strokeLinecap="round"><circle cx="11" cy="11" r="7" /><line x1="16.5" y1="16.5" x2="21" y2="21" /></svg>
             </button>
           </div>
@@ -427,12 +432,32 @@ function CarouselCard({ x, isFavorited, wide }: { x: Priced; isFavorited: boolea
             <FavoriteButton groupId={p.id} initialFavorited={isFavorited} size={15} icon="heart" />
           </span>
         </div>
-        {/* Caption overlay */}
-        <div className="absolute left-0 right-0 bottom-0" style={{ padding: '20px 10px 10px', background: 'linear-gradient(to top, rgba(0,0,0,.8), rgba(0,0,0,.25) 60%, transparent)' }}>
-          <div className="text-[12.5px] font-extrabold text-white leading-tight line-clamp-2">{p.name}</div>
+        {/* Caption overlay — A-05 · legibilidad sobre las fotos REALES.
+            El degradado estaba calculado para fotografía ambiental (fondo oscuro),
+            pero el catálogo real es **producto recortado sobre fondo claro**: con dos
+            líneas de nombre, la segunda subía hasta la zona casi transparente y el
+            texto blanco se perdía sobre el blanco de la foto. Pasa en «Garmin Edge 840
+            Solar», «Bicicleta Orbea Orca M30» y «Par de ruedas Zipp 303 S».
+            Degradado más alto y más opaco en la base, y sombra en el texto para el
+            peor caso. El arreglo de fondo sería sacar el nombre fuera de la foto
+            —patrón estándar cuando el producto va recortado—, pero eso cambia la
+            composición de la tarjeta y es decisión visual de Benjamin.
+
+            Las paradas del degradado están CALCULADAS, no elegidas a ojo. Contraste
+            del blanco en el borde superior del nombre, sobre foto blanca (el peor
+            caso real de este catálogo):
+
+              degradado anterior  .80 → .25@60%     →  1,62:1   ilegible
+              primer intento      .90 → .55 → .18   →  1,96:1   seguía fallando
+              este                .92 → .72 → .30   →  5,89:1   ✅ (AA exige 4,5:1)
+
+            La `text-shadow` ayuda a la percepción pero NO cuenta para WCAG: el
+            contraste lo tiene que dar el fondo. */}
+        <div className="absolute left-0 right-0 bottom-0" style={{ padding: '30px 10px 10px', background: 'linear-gradient(to top, rgba(0,0,0,.92) 0%, rgba(0,0,0,.72) 62%, rgba(0,0,0,.30) 82%, transparent 100%)' }}>
+          <div className="text-[12.5px] font-extrabold text-white leading-tight line-clamp-2" style={{ textShadow: '0 1px 3px rgba(0,0,0,.7)' }}>{p.name}</div>
           <div className="flex items-baseline justify-between gap-1 mt-0.5">
-            <span className="text-[14px] font-extrabold text-white" style={{ fontFamily: 'var(--font-space-grotesk), sans-serif' }}>{fmt(currentPrice)}</span>
-            {savings > 0 && <span className="text-[10px] font-extrabold" style={{ color: '#5FD08A' }}>−{fmt(savings)}</span>}
+            <span className="text-[14px] font-extrabold text-white" style={{ fontFamily: 'var(--font-space-grotesk), sans-serif', textShadow: '0 1px 3px rgba(0,0,0,.7)' }}>{fmt(currentPrice)}</span>
+            {savings > 0 && <span className="text-[10px] font-extrabold" style={{ color: '#5FD08A', textShadow: '0 1px 3px rgba(0,0,0,.7)' }}>−{fmt(savings)}</span>}
           </div>
         </div>
       </Link>

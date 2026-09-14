@@ -191,7 +191,7 @@ si coinciden, se dice «18 personas en el grupo».
 
 ---
 
-### 🟠 A-05 · El nombre del producto es ilegible en la mitad de las tarjetas
+### 🟠 A-05 · El nombre del producto era ilegible en la mitad de las tarjetas — ✅ CORREGIDO 14 sep 2026
 **Reproducir:** home, carruseles.
 
 El nombre va en blanco sobre la foto, con un degradado oscuro por debajo. Pero el catálogo real es
@@ -200,6 +200,24 @@ El nombre va en blanco sobre la foto, con un degradado oscuro por debajo. Pero e
 
 El degradado está diseñado para fotografía ambiental. Es el hallazgo nº 4 del dataset, y visto con
 fotos reales **no es estética: es legibilidad**.
+
+**Corregido (14 sep 2026), con los números calculados y no elegidos a ojo.** Medí el contraste del
+blanco en el borde superior del nombre, sobre foto blanca, que es el peor caso real de este
+catálogo:
+
+| Degradado | Contraste | |
+|---|---|---|
+| El que había (`.80` → `.25@60 %`) | **1,62 : 1** | ilegible |
+| Mi primer intento (`.90` → `.55` → `.18`) | **1,96 : 1** | **seguía fallando** |
+| El aplicado (`.92` → `.72@62 %` → `.30@82 %`) | **5,89 : 1** | ✅ |
+
+WCAG AA exige 4,5:1 para texto pequeño. **Mi primera propuesta no llegaba**, y lo habría dado por
+bueno de no haberlo calculado: a ojo parecía suficiente. La `text-shadow` que también se añadió
+ayuda a la percepción pero **no cuenta** para el contraste — eso lo tiene que dar el fondo.
+
+**El arreglo de fondo sigue sobre la mesa:** sacar el nombre **fuera** de la foto, que es el patrón
+estándar cuando el producto va recortado sobre fondo claro. Elimina el problema en vez de
+taparlo, pero cambia la composición de la tarjeta y es decisión visual de Benjamin.
 
 ---
 
@@ -496,7 +514,7 @@ pedido en una y no en la otra según desde dónde entre, sin ninguna explicació
 
 Ver también DT-03: no es duplicación de UI, es duplicación de **concepto de identidad**.
 
-### 🟡 A-17 · El rescate de `/api/my-groups` se degrada en silencio
+### 🟡 A-17 · El rescate de `/api/my-groups` no podía funcionar — ✅ CORREGIDO 14 sep 2026
 Si el registro de `users` no tiene teléfono, el endpoint cae a un plan B: cargar los **50
 `group_members` más recientes de toda la plataforma** y recorrerlos haciendo una consulta de
 usuario por fila, comparando emails.
@@ -505,6 +523,23 @@ Dos problemas: es un N+1 de hasta 50 consultas secuenciales, y está acotado a l
 **globales** — con catálogo real, un comprador cuya compra no esté entre las 50 últimas de toda la
 plataforma simplemente **no se encuentra**, sin error ni aviso. Hoy no se dispara casi nunca
 (`prepare_join` normaliza y exige teléfono), pero es una trampa que empeora al crecer.
+
+**Y al ir a arreglarlo resultó ser peor: el plan B no podía funcionar nunca.** Se entra en esa rama
+solo si no hay teléfono, y eso ocurre en dos casos, los dos sin salida por ahí:
+
+1. Existe un `users` con ese email **pero sin teléfono** → el bucle acabaría encontrando **esa
+   misma fila**, con el mismo teléfono vacío.
+2. **No existe** ningún `users` con ese email → el bucle compara emails de *otros* usuarios y no
+   coincide jamás. Y no puede haber una segunda fila con el mismo email: `users_email_key` es
+   UNIQUE (INV-14).
+
+Es decir: 51 consultas para no encontrar nada, en el mejor de los casos.
+
+**Corregido (14 sep 2026).** Fuera el bucle. Si no hay teléfono se devuelve la lista vacía con un
+aviso en el log. **Comprobado en producción:** 39 usuarios sin teléfono y **ninguno con compras** —
+`prepare_join` exige y normaliza el teléfono, así que todo el que compra lo tiene, y los que no son
+cuentas creadas al iniciar sesión, sin pedidos que enseñar. La lista vacía es la respuesta
+correcta, y ahora cuesta una consulta en vez de 51.
 
 ---
 
@@ -762,7 +797,7 @@ de 24 h, se cerró, te liberamos) con marca de tiempo, y que el estado permanent
 
 ---
 
-### 🟡 A-23 · El botón «Comparte con un amigo» no hace nada
+### 🟡 A-23 · El botón «Comparte con un amigo» no hacía nada — ✅ CORREGIDO 14 sep 2026
 `MisGruposDesktop.tsx:284`:
 
 ```tsx
@@ -777,6 +812,16 @@ y copia al portapapeles). Aquí solo falta enchufarlo.
 
 Que la palanca de crecimiento del modelo sea un botón muerto en la pantalla donde el comprador ya
 está comprometido es, de todos los hallazgos pequeños, el más caro.
+
+**Corregido (14 sep 2026).** `navigator.share` donde existe —móvil, que es donde se comparte— y
+copia al portapapeles donde no, con el mismo patrón que ya usaban los otros tres sitios. Dos
+detalles que no son cosméticos:
+
+- **La URL sale de `SITE_URL`**, no de `window.location.origin`. El enlace que alguien comparte
+  tiene que ser el canónico: es exactamente lo que se arregló el 12 de septiembre cuando los
+  enlaces seguían apuntando a `vonda.es`.
+- **Feedback obligatorio.** Copiar al portapapeles sin decirlo es invisible, y el usuario vuelve a
+  pulsar creyendo que no ha funcionado. El botón pasa a «Enlace copiado» durante dos segundos.
 
 ---
 
@@ -1182,7 +1227,7 @@ un borrado limpio.
 
 ---
 
-### 🟡 A-35 · Dos controles que parecen lo que no son
+### 🟡 A-35 · Dos controles que parecían lo que no son — ✅ CORREGIDO 14 sep 2026
 - **La lupa de la búsqueda** (`HomeDesktopView.tsx:95`, y el mismo patrón en móvil en
   `GroupsGrid.tsx:128`) es un `<button>` sin `onClick`. No hace nada; el filtrado ocurre al
   teclear. Es decorativo, pero parece pulsable.
@@ -1190,6 +1235,10 @@ un borrado limpio.
   aspecto de botón. Funciona porque el `onClick` está en la tarjeta entera, pero **no se puede
   alcanzar con el tabulador** ni se anuncia como botón. Un usuario de teclado no tiene forma de
   abrir el panel.
+
+**Corregido (14 sep 2026).** La CTA pasa a ser un `<button>` real, con foco visible; el clic en
+cualquier parte de la tarjeta sigue funcionando igual, porque el evento burbujea. Y la lupa, en vez
+de desaparecer, hace lo único coherente con su aspecto: **llevar el foco al campo de búsqueda**.
 
 ---
 
@@ -1201,16 +1250,50 @@ Estado a 14 de septiembre de 2026:
 | Severidad | Total | Corregidos | Abiertos |
 |---|---|---|---|
 | 🔴 crítico | 11 | **10** — A-01, A-02, A-11, A-12, A-15, A-18 (con A-18b), A-21, A-25, A-29, A-30 | **1** — A-28 |
-| 🟠 importante | 14 | **10** — A-03, A-04, A-06, A-11c, A-13, A-19, A-20, A-26, A-27 y A-31 (estos dos, en parte) | 4 |
-| 🟡 mejora | 11 | **1** — A-14 | 10 |
+| 🟠 importante | 14 | **11** — A-03, A-04, A-05, A-06, A-11c, A-13, A-19, A-20, A-26, A-27 y A-31 (estos dos, en parte) | 3 |
+| 🟡 mejora | 11 | **4** — A-14, A-17, A-23, A-35 | 7 |
 | ⚠️ a la espera | 1 — A-11b | 0 | 1 (no tocado a propósito) |
 
 *(A-14 pasó de 🟠 a 🟡 al comprobarse que el ahorro sí se calculaba.)*
 
-**Los 🟠 que quedan:** A-05 (el nombre del producto es ilegible sobre foto clara), A-16 y A-22 (las
-dos superficies de `/notificaciones`: qué es cada una está sin decidir) y A-32 (el checkout no
-tiene vista de escritorio). Más las dos mitades pendientes: la etiqueta visible del formulario
-(A-27) y el vocabulario de navegación (A-31).
+**25 de 37 cerrados.** Lo que queda, por lo que hace falta para cerrarlo:
+
+| Hace falta | Hallazgos |
+|---|---|
+| **Un abogado** | A-28 (checkout sin términos ni desistimiento), y con él L-03 / RULE-063 |
+| **Una decisión de producto tuya** | A-16 + A-22 (qué es `/notificaciones` frente a `/mis-grupos`), A-27 (¿etiqueta visible en el formulario?), A-05 (¿el nombre fuera de la foto?) |
+| **Trabajo de diseño de pantalla** | A-32 (el checkout no tiene vista de escritorio) |
+| **Una pasada con prueba en modo test** | A-11b (`confirm_join` sin guard de estado) |
+| **Decidir y limpiar** | A-24 (datos TEST en cuentas reales), A-34 (710 líneas de componentes huérfanos), A-33 (avatares A/B/C inventados) |
+| **Cosmética menor** | A-07, A-08, A-09, A-10 |
+
+---
+
+## LO QUE FALTA DECIDIR: `/notificaciones` vs `/mis-grupos` (A-16 + A-22)
+
+No lo arreglo porque **no es un bug, es una pregunta sin responder**, y la respuesta cambia lo que
+hay que construir. El estado de hoy, ya corregida la identidad (A-21):
+
+- `/mis-grupos` — una tarjeta por pedido, con su estado, su precio y su retención.
+- `/notificaciones` — **una fila por pedido, siempre, para siempre**, con títulos en presente
+  continuo: *«Tu plaza sigue asegurada»*, *«El precio sigue bajando mientras entra gente»*.
+
+Eso no son notificaciones: es el mismo estado contado peor. La pantalla promete novedades y entrega
+un duplicado.
+
+**Las dos salidas razonables:**
+
+1. **`/notificaciones` pasa a ser un feed de verdad** — solo lo que ha **cambiado**, con marca de
+   tiempo: bajó el tramo, quedan menos de 24 h, el grupo cerró, te liberamos la plaza. Requiere
+   guardar eventos por usuario (la tabla `events` ya existe para el grupo; habría que decidir qué
+   se considera notificable y cuánto se guarda), y con ello llega la campanita con contador, que es
+   lo que trae a la gente de vuelta.
+2. **`/notificaciones` desaparece** y `/mis-grupos` se queda como la única superficie de
+   seguimiento. Cuesta media hora y elimina la contradicción, a costa de renunciar al canal de
+   reenganche.
+
+Yo recomendaría **la 1**, pero no es una decisión técnica: es cuánto vale para Gropo tener un canal
+propio que devuelva al comprador a la web mientras su grupo está vivo. Eso lo sabes tú.
 
 **El único crítico abierto es A-28**: el checkout no menciona términos, privacidad ni
 desistimiento. Requiere abogado, no código, y es la misma consulta que L-03 / RULE-063.

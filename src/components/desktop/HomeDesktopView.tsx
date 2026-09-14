@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { GroupProduct } from '@/lib/mock-data'
@@ -51,6 +51,7 @@ interface Props {
 
 export default function HomeDesktopView({ products, favoriteIds = [], isAuthed = false }: Props) {
   const [query, setQuery] = useState('')
+  const searchRef = useRef<HTMLInputElement>(null)  // A-35
   const favSet = new Set(favoriteIds)
   const countdown = useCountdown()
 
@@ -85,6 +86,7 @@ export default function HomeDesktopView({ products, favoriteIds = [], isAuthed =
               <div className="flex-1 min-w-0">
                 <div className="text-[10.5px] font-bold tracking-[0.14em] text-neutral-400 uppercase">Qué buscas</div>
                 <input
+                  ref={searchRef}
                   type="text"
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
@@ -92,8 +94,10 @@ export default function HomeDesktopView({ products, favoriteIds = [], isAuthed =
                   className="w-full text-[15px] text-neutral-800 placeholder:text-neutral-400 bg-transparent focus:outline-none mt-0.5"
                 />
               </div>
+              {/* A-35 · Botón sin onClick: parecía pulsable y no hacía nada. */}
               <button
                 type="button"
+                onClick={() => searchRef.current?.focus()}
                 aria-label="Buscar"
                 className="shrink-0 w-12 h-12 rounded-full grid place-items-center transition-transform active:scale-95"
                 style={{ background: '#024947' }}
