@@ -29,12 +29,21 @@ interface Props {
 const AVATAR_LETTERS = ['A', 'B', 'C']
 
 export default function GroupRightSidebar({
-  groupId, name, spec, imageUrl, tiers,
+  groupId, name, spec, imageUrl, tiers, pvp, maxStock, closesAt,
 }: Props) {
+  // A-29 · Hasta el 14-sep-2026 estas tres props se declaraban, se pasaban desde
+  // GroupDesktopView… y no se desestructuraban. Consecuencia: el arreglo de A-11
+  // (plazo vencido) nunca llegó a escritorio, el selector topaba en 10 fijo
+  // ignorando el stock, y el ahorro no existía en esta vista.
   const { tiers: demandTiers, currentPrice, nextTier, missing } = useTierDemand(groupId)
   const { data: pulseData } = usePulse(nextTier ? groupId : null)
   const displayPrice = currentPrice > 0 ? currentPrice : (tiers.length > 0 ? Math.max(...tiers.map(t => t.price)) : 0)
-  const totalParticipants = demandTiers.length > 0 ? Math.max(...demandTiers.map(t => t.demand)) : 0
+  // UNIDADES comprometidas, no personas. La demanda efectiva es máxima en el tramo
+  // más barato (ahí entran todos: los de «comprar» y los esperadores, cuyo objetivo
+  // siempre es un precio de la escalera), así que este máximo equivale a la suma que
+  // usan `group_committed_units` y `prepare_join`. El copy de abajo aún dice
+  // «personas»: ver A-04 en UX_AUDIT_2.md.
+  const committedUnits = demandTiers.length > 0 ? Math.max(...demandTiers.map(t => t.demand)) : 0
 
   // Detents: tramos ordenados por minUnits asc (= precio desc)
   const detents: Detent[] = useMemo(
@@ -52,6 +61,18 @@ export default function GroupRightSidebar({
   const [selIdx, setSelIdx] = useState(curIdx)
   const [quantity, setQuantity] = useState(1)
   const touchedRef = useRef(false)
+
+  // A-11 en escritorio · El plazo es una regla, no un adorno. Se calcula DESPUÉS
+  // de montar (como GroupCountdown) para no romper la hidratación, y con
+  // intervalo para que la pantalla se apague sola si vence con la página abierta.
+  const [hasClosed, setHasClosed] = useState(false)
+  useEffect(() => {
+    if (!closesAt) return
+    const check = () => setHasClosed(new Date(closesAt).getTime() <= Date.now())
+    check()
+    const id = setInterval(check, 1000)
+    return () => clearInterval(id)
+  }, [closesAt])
 
   // Si el usuario no ha tocado el slider, sigue al precio actual (realtime)
   useEffect(() => {
@@ -76,6 +97,14 @@ export default function GroupRightSidebar({
     supabase.auth.getUser().then(({ data: { user } }) => setAuthed(!!user))
   }, [])
 
+  // A-29 · Tope real del selector. `maxStock` es el stock de la puja que da el mejor
+  // precio; restarle las unidades ya comprometidas es el mismo cálculo que hace
+  // `remainingStock()` en el checkout. La autoridad sigue siendo `prepare_join`:
+  // esto solo evita pedir lo que ya no existe.
+  const remaining = maxStock > 0 ? Math.max(0, maxStock - committedUnits) : null
+  const noStock = remaining !== null && remaining === 0
+  const maxQty = remaining === null ? 10 : Math.max(1, Math.min(10, remaining))
+
   const ctaParams = new URLSearchParams()
   if (isEsperar) {
     ctaParams.set('mode', 'esperar')
@@ -84,26 +113,28 @@ export default function GroupRightSidebar({
   if (quantity > 1) ctaParams.set('qty', String(quantity))
   const ctaHref = `/grupo/${groupId}/unirme${ctaParams.toString() ? `?${ctaParams.toString()}` : ''}`
 
-  const [lockPhase, setLockPhase] = useState(0) // 0=idle, 1=spinning, 2=locked
+  // A-30 · Antes esto pintaba «✓ Precio bloqueado» al segundo 1,0 y no navegaba
+  // hasta el 1,8. En ese instante no hay hold, ni PaymentIntent, ni membresía: el
+  // comprador ni siquiera ha visto el formulario de pago. Confirmar algo que el
+  // sistema todavía no puede garantizar es justo lo que P0-03 corrigió en móvil.
+  // Ahora la acción arranca en el clic; `busy` solo protege del doble clic.
+  const [busy, setBusy] = useState(false)
   const handleBuy = () => {
-    if (lockPhase > 0) return
-    setLockPhase(1) // arrows start spinning
-    setTimeout(() => setLockPhase(2), 1000) // after 1s → CTA changes
-    setTimeout(() => {
-      if (isEsperar && authed) {
-        open({ groupId, productName: name, productSpec: spec, imageUrl, quantity, maxPricePerUnit: selectedPrice, joinMode: 'esperar', targetPrice: selectedPrice })
-      } else if (isEsperar) {
-        router.push(ctaHref)
-      } else if (authed) {
-        open({ groupId, productName: name, productSpec: spec, imageUrl, quantity, maxPricePerUnit: selectedPrice })
-      } else {
-        router.push(ctaHref)
-      }
-    }, 1800) // navigate after 1.8s
+    if (busy || hasClosed || noStock) return
+    setBusy(true)
+    if (isEsperar && authed) {
+      open({ groupId, productName: name, productSpec: spec, imageUrl, quantity, maxPricePerUnit: selectedPrice, joinMode: 'esperar', targetPrice: selectedPrice })
+      setBusy(false)
+    } else if (authed && !isEsperar) {
+      open({ groupId, productName: name, productSpec: spec, imageUrl, quantity, maxPricePerUnit: selectedPrice })
+      setBusy(false)
+    } else {
+      router.push(ctaHref)   // navegando: `busy` se queda puesto hasta que cambia la página
+    }
   }
 
-  const avatarCount = Math.min(totalParticipants, AVATAR_LETTERS.length)
-  const extraCount = totalParticipants - avatarCount
+  const avatarCount = Math.min(committedUnits, AVATAR_LETTERS.length)
+  const extraCount = committedUnits - avatarCount
 
   const accent = modeAccent(confirmed)
   const accentShadow = confirmed ? 'rgba(2, 73, 71,.35)' : 'rgba(232,148,74,.35)'
@@ -112,13 +143,28 @@ export default function GroupRightSidebar({
     <aside className="flex-shrink-0 sticky top-[24px]">
       <div className="bg-white rounded-[22px] border border-[#E6EDEC] p-6" style={{ boxShadow: '0 24px 60px -34px rgba(30,20,60,.4)' }}>
 
+        {/* ── Estado del grupo (A-11 en escritorio) ── */}
+        {hasClosed && (
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold rounded-full px-3 py-1.5 mb-4 bg-[#F1F5F9] text-[#475569]">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#94A3B8]" />
+            Cerrado
+          </span>
+        )}
+
         {/* ── Precio actual + siguiente ── */}
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-[0.12em] mb-1">Precio actual</p>
+            <p className="text-[10px] font-bold text-neutral-500 uppercase tracking-[0.12em] mb-1">{hasClosed ? 'Precio al cierre' : 'Precio actual'}</p>
             <span className="text-4xl font-extrabold leading-none text-neutral-900 tabular-nums">{fmt(displayPrice)}</span>
+            {/* A-29 · `pvp` llegaba como prop y no se usaba: en escritorio no existía el ahorro. */}
+            {pvp > displayPrice && displayPrice > 0 && (
+              <p className="mt-1.5 text-[12.5px] text-neutral-500">
+                <span className="line-through">{fmt(pvp)}</span>
+                <span className="ml-2 font-bold text-[#0B7B44]">Ahorras {fmt(pvp - displayPrice)}</span>
+              </p>
+            )}
           </div>
-          {nextTier && (
+          {nextTier && !hasClosed && (
             <div className="text-right">
               <p className="text-[10px] font-bold text-neutral-400 uppercase tracking-[0.12em] mb-1">Siguiente</p>
               <span className="text-2xl font-extrabold text-brand tabular-nums">{fmt(nextTier.price)}</span>
@@ -127,7 +173,7 @@ export default function GroupRightSidebar({
         </div>
 
         {/* ── Avatares + personas ── */}
-        {totalParticipants > 0 && (
+        {committedUnits > 0 && (
           <div className="flex items-center justify-between mt-4">
             <div className="flex items-center -space-x-1.5">
               {AVATAR_LETTERS.slice(0, avatarCount).map((letter) => (
@@ -142,7 +188,7 @@ export default function GroupRightSidebar({
               )}
             </div>
             <span className="text-sm text-neutral-500">
-              {totalParticipants} persona{totalParticipants !== 1 ? 's' : ''} en el grupo
+              {committedUnits} persona{committedUnits !== 1 ? 's' : ''} en el grupo
             </span>
           </div>
         )}
@@ -161,8 +207,8 @@ export default function GroupRightSidebar({
             udsToNext={missing}
             pulse={pulseData?.steps}
             glow={pulseData?.glow}
-            locked={lockPhase > 0}
-            disabled={lockPhase > 0}
+            locked={busy}
+            disabled={busy || hasClosed}
           />
         ) : (
           <div className="text-lg font-bold text-neutral-900">{fmt(displayPrice)}</div>
@@ -171,25 +217,31 @@ export default function GroupRightSidebar({
         {/* ── Cantidad + CTA ── */}
         <div className="flex items-center gap-3 mt-4">
           <div className="inline-flex items-center rounded-xl border border-[#E4E1DA] flex-shrink-0 overflow-hidden">
-            <button type="button" onClick={() => setQuantity(q => Math.max(1, q - 1))} disabled={quantity <= 1}
+            <button type="button" onClick={() => setQuantity(q => Math.max(1, q - 1))} disabled={quantity <= 1 || hasClosed}
               className="flex h-[46px] w-[42px] items-center justify-center text-xl text-[#3a3a42] bg-white disabled:text-neutral-300 cursor-pointer" aria-label="Menos">−</button>
             <span className="w-9 text-center text-[15px] font-extrabold tabular-nums text-neutral-900">{quantity}</span>
-            <button type="button" onClick={() => setQuantity(q => Math.min(10, q + 1))} disabled={quantity >= 10}
+            <button type="button" onClick={() => setQuantity(q => Math.min(maxQty, q + 1))} disabled={quantity >= maxQty || hasClosed}
               className="flex h-[46px] w-[42px] items-center justify-center text-xl text-[#3a3a42] bg-white disabled:text-neutral-300 cursor-pointer" aria-label="Más">+</button>
           </div>
 
           <button
             type="button"
             onClick={handleBuy}
-            disabled={lockPhase > 0}
-            className="flex-1 h-[46px] rounded-[14px] font-extrabold text-[13.5px] active:scale-[0.98] transition-all whitespace-nowrap"
+            disabled={busy || hasClosed || noStock}
+            className="flex-1 h-[46px] rounded-[14px] font-extrabold text-[13.5px] active:scale-[0.98] transition-all whitespace-nowrap disabled:active:scale-100"
             /* UX-06 · Mismo cambio que en móvil: la acción principal deja de
                parecer secundaria. */
-            style={lockPhase >= 2
-              ? { border: '2px solid #0B7B44', background: '#E8F5E9', color: '#0B7B44' }
+            style={hasClosed || noStock
+              ? { background: '#E8E8EC', color: '#6B6B76' }
               : { background: accent, color: '#fff', boxShadow: `0 12px 26px -14px ${accentShadow}` }}
           >
-            {lockPhase >= 2 ? '✓ Precio bloqueado' : (confirmed ? `Bloquear precio · ${fmt(selectedPrice)}` : `Bloquear precio · Máx. ${fmt(selectedPrice)}`)}
+            {hasClosed
+              ? 'Este grupo ya ha cerrado'
+              : noStock
+                ? 'Sin unidades disponibles'
+                : busy
+                  ? 'Abriendo…'
+                  : confirmed ? `Bloquear precio · ${fmt(selectedPrice)}` : `Bloquear precio · Máx. ${fmt(selectedPrice)}`}
           </button>
         </div>
 

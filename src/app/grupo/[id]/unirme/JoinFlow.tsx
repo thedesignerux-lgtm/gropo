@@ -24,6 +24,7 @@ import {
 import confetti from 'canvas-confetti';
 import { PROVINCIAS_ES } from '@/lib/provincias';
 import { normalizePhone } from '@/lib/phone';
+import { isValidEmail } from '@/lib/email';
 import { supabase } from '@/lib/supabase';
 import HowGropoSheet from '@/components/HowGropoSheet';
 import { readLocalIdentity, saveLocalIdentity } from '@/lib/local-identity';
@@ -889,7 +890,12 @@ function InnerForm({
   // Mientras la confirmamos no volvemos al boton ni cantamos exito.
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // A-25 · El error del email se pinta JUNTO AL CAMPO, no en el aviso global del
+  // final: ese está después de la sección 3 y el submit hace scroll hacia arriba,
+  // así que el comprador nunca llegaría a verlo (A-26).
+  const [emailError, setEmailError] = useState<string | null>(null);
   const datosRef = useRef<HTMLElement>(null);
+  const emailRef = useRef<HTMLInputElement>(null);
   // Precarga: si el usuario ya compró antes, no debe volver a teclear sus datos
   // ni su dirección. La identidad vive en localStorage (la guarda este mismo
   // checkout al confirmar) y la dirección predeterminada en el perfil.
@@ -935,6 +941,7 @@ function InnerForm({
 
   async function handleSubmit() {
     setError(null);
+    setEmailError(null);
     if (!stripe || !elements) return;
 
     // Validar campos obligatorios — si faltan, scroll al formulario
@@ -942,6 +949,17 @@ function InnerForm({
     if (missing) {
       datosRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       setError("Completa todos los campos antes de continuar.");
+      return;
+    }
+
+    // A-25 · El email es la llave con la que luego se recupera este pedido. Un fallo
+    // aquí no da error en ninguna parte: el dinero se retiene igual y el pedido
+    // desaparece de /mis-grupos y /notificaciones. El servidor lo valida también
+    // (create-intent, que es la autoridad); esto es para avisar antes de pagar.
+    if (!isValidEmail(c.email)) {
+      setEmailError('Revisa tu email: no parece una dirección válida. Es a donde enviamos la confirmación y con lo que podrás consultar tu pedido.');
+      emailRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      emailRef.current?.focus({ preventScroll: true });
       return;
     }
 
@@ -1119,8 +1137,21 @@ function InnerForm({
           <input className={INPUT} placeholder="Apellidos"
             value={c.apellidos} onChange={(e) => setC({ ...c, apellidos: e.target.value })} />
         </div>
-        <input className={`${INPUT} mt-3`} type="email" placeholder="Email"
-          value={c.email} onChange={(e) => setC({ ...c, email: e.target.value })} />
+        <input
+          ref={emailRef}
+          className={`${INPUT} mt-3 ${emailError ? 'border-red-400 focus:border-red-500' : ''}`}
+          type="email"
+          placeholder="Email"
+          aria-invalid={emailError ? true : undefined}
+          aria-describedby={emailError ? 'email-error' : undefined}
+          value={c.email}
+          onChange={(e) => { setC({ ...c, email: e.target.value }); if (emailError) setEmailError(null); }}
+        />
+        {emailError && (
+          <p id="email-error" role="alert" className="mt-1.5 text-[12.5px] font-medium text-red-600">
+            {emailError}
+          </p>
+        )}
         <div className="mt-3 flex items-stretch gap-2">
           <span className="inline-flex items-center rounded-xl border border-neutral-200 bg-neutral-50 px-3 text-[15px] text-neutral-500">
             +34

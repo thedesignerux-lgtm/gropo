@@ -4,6 +4,7 @@ import type Stripe from 'stripe';
 import { stripe, idempotencyKeyFor } from '@/lib/stripe';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { createClient } from '@/lib/supabase-server';
+import { isValidEmail } from '@/lib/email';
 
 export async function POST(req: Request) {
   try {
@@ -30,6 +31,19 @@ export async function POST(req: Request) {
     if (!group_id || !quantity || !name || !email || !phone || !shipping) {
       return NextResponse.json({ error: 'Faltan datos obligatorios' }, { status: 400 });
     }
+
+    // A-25 · El servidor es la autoridad también aquí. El email es la llave con la
+    // que el comprador recupera su pedido (`get_my_groups` exige phone + email), así
+    // que una dirección imposible se rechaza ANTES de retener dinero en la tarjeta.
+    if (!isValidEmail(email)) {
+      return NextResponse.json(
+        { error: 'Revisa tu email: no parece una dirección válida. Es donde te enviamos la confirmación y desde donde podrás consultar tu pedido.' },
+        { status: 400 },
+      );
+    }
+    // Solo se recorta: el `lower()` lo hace ya la comparación del lado SQL, pero el
+    // trim no, y un espacio pegado al pegar el email deja el pedido irrecuperable.
+    const cleanEmail = String(email).trim();
 
     // 1) Validar + obtener precio garantizado (reusa las reglas de join_group)
     const { data: prep, error: prepError } = await supabaseAdmin.rpc('prepare_join', {
@@ -105,7 +119,7 @@ export async function POST(req: Request) {
       // P0-04 · El Customer TAMBIEN debe ser idempotente. Sin esto, un invitado
       // creaba uno nuevo en cada intento, `piParams.customer` cambiaba, y la
       // clave del PaymentIntent chocaba con sus propios parametros.
-      const custParams = { name, email, phone: normalizedPhone };
+      const custParams = { name, email: cleanEmail, phone: normalizedPhone };
       const customer = await stripe.customers.create(
         custParams,
         { idempotencyKey: idempotencyKeyFor('cust', custParams) },
@@ -159,7 +173,7 @@ export async function POST(req: Request) {
         group_id,
         quantity: String(quantity),
         buyer_name: name,
-        buyer_email: email,
+        buyer_email: cleanEmail,
         buyer_phone: normalizedPhone,
         guaranteed_price: String(guaranteedPrice),
         join_mode: join_mode || 'comprar',
@@ -179,7 +193,7 @@ export async function POST(req: Request) {
       );
     } catch (err: any) {
       if (err?.code === 'resource_missing' && authUserId) {
-        const freshParams = { name, email, phone: normalizedPhone };
+        const freshParams = { name, email: cleanEmail, phone: normalizedPhone };
         const fresh = await stripe.customers.create(
           freshParams,
           { idempotencyKey: idempotencyKeyFor('cust-fresh', freshParams) },

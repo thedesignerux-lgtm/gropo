@@ -623,8 +623,383 @@ No todo es hallazgo. Conviene dejarlo escrito para no «arreglarlo» por error:
 
 ---
 
-## PENDIENTE DE AUDITAR
-G02 · G03 · G05 · G07 · G10 · G11 · G12 · G13 · G14 · G15,
-**el checkout completo** y **la vista de escritorio** (ninguno necesita sesión).
+## PARTE 5 · EL CHECKOUT COMPLETO (`/grupo/[id]/unirme`)
 
-`/mis-grupos` y `/notificaciones` con sesión: **auditados** (Parte 4, 14 sep 2026).
+Auditado el 14 de septiembre de 2026 leyendo `JoinFlow.tsx` (1.235 líneas),
+`api/join/create-intent/route.ts` y `lib/phone.ts`. El flujo del dinero —hold, idempotencia,
+`prepare_join` como autoridad, reloj de seguridad de P0-06— **está bien construido y no se toca
+aquí**. Todo lo que sigue ocurre antes: en el formulario.
+
+### 🔴 A-25 · El email se validaba al LEER, no al escribir — ✅ CORREGIDO 14 sep 2026
+
+> **Corrección de este hallazgo.** Lo escribí primero como «no se valida en ninguna capa».
+> **Era falso**, y la realidad resultó ser peor. `get_my_groups` **sí** valida el formato — y
+> cuando falla devuelve una lista vacía, en silencio. Lo encontré al ir a implementar el arreglo.
+
+| Capa | Qué comprueba |
+|---|---|
+| `JoinFlow.handleSubmit` | solo `c.email.trim()` **no vacío** |
+| El `<input type="email">` | **nada**: no está dentro de un `<form>`, así que el navegador nunca valida |
+| `create-intent` | solo que el campo **exista** (`if (!email) …`) |
+| `prepare_join` / `confirm_join` | normalizan y exigen el **teléfono**; el email no lo miran |
+| **`get_my_groups`** | **sí valida**: `v_email !~ '^[^@\s]+@[^@\s]+\.[^@\s]+$'` → **`{"groups": []}`** |
+| **`_profile_uid`** | **sí valida**: mismo patrón → devuelve `null` |
+
+El sistema conocía la regla. La aplicaba en el sitio equivocado —a la salida en vez de a la
+entrada— y en vez de avisar, **devolvía vacío**. Comprobado en producción:
+
+```sql
+select get_my_groups('656789098', 'pepe');                    -- → {"groups": []}
+select get_my_groups('656789098', 'thedesignerux@gmail.com'); -- → 5 grupos
+```
+
+En pantalla, esa lista vacía es literalmente *«Todo tranquilo por ahora»* y *«Aún no participas en
+ningún grupo»*. Con el dinero retenido en la tarjeta. Es la misma familia que A-21: pantalla feliz,
+dato ausente, ningún error.
+
+Así que `pepe` o `pepe@gmial.com` entran, se guardan en `users.email` y se convierten en el
+destinatario de todo. Y el email no es un dato de contacto cualquiera: es **la llave**.
+
+- Es a donde va la confirmación de compra y las instrucciones de pago.
+- `get_my_groups(phone, email)` exige que **coincidan los dos**. Un email mal escrito hace que
+  `/mis-grupos` y `/notificaciones` no encuentren nunca ese pedido.
+- Es la vía de recuperación de A-15, la única que tiene el comprador invitado.
+
+Resultado de un solo carácter de más: **dinero retenido en la tarjeta, ningún email, y el pedido
+invisible en las dos pantallas que existen para consultarlo.** Y el comprador no tiene forma de
+enterarse, porque la ausencia de email es indistinguible de un correo que tarda.
+
+**Hoy no ha pasado:** los 158 usuarios de producción tienen email con formato válido (0
+inválidos, comprobado). Son Benjamin y datos demo. En un checkout móvil real, los errores de
+tecleo en el email rondan el 1-2 %.
+
+**Corregido (14 sep 2026).** Nuevo `src/lib/email.ts` con `isValidEmail` y `normalizeEmail`, y la
+comprobación en las dos capas que importan:
+
+1. **`create-intent`, que es la autoridad** — rechaza con 400 **antes** de crear el `PaymentIntent`.
+   Ninguna dirección imposible llega a retener dinero.
+2. **`JoinFlow`, para avisar antes de pagar** — el mensaje se pinta **junto al campo de email**, con
+   el borde en rojo, `aria-invalid`, `aria-describedby` y el foco puesto ahí. No en el aviso global
+   del final, que está detrás de la sección 3 mientras el submit hace scroll hacia arriba: ahí no se
+   ve (A-26). El mensaje desaparece al corregir el campo.
+
+**La regex es literalmente la misma que la de `get_my_groups`**, a propósito. Si el checkout fuera
+más laxo quedaría una franja de emails que se aceptan al comprar y se rechazan al recuperar — el
+mismo agujero con otra forma. Verificado con 16 casos, cliente contra SQL:
+
+| Rechazan los dos | Aceptan los dos |
+|---|---|
+| `pepe` · `pepe@` · `@gmail.com` · `pepe@gmail` · `pepe@@gmail.com` · `pepe gonzalez@gmail.com` · vacío · espacios | `pepe@gmail.com` · `Pepe@Gmail.COM` · `  pepe@gmail.com  ` · `pepe.gonzalez+ofertas@correo.co.uk` · `a@b.c` · las tres cuentas reales de producción |
+
+**Cero discrepancias.** Y comprobado que ninguno de los 158 usuarios existentes tiene un email que
+el validador nuevo rechazaría: nadie se queda fuera.
+
+Además se guarda el email **recortado** (`trim`). No es cosmético: la comparación del lado SQL es
+`lower(u.email) = v_email` **sin `trim` en la columna**, así que un espacio pegado —lo normal al
+pegar desde otra app— dejaba el pedido irrecuperable para siempre. No se aplica `lower` al guardar:
+la comparación ya lo hace, y cambiar cómo se escriben los datos de producción es otro asunto.
+
+**Lo que NO se ha hecho:** pedir el email dos veces para confirmarlo. Es una decisión de producto
+—añade fricción justo donde menos interesa— y esto ya cubre lo que era un fallo.
+
+---
+
+### 🟠 A-26 · «Completa todos los campos» no dice cuál, y se pinta donde no se ve
+Ocho campos obligatorios —nombre, apellidos, email, teléfono, dirección, código postal, ciudad,
+provincia— y **un solo booleano** para todos:
+
+```ts
+const missing = !c.nombre.trim() || !c.apellidos.trim() || … || !s.province;
+if (missing) {
+  datosRef.current?.scrollIntoView(...)          // sube a «1. Tus datos»
+  setError("Completa todos los campos antes de continuar.")
+}
+```
+
+Dos problemas, y el segundo es peor que el primero:
+
+1. **No dice cuál falta.** Con ocho campos y el que falla siendo casi siempre la provincia —el
+   único `<select>`, y el último— el comprador tiene que revisarlos todos a ojo.
+2. **El mensaje se pinta al final del formulario**, después de la sección «3. Pago seguro», pero
+   el código acaba de hacer **scroll hasta arriba**. Es decir: la pantalla salta al principio y el
+   aviso se queda fuera de vista, detrás de tres secciones y del footer fijo. El comprador ve que
+   algo se mueve y que no pasa nada más.
+
+Lo correcto es marcar el campo que falla, poner el mensaje junto a él y llevar el foco ahí
+(`ref.focus()`, no solo `scrollIntoView`). El `role="alert"` ya está puesto; lo que falta es que
+el mensaje esté donde se mira.
+
+---
+
+### 🟠 A-27 · Ocho campos sin etiqueta y sin autocompletado
+Todos los campos usan **solo `placeholder`**: ni `<label>`, ni `id`/`htmlFor`, ni un solo
+`autoComplete`.
+
+Tres consecuencias, en orden de coste:
+
+1. **El autorrelleno del móvil no funciona.** Sin `autocomplete="given-name"`, `"family-name"`,
+   `"email"`, `"tel"`, `"address-line1"`, `"postal-code"`, `"address-level2"`,
+   `"address-level1"`, ni iOS ni Android ni el navegador ofrecen rellenar la dirección. Son ocho
+   campos tecleados a mano en una pantalla pequeña, en el punto de máxima fricción del embudo.
+   Es el hallazgo de esta parte con efecto más directo sobre la conversión.
+2. **Al escribir, la etiqueta desaparece.** Es el defecto conocido del placeholder-como-etiqueta:
+   al revisar el formulario antes de pagar, el comprador ve ocho cajas con texto y ninguna dice
+   qué es cada cosa.
+3. **Accesibilidad.** Un lector de pantalla anuncia el placeholder de forma inconsistente según
+   navegador; sin `<label>` asociada no hay nombre accesible fiable (WCAG 3.3.2). El resto del
+   checkout sí cuida esto —los botones de cantidad llevan `aria-label`, el error lleva
+   `role="alert"`—, lo que hace pensar que es un descuido, no una decisión.
+
+Hay un matiz a favor del diseño actual: el checkout **precarga** nombre, teléfono, email y
+dirección de quien ya compró antes (`readLocalIdentity` + `get_profile`), y lo avisa con *«Tu
+dirección guardada · puedes editarla»*. Eso está bien resuelto. Pero solo cubre al comprador
+recurrente; el primero, que es el que importa para crecer, teclea los ocho campos.
+
+---
+
+### 🔴 A-28 · El checkout no menciona términos, privacidad ni desistimiento
+**Comprobado:** cero apariciones de «términos», «condiciones», «privacidad», «desistimiento»,
+«RGPD», «aceptas» o «al continuar» en todo el flujo de checkout (`unirme/` y `components/checkout/`).
+
+En esa pantalla el comprador entrega nombre, apellidos, email, teléfono y dirección postal
+completa, y autoriza una retención en su tarjeta. No hay un enlace legal, ni una casilla, ni una
+línea que diga qué se hace con esos datos.
+
+No soy abogado y no voy a decir qué exige la ley española en este caso. Lo que sí puedo afirmar es
+lo que hay: **nada**. Y que esto se junta con **L-03 / RULE-063** (el derecho de desistimiento en
+una compra colectiva, que ya estaba pendiente de consulta). Son la misma visita al abogado, y es
+una de las pocas cosas de esta auditoría que **bloquea el lanzamiento**, no la conversión.
+
+Lo que el checkout sí hace bien, y conviene no perderlo al añadir lo legal: explica la mecánica
+del dinero en el momento justo, con tres variantes según el modo — *«Hoy no se te cobra nada:
+retenemos X en tu tarjeta y al cierre se cobra el precio final, que puede ser menor»*, *«Solo
+pagas si el gropo baja a tu precio objetivo»*, *«El grupo ya alcanzó tu precio objetivo…»*. Esa
+honestidad es el activo del producto.
+
+---
+
+## PARTE 6 · LA VISTA DE ESCRITORIO
+
+Móvil y escritorio son **dos árboles de UI separados** (DT-03). Esta parte audita el de
+escritorio, que hasta ahora no se había mirado. El resultado se resume en una frase: **no es una
+versión ancha del móvil, es una versión distinta y más antigua**.
+
+### 🔴 A-29 · El panel de compra de escritorio recibía tres datos y no usaba ninguno — ✅ CORREGIDO 14 sep 2026
+`GroupRightSidebar` es la tarjeta de compra de la ficha en escritorio. Su `interface Props`
+declara `pvp`, `maxStock` y `closesAt`, y `GroupDesktopView` se los pasa. Pero la función
+**no los desestructura**:
+
+```ts
+export default function GroupRightSidebar({
+  groupId, name, spec, imageUrl, tiers,      // ← faltan pvp, maxStock y closesAt
+}: Props) {
+```
+
+Tres props muertas, y dos de ellas son reglas de negocio. Lo que provoca cada una:
+
+**1. Sin `closesAt` → A-11 sigue vivo en escritorio.** El arreglo del 14 de septiembre —píldora
+«Cerrado», botón deshabilitado, `handleCheckout` con salida temprana— se hizo **solo en
+`GroupLiveSection`, que es el móvil**. En escritorio no hay `hasClosed`, no hay píldora de estado,
+y el único `disabled` de la CTA es la animación (`lockPhase > 0`). **Un grupo con el plazo vencido
+sigue ofreciendo «Bloquear precio · 1499 €» en pantalla grande.**
+
+El servidor sí protege: `prepare_join` rechaza desde el mismo día. Así que no se puede cobrar. Pero
+la pantalla vende y el rechazo llega después de pulsar, en forma de error. Es exactamente la
+contradicción que A-11 vino a quitar, intacta en la mitad del producto.
+
+*Esto es un fallo mío:* al cerrar A-11 verifiqué el móvil y di el hallazgo por cerrado sin
+comprobar que existía un segundo árbol de UI para la misma pantalla.
+
+**2. Sin `maxStock` → el selector de cantidad topa en 10 fijo.**
+
+```ts
+onClick={() => setQuantity(q => Math.min(10, q + 1))}
+```
+
+En las gafas quedan 2 unidades (A-12) y en escritorio se pueden pedir 10. El checkout sí respeta el
+stock (`remainingStock`, P2-01) y `prepare_join` rechaza en servidor, así que no se vende lo que no
+hay — pero el comprador elige 10, pulsa, y el sistema le dice que no. Es el mismo error de P2-01,
+en el árbol que no se revisó.
+
+**3. Sin `pvp` → en escritorio no existe el ahorro.** Ni precio tachado ni «Ahorras X». El
+argumento económico más fuerte del producto está en la home y en la ficha móvil, y desaparece en
+la ficha de escritorio. Empalma con A-14.
+
+**Corregido (14 sep 2026).** Las tres props se reciben y se usan:
+
+| | Antes | Ahora |
+|---|---|---|
+| `closesAt` | ignorado | **`hasClosed`** con el mismo patrón que `GroupLiveSection` —se calcula tras montar para no romper la hidratación, y con intervalo para apagarse solo—. Píldora **«Cerrado»**, encabezado que pasa a «Precio al cierre», el bloque «Siguiente» desaparece, el slider y el selector se deshabilitan y la CTA queda gris con **«Este grupo ya ha cerrado»** |
+| `maxStock` | selector topado en **10 fijo** | tope real: `maxStock − unidades comprometidas`, acotado a 10. Si no queda nada, CTA **«Sin unidades disponibles»** |
+| `pvp` | ignorado | precio tachado + **«Ahorras X»**, como en móvil |
+
+**Verificado con los datos reales de producción:**
+
+| Grupo | `max_stock` | Comprometidas | Tope antes | Tope ahora |
+|---|---|---|---|---|
+| Gafas Oakley | 20 | 18 | **10** | **2** ✅ (coincide con A-12) |
+| Sillín Fizik | 50 | 12 | 10 | 10 (sin cambio, correcto) |
+| Shimano 105 Di2 | — | — | CTA activa | **«Este grupo ya ha cerrado»** ✅ |
+
+La autoridad sigue siendo `prepare_join`: esto solo evita **pedir** lo que ya no existe.
+
+De paso, la variable que cuenta el grupo se llamaba `totalParticipants` y **no son personas: son
+unidades** (es el máximo de la demanda efectiva, que en el tramo más barato equivale a la suma de
+`group_committed_units`). Se ha renombrado a `committedUnits` para que el siguiente no se
+confunda. El copy visible sigue diciendo «personas» — eso es **A-04**, que sigue abierto.
+
+---
+
+### 🔴 A-30 · «✓ Precio bloqueado» aparecía 800 ms antes de que existiera nada — ✅ CORREGIDO 14 sep 2026
+Al pulsar la CTA de escritorio, `handleBuy` hace esto:
+
+```ts
+setLockPhase(1)                                  // 0 ms   — flechas girando
+setTimeout(() => setLockPhase(2), 1000)          // 1000 ms — la CTA dice «✓ Precio bloqueado»
+setTimeout(() => { /* abrir checkout o navegar */ }, 1800)   // 1800 ms — recién empieza
+```
+
+En el segundo 1,0 el botón afirma que el precio está bloqueado. En ese instante no hay hold, no hay
+`PaymentIntent`, no hay membresía, no se ha llamado a nada: el comprador **ni siquiera ha visto el
+formulario de pago**. La confirmación llega 800 ms antes que el primer byte de la operación.
+
+Es el mismo error que **P0-03** —«JoinFlow muestra éxito sin esperar al webhook»—, que se dio por
+resuelto el 12 de septiembre… en el árbol móvil. Y choca de frente con el principio del propio
+proyecto: *nunca mostrar una confirmación económica que el sistema todavía no puede garantizar*.
+
+Además de mentir, **cuesta 1,8 segundos** de espera fabricada en la pantalla de máxima intención de
+compra. La animación no está esperando a nada: es un temporizador.
+
+**Corregido (14 sep 2026).** Fuera `lockPhase` y los dos `setTimeout`. La acción arranca **en el
+clic**; queda un `busy` que solo sirve para lo que debe servir: impedir el doble clic. El botón ya
+no afirma nada que no haya ocurrido —dice «Abriendo…» mientras navega— y **«✓ Precio bloqueado» ha
+desaparecido**, porque en esa pantalla nunca hubo nada bloqueado.
+
+---
+
+### 🟠 A-31 · Dos vocabularios completos para el mismo producto
+No son matices de redacción; son palabras distintas para las mismas cosas, en las dos mitades del
+mismo producto:
+
+| La misma idea | Escritorio | Móvil |
+|---|---|---|
+| La acción principal | **«Bloquear precio · 85 €»** | **«Asegurar hasta 85 €»** / «Fijar límite en…» |
+| El grupo destacado | «Grupo destacado» | «★ Gropo destacada» (además cambia de género) |
+| Ir a la home | «Explorar» | «Inicio» |
+| El ahorro | «Ahorra 40 €» | «Ahorras 40 €» |
+| La rejilla de grupos | «Grupos abiertos» | «Más grupos abiertos» |
+| Cuánta gente hay | «12 personas en el grupo» | «12 confirmados» |
+| Volver atrás | «← Volver a los grupos» | solo un icono |
+
+Y hay cosas que existen en una mitad y no en la otra:
+
+- **«¿Cuál es el máximo que pagarías?»** —la pregunta rectora del producto— **solo está en
+  móvil**. El slider de escritorio no tiene encabezado. El comentario del código en
+  `GroupLiveSection.tsx:176` afirma lo contrario («solo existía en escritorio»): la documentación
+  del propio código está al revés de la realidad.
+- El **estado del grupo** («Disponible» / «En espera» / «Cerrado») solo existe en móvil.
+- En móvil la ficha **no tiene selector de cantidad**: fija `quantity: 1`. En escritorio sí lo hay.
+  La misma pantalla ofrece decisiones distintas según el tamaño del navegador.
+- **«Pago 100 % seguro con Stripe»** solo aparece en escritorio.
+
+Esto es DT-03 cobrándose su precio: cada arreglo de copy hay que hacerlo dos o tres veces, y los
+hallazgos de esta auditoría —A-01, A-04, A-12, A-13— habrá que corregirlos por duplicado.
+
+---
+
+### 🟠 A-32 · El checkout no tiene vista de escritorio
+`/grupo/[id]/unirme` y `/grupo/[id]/unido` se pintan en una columna de **512 px centrada**
+(`max-w-md lg:max-w-lg`), sin barra de navegación, en una pantalla de 1.440. También `/login` y
+`/crear-peticion`, y la rama sin sesión de `/mis-grupos`.
+
+Que el checkout sea de una columna es defendible —reduce distracción—, pero hoy no es una decisión
+de diseño: es la ausencia de una. La barra de acción queda fija abajo del **viewport completo**,
+lejísimos del formulario; el resumen del pedido y el formulario no pueden verse a la vez, cuando en
+escritorio cabrían en dos columnas; y no hay navegación para volver.
+
+Es la pantalla donde se firma, y es la menos trabajada de las dos versiones.
+
+---
+
+### 🟡 A-33 · Avatares inventados
+`GroupRightSidebar` pinta los participantes así:
+
+```ts
+const AVATAR_LETTERS = ['A', 'B', 'C']
+```
+
+Tres círculos con las letras A, B y C, y un «+17». No son personas: son constantes. Nadie se llama
+A. Con un grupo de verdad detrás, inventar identidades para adornar la prueba social es
+exactamente el tipo de detalle que un comprador desconfiado detecta, y contradice la transparencia
+que el resto del producto se ha ganado. O se usan iniciales reales, o se cuenta el número y ya.
+
+---
+
+### 🟡 A-34 · Seis de los doce componentes de escritorio no los usa nadie
+710 líneas sin una sola referencia en todo `src/`: `DesktopProductCard` (207), `HomeProductCard`
+(165), `GroupSidebar` (169), `HomeSidebar` (139), `HomeCarousel` (74), `GroupCenterContent` (23).
+
+`GroupSidebar` es el más llamativo: implementa pestañas de **Conversación, Participantes,
+Historial, Preguntas y Alertas** que no existen en el producto. Es un diseño anterior que quedó en
+el repositorio.
+
+No es urgente, pero sí es una trampa: cualquiera —persona o IA— que abra `DesktopProductCard.tsx`
+para arreglar una tarjeta estará editando código muerto. Merece una nota en `TECHNICAL_DEBT.md` o
+un borrado limpio.
+
+---
+
+### 🟡 A-35 · Dos controles que parecen lo que no son
+- **La lupa de la búsqueda** (`HomeDesktopView.tsx:95`, y el mismo patrón en móvil en
+  `GroupsGrid.tsx:128`) es un `<button>` sin `onClick`. No hace nada; el filtrado ocurre al
+  teclear. Es decorativo, pero parece pulsable.
+- **La CTA de las tarjetas de «Mis grupos»** («Ver estado de tu plaza →») es un `<div>` con
+  aspecto de botón. Funciona porque el `onClick` está en la tarjeta entera, pero **no se puede
+  alcanzar con el tabulador** ni se anuncia como botón. Un usuario de teclado no tiene forma de
+  abrir el panel.
+
+---
+
+## RESUMEN DE LA AUDITORÍA
+
+**37 hallazgos** sobre 6 partes (recuento verificado sobre este mismo documento).
+Estado a 14 de septiembre de 2026:
+
+| Severidad | Total | Corregidos | Abiertos |
+|---|---|---|---|
+| 🔴 crítico | 11 | **6** — A-11, A-18 (con A-18b), A-21, A-25, A-29, A-30 | 5 |
+| 🟠 importante | 15 | 0 | 15 |
+| 🟡 mejora | 10 | 0 | 10 |
+| ⚠️ a la espera | 1 — A-11b | 0 | 1 (no tocado a propósito) |
+
+Los cinco críticos que siguen abiertos: **A-01** (la ficha de un grupo no activado miente),
+**A-02** (la home oculta stock y tiempo del destacado), **A-12** («En stock» con 2 unidades),
+**A-15** (el comprador invitado se queda sin rastro) y **A-28** (el checkout no menciona nada legal
+— esta requiere abogado, no código).
+
+**Los tres temas de fondo**, por debajo de los hallazgos sueltos:
+
+1. **Nadie ha diseñado el después.** El grupo cerrado, el grupo cancelado, la plaza liberada, el
+   comprador que se queda fuera: todo el producto está construido para el momento de entrar.
+   A-11c, A-15, A-16, A-18, P2-06.
+2. **Dos árboles de UI que se han separado.** No es duplicación de código: es que cuentan cosas
+   distintas, y los arreglos solo llegan a uno de los dos (A-11 y P0-03 siguen vivos en
+   escritorio). DT-03, A-29, A-30, A-31.
+3. **La escasez y la activación existen en los datos y no en la pantalla.** `min_execution`,
+   `max_stock` y `closes_at` se calculan bien, se hacen cumplir en servidor, y no se enseñan:
+   solo sirven para impedir, nunca para avisar. A-01, A-02, A-12, A-29.
+
+**Aparte, fuera del alcance de una auditoría de UX**, esta pasada encontró un problema de dinero
+que se ha registrado como **P0-09** en `KNOWN_ISSUES.md`: el cierre de un grupo puede fijarse
+cualquier día de la semana, pero el cron que cierra solo corre los domingos, así que las
+retenciones pueden llegar a la captura por encima del límite de 7 días de Stripe.
+
+---
+
+## PENDIENTE DE AUDITAR
+Fichas individuales todavía no recorridas una a una: G02 · G03 · G05 · G07 · G10 · G11 · G12 ·
+G13 · G14 · G15. Los patrones ya salieron en las seis partes, así que lo que queda ahí es
+comprobar casos concretos, no descubrir tipos nuevos de problema.
+
+**Auditado:** home, ficha de grupo, escasez, checkout completo, `/mis-grupos` y `/notificaciones`
+(con y sin sesión), emails transaccionales y la vista de escritorio.

@@ -6,6 +6,16 @@
 // muerto cuando close_group intente capturarlo (incidente del cierre del 5 jul
 // 2026: 3 capturas fallidas por holds de 7d+). Límite: 6,5 días (156 h), con
 // 12 h de margen sobre el límite de Stripe para absorber retrasos del cron.
+//
+// ⚠ ESTE LÍMITE SE MIDE HASTA `closes_at`, PERO EL DINERO SE CAPTURA CUANDO CORRE
+// EL CRON. Las 12 h de margen solo aguantan si el cron pasa poco después del
+// cierre. Por eso `vercel.json` lo tiene DIARIO (`0 22 * * *`) y no semanal:
+// closes_at son las 22:00 de Madrid (20:00 UTC en verano, 21:00 en invierno), así
+// que el cron pasa 1-2 h después y el total queda en ~158 h, por debajo de las 168
+// de Stripe. Con el cron semanal que hubo hasta el 14-sep-2026, un grupo que
+// cerrara en martes esperaba 5 días al domingo y el hold llegaba muerto (P0-09).
+// Si alguien vuelve a espaciar ese cron, hay que bajar MAX_CLOSE_WINDOW_HOURS en
+// la misma cantidad.
 
 export const MAX_CLOSE_WINDOW_HOURS = 156 // 6,5 días
 

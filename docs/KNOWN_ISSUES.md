@@ -24,6 +24,7 @@
 | P1-03 | Multi-puja nunca ejecutada con dinero real (Gate G6) | ⚪ FUERA DEL MVP | — |
 | P1-04 | Grupo atrapado en `closing` (excedente con segunda puja) | ⚪ Inalcanzable en el MVP | ❌ nunca ejecutado |
 | P0-08 | Next congelaba las lecturas de Supabase: ficha y checkout con datos fósiles | ✅ resuelto | ✅ **Sí, en producción 12-sep-2026** |
+| P0-09 | El cierre se fija cualquier día, pero el cron solo corría los domingos: holds que podían superar los 7 días de Stripe | ✅ resuelto 14-sep-2026 | ❌ nunca (se cerró antes de tener holds reales en riesgo) |
 | P1-05 | Adjudicado sin email: sin instrucciones y sin alerta | 🟠 P1 | ❓ desconocido |
 | P1-06 | Cero tests automatizados | 🟠 P1 | — |
 | P1-07 | `users_phone_key` no existe: rama de código inalcanzable | 🟠 P1 | ✅ 2 teléfonos duplicados |
@@ -246,6 +247,98 @@ remitente de placeholder (`"Gropo Envios (test)"`, `Carrer de Prova 1`, `envios@
 `CLAUDE.md`.
 
 **STATUS:** ✅ **RESUELTO el 11-sep-2026** — `CRON_SECRET` verificada presente en Vercel.
+
+---
+
+### ✅ P0-09 · El cierre se fija cualquier día, pero el cron solo corría los domingos — RESUELTO (14-sep-2026)
+**Encontrado el 14 de septiembre de 2026** auditando la ficha de escritorio. No es UX: es dinero.
+
+**Los tres hechos, verificados:**
+
+| Qué | Dónde | Valor real |
+|---|---|---|
+| El cron de cierre corre **una vez por semana** | `vercel.json` | `0 21 * * 0` — domingos 21:00 UTC |
+| La fecha de cierre la **elige el admin, libre** | `admin/grupos/new/page.tsx:71` → `madridCloseAtISO(closes_date)` | fija la **hora** (22:00 Madrid); **no** fuerza el día |
+| La única validación de esa fecha | `validateCloseWindow()` en `lib/closeWindow.ts` | que esté en el futuro y a ≤ 156 h; **no comprueba el día de la semana** |
+
+Nada en el sistema obliga a que `closes_at` caiga en domingo. Comprobado contra producción: de los
+**12 grupos abiertos, 0 cierran en domingo** (jueves, viernes, sábado, martes, miércoles y lunes) y
+ninguno a las 22:00 — aunque esto último es artefacto del dataset de pruebas, que se creó sin pasar
+por el formulario real.
+
+**Qué pasa con un grupo que vence en martes.** Vence el martes y **sigue `open` hasta el domingo**.
+Desde el arreglo de A-11 ya no admite compras nuevas, pero:
+
+1. El estado no avanza: nadie cobra, nadie recibe instrucciones de pago, nadie sabe qué pasa.
+2. **Los holds siguen envejeciendo.**
+
+**Por qué el punto 2 es el grave.** `MAX_CLOSE_WINDOW_HOURS = 156` (6,5 días) existe exactamente
+para que ninguna autorización de Stripe llegue muerta a la captura — el propio archivo lo explica y
+cita el incidente del 5 de julio de 2026, con tres capturas fallidas. Pero esa protección mide desde
+el hold más antiguo **hasta `closes_at`**, y el dinero no se captura en `closes_at`: se captura
+**cuando corre el cron**.
+
+```
+hold más antiguo ──6,5 días (permitido)──► closes_at (martes) ──5 días (invisible)──► cron (domingo)
+                   └──────────────────── 11,5 días ────────────────────┘
+                                   límite de Stripe: 7 días
+```
+
+El margen de 12 h que el comentario presume queda anulado por cualquier cierre que no caiga en
+domingo. Un grupo con cierre en martes y compradores tempranos llega a la captura con holds
+**muertos**: `close_group` los adjudica, los emails salen, y el cobro falla.
+
+**¿Ha pasado ya?** No. Hoy el único hold vivo real es uno de prueba de 85 €, y los demás compradores
+son datos demo sin PaymentIntent. El riesgo es **de lanzamiento**: se materializa el primer grupo
+real que no cierre en domingo.
+
+**Opciones (sin implementar, requiere autorización — toca cron o admin):**
+
+| | Qué | Coste | Riesgo |
+|---|---|---|---|
+| **A** (recomendada) | **Cron diario**: `0 21 * * *`. Cierra cada grupo el día que le toca | 1 línea en `vercel.json` | El más bajo: el cron ya es idempotente y filtra `status='open' AND closes_at<=now()`. Pasa de 1 a 7 ejecuciones/semana |
+| B | Forzar domingo en el formulario del admin | validación nueva | Ata el producto a un calendario semanal que nadie ha decidido como regla |
+| C | Medir la ventana de 156 h contra el **próximo cron**, no contra `closes_at` | cambio en `validateCloseWindow` | Correcto pero más sutil; deja el grupo vencido días igualmente |
+
+**A** arregla la causa (el desfase) y de paso el punto 1. **B y C** solo tapan el síntoma del dinero.
+
+---
+
+**RESUELTO (14-sep-2026), opción A.** Una línea en `vercel.json`:
+
+```diff
+- { "path": "/api/cron/close-groups", "schedule": "0 21 * * 0" }   // domingos
++ { "path": "/api/cron/close-groups", "schedule": "0 22 * * *" }   // todos los días
+```
+
+**Por qué las 22:00 UTC y no las 21:00.** `closes_at` son las 22:00 de Madrid, que en UTC son las
+**20:00 en verano** y las **21:00 en invierno**. Con el cron a las 21:00 UTC, cada invierno el cron
+y el cierre caerían en el mismo minuto: una carrera que, si el cron se adelanta unos segundos,
+deja el grupo sin cerrar 24 h más. A las 22:00 UTC el cron pasa **1 h después en invierno y 2 h en
+verano**, siempre por detrás del cierre.
+
+**La cuenta que hay que preservar**, y que es la razón de ser de todo esto:
+
+| | |
+|---|---|
+| Ventana máxima permitida (`MAX_CLOSE_WINDOW_HOURS`) | 156 h |
+| Desfase cierre → cron, ahora | 1-2 h |
+| **Total hasta la captura** | **~158 h** |
+| Límite de Stripe | 168 h (7 días) |
+| **Margen** | **~10 h** |
+
+Con el cron semanal ese desfase podía ser de hasta 6 días y el total se iba a 300 h: el hold
+llegaba muerto. Queda anotado en `lib/closeWindow.ts`, junto a la constante, que **si alguien
+vuelve a espaciar el cron hay que bajar `MAX_CLOSE_WINDOW_HOURS` en la misma cantidad** — porque
+la constante mide hasta `closes_at` y el dinero se captura cuando corre el cron.
+
+**Sin cambios en la lógica de cierre.** El cron ya era idempotente (`status='open' AND
+closes_at<=now()`), autenticado con `CRON_SECRET` y reutiliza el mismo `closeGroup()` del botón del
+admin. Lo único que cambia es cada cuánto se le pregunta. Pasa de 1 a 7 ejecuciones por semana;
+en las noches sin grupos vencidos no hace nada y sale.
+
+**Pendiente de verificar en producción:** que Vercel registre el cron diario tras el despliegue, y
+que la primera ejecución cierre los grupos vencidos del dataset de pruebas.
 
 ---
 

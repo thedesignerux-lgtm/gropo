@@ -1,6 +1,6 @@
 {
   "crons": [
-    { "path": "/api/cron/close-groups", "schedule": "0 21 * * 0" },
+    { "path": "/api/cron/close-groups", "schedule": "0 22 * * *" },
     { "path": "/api/cron/pulse", "schedule": "30 8 * * *" }
   ]
 }
