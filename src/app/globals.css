@@ -7,6 +7,30 @@
   --foreground: #171717;
 }
 
+/*
+  NOTA SOBRE `scrollbar-gutter: stable` — PROBADO Y DESCARTADO (15-sep-2026).
+
+  Al investigar el temblor del menú, la barra de scroll era el sospechoso habitual:
+  una página que scrollea y otra que no dan anchuras útiles distintas, y todo lo
+  centrado con `mx-auto` salta.
+
+  Medido en Chromium (Playwright, viewport 1440):
+
+    gutter:auto     página corta X=100   página larga X=100    salto 0 px
+    gutter:stable   página corta X=92,5  página larga X=92,5   salto 0 px
+
+  Dos conclusiones. La primera: con barras flotantes —macOS, que es donde trabaja
+  Benjamin, y el móvil— NO hay salto, así que ese no era el problema; la causa real
+  era el peso tipográfico del enlace activo, ver `DesktopNavbar`.
+
+  La segunda, la que importa: `stable` estrecha la página 15 px IGUALMENTE aunque no
+  haga falta. Añadirlo habría encogido todo el sitio a cambio de nada.
+
+  Queda escrito por si algún día aparece el salto en Windows o Linux, donde las
+  barras sí ocupan sitio: ahí `scrollbar-gutter: stable` en `html` es la solución,
+  asumiendo esos 15 px.
+*/
+
 body {
   color: var(--foreground);
   background: var(--background);

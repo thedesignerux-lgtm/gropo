@@ -134,7 +134,12 @@ export function useLadders(memberships: Membership[]) {
   return ladders
 }
 
-export default function MisGruposDesktop({ memberships, userName }: { memberships: Membership[]; userName?: string }) {
+/**
+ * `loading` existe para que esta pantalla no AFIRME nada mientras espera. Con la lista
+ * vacía y sin saber que está cargando, pintaba «Aún no participas en ningún grupo» a
+ * alguien que sí participa, y un segundo después las tarjetas. Un esqueleto no miente.
+ */
+export default function MisGruposDesktop({ memberships, loading = false }: { memberships: Membership[]; loading?: boolean }) {
   const ladders = useLadders(memberships)
   const [open, setOpen] = useState<string | null>(null)
 
@@ -164,12 +169,16 @@ export default function MisGruposDesktop({ memberships, userName }: { membership
           <div className="mb-6">
             <div className="flex items-center gap-3">
               <h1 className="text-[30px] font-extrabold text-neutral-900 tracking-tight">Mis grupos</h1>
-              {active > 0 && <span className="bg-brand/10 text-brand text-xs font-semibold px-2.5 py-1 rounded-full">{active} {active === 1 ? 'activo' : 'activos'}</span>}
+              {!loading && active > 0 && <span className="bg-brand/10 text-brand text-xs font-semibold px-2.5 py-1 rounded-full">{active} {active === 1 ? 'activo' : 'activos'}</span>}
             </div>
             <p className="text-sm text-neutral-500 mt-1">Grupos en los que ya participas y estás asegurando tu precio.</p>
           </div>
 
-          {active === 0 ? (
+          {loading ? (
+            <div className="grid gap-[18px]" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(280px,300px))' }}>
+              {[0, 1, 2].map((i) => <MgSkeleton key={i} />)}
+            </div>
+          ) : active === 0 ? (
             <div className="text-sm text-neutral-500 bg-white border border-neutral-200 rounded-2xl px-5 py-8 text-center">
               Aún no participas en ningún grupo. <Link href="/" className="text-brand font-semibold">Explora grupos abiertos →</Link>
             </div>
@@ -187,6 +196,40 @@ export default function MisGruposDesktop({ memberships, userName }: { membership
       <aside role="dialog" aria-modal="true" aria-label="Detalle del grupo" className="fixed top-0 right-0 h-screen w-[440px] max-w-[92vw] bg-white z-50 flex flex-col transition-transform duration-300" style={{ boxShadow: '-12px 0 40px rgba(15,23,42,.18)', transform: open ? 'translateX(0)' : 'translateX(100%)' }}>
         {openMem && <Drawer m={openMem} ladder={ladders[openMem.group_id] || []} onClose={() => setOpen(null)} />}
       </aside>
+    </div>
+  )
+}
+
+/**
+ * Esqueleto con la misma silueta que `MgCard`: mismo ancho de rejilla y una altura
+ * cercana, para que al llegar los datos la página no pegue otro salto.
+ */
+export function MgSkeleton() {
+  return (
+    <div
+      aria-hidden
+      className="rounded-2xl border bg-white p-4 animate-pulse"
+      style={{ borderColor: '#E9EEF3', minHeight: 336 }}
+    >
+      <div className="flex items-center justify-between">
+        <div className="h-5 w-20 rounded-full bg-neutral-100" />
+        <div className="h-4 w-24 rounded bg-neutral-100" />
+      </div>
+      <div className="mt-4 flex items-center gap-3">
+        <div className="h-[52px] w-[52px] rounded-xl bg-neutral-100" />
+        <div className="flex-1">
+          <div className="h-4 w-3/4 rounded bg-neutral-100" />
+          <div className="mt-2 h-3 w-1/2 rounded bg-neutral-100" />
+        </div>
+      </div>
+      <div className="mt-4 h-[66px] rounded-xl bg-neutral-100" />
+      <div className="mt-4 h-4 rounded-full bg-neutral-100" />
+      <div className="mt-3 flex justify-between">
+        <div className="h-3 w-28 rounded bg-neutral-100" />
+        <div className="h-3 w-20 rounded bg-neutral-100" />
+      </div>
+      <div className="mt-4 h-4 w-48 rounded bg-neutral-100" />
+      <div className="mt-4 h-10 rounded-xl bg-neutral-100" />
     </div>
   )
 }

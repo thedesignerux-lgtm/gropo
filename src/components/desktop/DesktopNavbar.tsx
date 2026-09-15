@@ -89,13 +89,31 @@ export default function DesktopNavbar() {
                 href={link.href}
                 aria-current={active ? 'page' : undefined}
                 className={`relative whitespace-nowrap text-[15px] py-[29px] transition-colors ${
-                  active
-                    ? 'font-semibold text-neutral-900'
-                    : 'font-medium text-neutral-500 hover:text-neutral-900'
+                  active ? 'text-neutral-900' : 'text-neutral-500 hover:text-neutral-900'
                 }`}
               >
-                {link.label}
-                {/* El estado activo no depende solo del color: además cambia el peso. */}
+                {/*
+                  ANCHURA RESERVADA (15-sep-2026). El enlace activo pasa de peso 500 a
+                  600, y la negrita ocupa más: al entrar en «Explorar» —el primero— los
+                  otros tres se desplazaban a la derecha. Benjamin lo vio como un
+                  temblor del menú al navegar.
+
+                  La solución no es quitar la negrita, que es el refuerzo no cromático
+                  del estado activo: es reservar SIEMPRE la anchura de la negrita. Las
+                  dos copias se apilan en la misma celda de la rejilla; la invisible en
+                  peso 600 fija la anchura y la visible cambia de peso sin mover nada.
+
+                  Funciona con cualquier tipografía porque la mide el navegador. No hay
+                  anchuras a mano que se queden desfasadas al cambiar la fuente.
+                */}
+                <span className="grid">
+                  <span aria-hidden className="col-start-1 row-start-1 invisible font-semibold">
+                    {link.label}
+                  </span>
+                  <span className={`col-start-1 row-start-1 ${active ? 'font-semibold' : 'font-medium'}`}>
+                    {link.label}
+                  </span>
+                </span>
                 {active && (
                   <span
                     aria-hidden

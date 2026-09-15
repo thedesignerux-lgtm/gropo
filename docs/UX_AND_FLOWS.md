@@ -400,3 +400,55 @@ Por debajo de 1024 px esta barra no se renderiza: las páginas la envuelven en
 `hidden lg:block` y en móvil manda `BottomNav`.
 
 **Sin verificar:** nadie la ha mirado todavía en un navegador.
+
+---
+
+## TRANSICIONES DEL MENÚ (15 sep 2026)
+
+### La pantalla en blanco de «Mis grupos»
+
+**Causa raíz: dos viajes de red en serie y un marco que se iba con ellos.**
+
+`/mis-grupos` es un componente de cliente. Al montar hacía
+`supabase.auth.getUser()` —viaje a Supabase, que además refresca el token— y **mientras
+tanto devolvía una pantalla completa con tres puntos, sin barra de navegación**. Por eso
+desaparecía todo. Solo cuando eso volvía lanzaba `fetch('/api/my-groups')`, el segundo
+viaje; durante él la lista estaba vacía y la vista de escritorio anunciaba «Aún no
+participas en ningún grupo» a alguien que sí participa.
+
+Tres estados, dos de ellos falsos. `/como-funciona` y `/favoritos` iban fluidas porque
+pintan su barra en el primer render y no encadenan peticiones.
+
+**Corregido.** `/api/my-groups` **ya resuelve la sesión en el servidor** desde las
+cookies y devuelve 401 si no hay ninguna: preguntárselo antes al navegador era preguntar
+dos veces lo mismo. Ahora se lanza esa única petición al montar y su código de estado
+decide la pantalla (401 → entrar, 200 → tus grupos). El nombre del usuario, que es
+decorativo, se pide en paralelo y aparece cuando llega. Las tres ramas pintan la barra, y
+mientras carga hay tarjetas esqueleto en vez de una afirmación falsa.
+
+**No se usó** ni un retardo ni una animación de entrada: eso habría tapado el problema.
+
+### El temblor horizontal del menú
+
+**Causa raíz: el peso tipográfico del enlace activo.** El enlace activo pasaba de peso
+500 a 600 y la negrita ocupa más, así que al entrar en «Explorar» —el primero de los
+cuatro— los otros tres se desplazaban a la derecha.
+
+**Medido en Chromium**, posición X de cada enlace según cuál esté activo:
+
+| | Explorar | Mis grupos | Mi Radar | Cómo funciona | Máximo |
+|---|---|---|---|---|---|
+| Antes, activo «Mis grupos» | 289 | 372,86 | 480,88 | 569,73 | |
+| Antes, activo «Explorar» | 289 | 377,86 | 479,22 | 568,08 | **5 px** |
+| Después, en ambos casos | 289 | 377,86 | 485,88 | 577,23 | **0 px** |
+
+**Corregido** reservando siempre la anchura de la negrita: dos copias de la etiqueta
+apiladas en la misma celda de rejilla, la invisible en peso 600 fijando la anchura. La
+negrita se conserva porque es el refuerzo no cromático del estado activo. Funciona con
+cualquier tipografía porque la mide el navegador.
+
+**La barra de scroll no era la causa, y se comprobó.** Era el sospechoso obvio, pero con
+barras flotantes —macOS, que es donde trabaja Benjamin, y el móvil— no hay salto:
+`gutter:auto` da X=100 tanto en página corta como larga. Y `scrollbar-gutter: stable`
+habría estrechado el sitio 15 px igualmente (X=92,5), a cambio de nada. Descartado, con
+la medición escrita en `globals.css` por si aparece en Windows o Linux.
