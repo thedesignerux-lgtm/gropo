@@ -8,6 +8,7 @@ import { useCheckout } from '@/components/checkout/CheckoutProvider'
 import { createClient } from '@/lib/supabase-browser'
 import GropoTargetSlider, { type Detent } from '@/components/GropoTargetSlider'
 import { modeAccent } from '@/lib/brand-colors'
+import GroupPeopleGlyph from '@/components/GroupPeopleGlyph'
 import { getActivation } from '@/lib/activation'
 
 function fmt(n: number): string {
@@ -29,8 +30,6 @@ interface Props {
   memberCount: number
   closesAt: string
 }
-
-const AVATAR_LETTERS = ['A', 'B', 'C']
 
 export default function GroupRightSidebar({
   groupId, name, spec, imageUrl, tiers, pvp, maxStock, minExecution, memberCount, closesAt,
@@ -142,9 +141,6 @@ export default function GroupRightSidebar({
     }
   }
 
-  const avatarCount = Math.min(committedUnits, AVATAR_LETTERS.length)
-  const extraCount = committedUnits - avatarCount
-
   const accent = modeAccent(confirmed)
   const accentShadow = confirmed ? 'rgba(2, 73, 71,.35)' : 'rgba(232,148,74,.35)'
 
@@ -190,21 +186,12 @@ export default function GroupRightSidebar({
           )}
         </div>
 
-        {/* ── Avatares + personas ── */}
+        {/* ── Gente del grupo (A-33) ── */}
         {committedUnits > 0 && (
           <div className="flex items-center justify-between mt-4">
-            <div className="flex items-center -space-x-1.5">
-              {AVATAR_LETTERS.slice(0, avatarCount).map((letter) => (
-                <div key={letter} className="w-7 h-7 rounded-full bg-brand/10 border-2 border-white flex items-center justify-center text-[11px] font-bold text-brand">
-                  {letter}
-                </div>
-              ))}
-              {extraCount > 0 && (
-                <div className="w-7 h-7 rounded-full bg-brand/10 border-2 border-white flex items-center justify-center text-[10px] font-bold text-brand">
-                  +{extraCount}
-                </div>
-              )}
-            </div>
+            {/* A-33 · Aquí había tres círculos con las letras A, B y C. No eran
+                iniciales de nadie. Ahora un símbolo de grupo, que no afirma nada. */}
+            <GroupPeopleGlyph count={memberCount > 0 ? memberCount : committedUnits} />
             {/* A-04 · Personas para la gente, unidades para el precio. */}
             <span className="text-sm text-neutral-500">
               {memberCount <= 0

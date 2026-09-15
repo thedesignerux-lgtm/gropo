@@ -332,6 +332,25 @@ eso.**
 
 ---
 
+## Segunda tanda del 15 de septiembre
+
+| | |
+|---|---|
+| **A-32** | El checkout no tenía vista de escritorio: 512 px centrados en 1.440 y la barra de acción fija al fondo del viewport. En `lg` pasa a dos columnas (formulario / producto) y la barra es pegajosa dentro de su columna. Solo clases y tres `<div>`: **ni una línea de lógica de dinero**, comprobado con `git diff` |
+| **A-33** | Los avatares `['A','B','C']` estaban en **tres** componentes, no en uno: escritorio, ficha móvil y tarjetas de la home — y en las tarjetas se pintaban con el grupo vacío. Sustituidos por `GroupPeopleGlyph`, un símbolo anónimo que no se pinta si no hay nadie |
+| **A-34** | Los seis componentes de escritorio huérfanos verificados uno a uno (cero importaciones). Documentados en `TECHNICAL_DEBT.md` DT-04 con el comando de borrado. No los he borrado: eso lo decide y lo ejecuta Benjamin |
+| **RULE-018** | Decía que no existía ningún grupo `is_demo=true` en producción. Hay dos. Baja a `PARTIALLY IMPLEMENTED` |
+
+**A-24: aplazado por decisión de Benjamin (15 sep).** Sus dos mitades escriben en producción (un
+`UPDATE` sobre el grupo mal marcado y una migración de `get_my_groups`), y hoy las únicas cuentas
+afectadas son las suyas. **Debe cerrarse antes del primer cliente real**: cuando un test corra con
+un email de verdad, ya será tarde. Detalle y opciones en `UX_AUDIT_2.md` A-24.
+
+**Cuarta vez** que un hallazgo estaba vivo en más sitios de los que decía el hallazgo (A-33 en
+tres componentes). La lección 1 de este documento sigue cobrando.
+
+---
+
 # PENDIENTE (lista del 13 de septiembre, actualizada)
 
 ## 1 · Bloqueantes de lanzamiento
@@ -342,6 +361,12 @@ en `LAUNCH_CHECKLIST.md` FASE 3.
 **Bloqueado por FASE 3.0:** el webhook de test apunta a producción. En cuanto producción use la
 `whsec_` de live, ese webhook empezará a fallar la firma **en silencio**. Necesita destino propio
 antes de mover nada.
+
+### L-04 · A-24 · Datos de prueba mezclados con datos de cliente — ⏸️ APLAZADO 15 sep 2026
+`get_my_groups` no filtra `is_demo`, y un grupo de prueba está además mal marcado
+(`a0000000-…-0001`, `is_demo=false`). Hoy solo lo ven las cuentas de Benjamin. El día que un test
+se ejecute con un email real, ese comprador verá un pedido que no hizo.
+**Cerrar antes del primer cliente.** Opciones y comandos en `UX_AUDIT_2.md` A-24.
 
 ### L-02 · `pvp` sin verificar sostiene *"Ahorras X frente a tienda"* — ⚖️ RIESGO LEGAL
 `groups.pvp` lo teclea el admin a mano. No hay verificación, ni fuente, ni fecha, ni captura.

@@ -141,8 +141,16 @@
 ### RULE-018 · Los grupos `is_demo` no aparecen en los listados públicos
 - **IMPLEMENTATION:** filtro `.eq('is_demo', false)` en `src/app/page.tsx:15` y en las
   sugerencias de `/favoritos`. Accesibles por URL directa y visibles en el admin
-- **STATUS:** ✅ `IMPLEMENTED`
-- **Nota:** actualmente **no existe ningún grupo `is_demo=true`** en producción.
+- **STATUS:** ⚠️ `PARTIALLY IMPLEMENTED`
+- **Corregido el 15-sep-2026.** La nota anterior decía que «no existe ningún grupo
+  `is_demo=true` en producción». **Ya no es cierto:** hay dos
+  (`a0000000-…-0006` y `a0000000-…-0007`, ambos `closed`).
+- **Y el filtro no cubre todo.** `get_my_groups` **no** filtra `is_demo`, así que un grupo de
+  prueba sí aparece en «Mis grupos» de quien participó en él. Hoy solo afecta a las cuentas de
+  Benjamin; el día que un test corra con un email real, esa persona verá un pedido falso.
+  Es el hallazgo **A-24** y está pendiente de una decisión: ocultarlos o etiquetarlos.
+- **Tercer problema, de convenio.** `a0000000-…-0001` (`TEST · Algoritmo precio`) es un grupo de
+  prueba y tiene `is_demo = false`. El convenio existe pero no se aplica de forma consistente.
 
 ### RULE-019 · Los grupos `cancelled` no son visibles públicamente
 - **IMPLEMENTATION:** política RLS `groups_public_read USING (status <> 'cancelled')`

@@ -10,6 +10,7 @@ import GropoTargetSlider, { type Detent } from '@/components/GropoTargetSlider'
 import { createClient } from '@/lib/supabase-browser'
 import { modeAccent } from '@/lib/brand-colors'
 import { getActivation } from '@/lib/activation'
+import GroupPeopleGlyph from '@/components/GroupPeopleGlyph'
 
 function fmt(n: number | undefined | null): string {
   if (n === undefined || n === null) return '—'
@@ -44,7 +45,6 @@ interface Props {
   belowContent?: React.ReactNode
 }
 
-const AVATAR_LETTERS = ['A', 'B', 'C']
 
 export default function GroupLiveSection({
   groupId, name, spec, pvp,
@@ -147,9 +147,6 @@ export default function GroupLiveSection({
     // hasta que cambia la página.
     if (authed) setBusy(false)
   }
-
-  const avatarCount = Math.min(totalParticipants, AVATAR_LETTERS.length)
-  const extraCount = totalParticipants - avatarCount
 
   return (
     <>
@@ -272,17 +269,11 @@ export default function GroupLiveSection({
             </div>
           )}
 
-          {/* Avatares + personas */}
+          {/* Gente del grupo (A-33) */}
           {totalParticipants > 0 && (
             <div className="flex items-center justify-between mt-3.5">
-              <div className="flex items-center -space-x-1.5">
-                {AVATAR_LETTERS.slice(0, avatarCount).map((letter) => (
-                  <div key={letter} className="w-7 h-7 rounded-full bg-brand/10 border-2 border-white flex items-center justify-center text-[10px] font-bold text-brand">{letter}</div>
-                ))}
-                {extraCount > 0 && (
-                  <div className="w-7 h-7 rounded-full bg-brand/10 border-2 border-white flex items-center justify-center text-[10px] font-bold text-brand">+{extraCount}</div>
-                )}
-              </div>
+              {/* A-33 · Antes tres círculos con las letras A, B y C. Inventadas. */}
+              <GroupPeopleGlyph count={memberCount > 0 ? memberCount : totalParticipants} />
               {/* A-04 · Dos datos, dos nombres. Antes este mismo número de UNIDADES
                   se llamaba «personas»: con 20 personas y 57 unidades, el contador y
                   la escalera no cuadraban nunca. */}

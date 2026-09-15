@@ -59,6 +59,34 @@ Lista completa en `UX_AND_FLOWS.md` §9.2 y `KNOWN_ISSUES.md` P3-01.
 presenta como "Archivos clave"** (`JoinModeSelector`, `TierDemandLadder`), de modo que una IA o
 un desarrollador nuevo empezaría por leer código muerto.
 
+### Los seis de escritorio, verificados el 15 sep 2026 (A-34)
+
+Cero referencias en todo `src/`, comprobado componente a componente:
+
+| Fichero | Líneas |
+|---|---|
+| `src/components/desktop/DesktopProductCard.tsx` | 207 |
+| `src/components/desktop/HomeProductCard.tsx` | 165 |
+| `src/components/desktop/GroupSidebar.tsx` | 169 |
+| `src/components/desktop/HomeSidebar.tsx` | 139 |
+| `src/components/desktop/HomeCarousel.tsx` | 74 |
+| `src/components/desktop/GroupCenterContent.tsx` | 23 |
+
+La única aparición de `DesktopProductCard` fuera de su propio fichero es **un comentario** en
+`src/lib/mock-data.ts:42`; no es una importación.
+
+`GroupSidebar` es el más engañoso: implementa pestañas de **Conversación, Participantes,
+Historial, Preguntas y Alertas** que no existen en el producto. Es un diseño anterior. Cualquiera
+que lo abra creerá que esas funciones existen.
+
+**Borrado limpio** (lo ejecuta Benjamin, y el comentario de `mock-data.ts` se corrige aparte):
+
+```
+cd ~/Desktop/kuorum && rm -f .git/index.lock && git rm -q src/components/desktop/DesktopProductCard.tsx src/components/desktop/HomeProductCard.tsx src/components/desktop/GroupSidebar.tsx src/components/desktop/HomeSidebar.tsx src/components/desktop/HomeCarousel.tsx src/components/desktop/GroupCenterContent.tsx && npx tsc --noEmit && echo BORRADO-OK
+```
+
+Si `tsc` termina sin salida, no quedaba ninguna dependencia y se puede commitear.
+
 ---
 
 ## DT-05 · Ficheros gigantes

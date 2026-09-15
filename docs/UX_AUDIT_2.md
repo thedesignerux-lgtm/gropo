@@ -890,6 +890,40 @@ día que un test se ejecute con un email real, ese comprador verá el pedido. Co
 convenio —prefijo de UUID reservado, o una columna `is_test`— y filtrarlo en `get_my_groups` antes
 de que haya clientes de verdad.
 
+**Comprobado en producción el 15 sep 2026.** El convenio **ya existe**: la columna se llama
+`groups.is_demo` y RULE-018 la usa para excluir los grupos de prueba de la home y de las
+sugerencias del Radar. El problema es que está a medias:
+
+| | |
+|---|---|
+| `a0000000-…-0001` · `TEST · Algoritmo precio` | `cancelled`, **`is_demo = false`** ← el que se cuela en «Mis grupos» |
+| `a0000000-…-0006` · `TEST · P0-06 diagnóstico` | `closed`, `is_demo = true` |
+| `a0000000-…-0007` · `TEST · Ensayo 3 — esperadores` | `closed`, `is_demo = true` |
+
+Y `get_my_groups` **no filtra `is_demo`** — verificado extrayendo la definición real de la función
+con `pg_get_functiondef`, no leyendo el repositorio.
+
+Así que el arreglo tiene dos mitades y **ninguna la puedo hacer solo**, porque las dos escriben en
+producción:
+
+1. Marcar `is_demo = true` en `a0000000-…-0001`. Un `UPDATE` de una columna no económica sobre un
+   grupo de prueba ya cancelado.
+2. Añadir el filtro a `get_my_groups`. Es una función `SECURITY DEFINER` viva: cambiarla es una
+   migración.
+
+**Y antes hay una pregunta de producto.** Si `get_my_groups` filtra los grupos de prueba, Benjamin
+deja de ver sus propias compras de prueba en «Mis grupos», que es donde las comprueba. La
+alternativa es no ocultarlas sino **etiquetarlas** («Pedido de prueba») y que un comprador real
+nunca llegue a tener una. Son dos productos distintos; decide él.
+
+**Nota de documentación.** `BUSINESS_RULES.md` afirmaba que «no existe ningún grupo `is_demo=true`
+en producción». Hay dos. Corregido, y RULE-018 baja a `PARTIALLY IMPLEMENTED`.
+
+**Decisión de Benjamin (15 sep 2026): aplazado.** No se toca producción por ahora. Es defendible
+mientras las únicas cuentas afectadas sean las suyas. **Pero esto tiene que estar cerrado antes de
+que exista el primer cliente real**, y no depende de que a alguien se le ocurra: el día que un
+test corra con un email de verdad, ya es tarde. Queda en la lista de bloqueantes de lanzamiento.
+
 ---
 
 ### Lo que sí está bien en estas pantallas
@@ -1254,7 +1288,7 @@ compra.
 
 ---
 
-### 🟠 A-32 · El checkout no tiene vista de escritorio
+### 🟠 A-32 · El checkout no tiene vista de escritorio — ✅ CORREGIDO 15 sep 2026
 `/grupo/[id]/unirme` y `/grupo/[id]/unido` se pintan en una columna de **512 px centrada**
 (`max-w-md lg:max-w-lg`), sin barra de navegación, en una pantalla de 1.440. También `/login` y
 `/crear-peticion`, y la rama sin sesión de `/mis-grupos`.
@@ -1266,9 +1300,31 @@ escritorio cabrían en dos columnas; y no hay navegación para volver.
 
 Es la pantalla donde se firma, y es la menos trabajada de las dos versiones.
 
+**Una corrección a este hallazgo.** «No hay navegación para volver» es **falso**: la cabecera de
+`unirme/page.tsx` tiene una flecha atrás con `aria-label="Volver al gropo"` que enlaza a
+`/grupo/[id]`. La escribí sin comprobarla. Es la misma familia de error que las tres afirmaciones
+de ausencia del día 14 — ver la lección 2 al final de este documento.
+
+**Lo hecho.** En `lg` el contenedor pasa de 512 px a 1.040 y `JoinFlow` reparte el contenido en
+dos columnas: formulario y pago a la izquierda, producto y progreso del grupo a la derecha, ambos
+visibles a la vez. La barra de acción deja de estar fija al borde inferior del viewport y pasa a
+ser **pegajosa dentro de su columna**, siempre junto a los campos que se están rellenando. En
+móvil no hay rejilla y todo queda exactamente como estaba.
+
+El diff son clases de Tailwind y tres `<div>` de colocación: **ni una línea de la lógica de
+dinero cambia**. Comprobado con `git diff` línea a línea.
+
+**Lo que NO se ha tocado, a propósito.** `/grupo/[id]/unido` sigue en una columna de 512 px. Es
+un justificante, no un formulario: una sola columna es la forma correcta de leerlo. `/login`,
+`/crear-peticion` y la rama sin sesión de `/mis-grupos` siguen igual; son pantallas de un solo
+campo y no tienen el problema que tenía el checkout.
+
+**Sin verificar:** nadie lo ha mirado todavía en un navegador de escritorio real. El riesgo es
+visual, no funcional, pero es criterio de Benjamin.
+
 ---
 
-### 🟡 A-33 · Avatares inventados
+### 🟡 A-33 · Avatares inventados — ✅ CORREGIDO 15 sep 2026
 `GroupRightSidebar` pinta los participantes así:
 
 ```ts
@@ -1280,9 +1336,23 @@ A. Con un grupo de verdad detrás, inventar identidades para adornar la prueba s
 exactamente el tipo de detalle que un comprador desconfiado detecta, y contradice la transparencia
 que el resto del producto se ha ganado. O se usan iniciales reales, o se cuenta el número y ya.
 
+**Estaba en tres sitios, no en uno.** Al ir a corregirlo apareció el mismo `['A', 'B', 'C']` en
+`GroupRightSidebar` (escritorio), en `GroupLiveSection` (ficha móvil) y en `GroupsGrid` (tarjetas
+de la home). Este documento solo había visto el primero. **Tercera vez** que un hallazgo estaba
+vivo en más árboles de UI de los que decía el hallazgo.
+
+Y en las tarjetas era peor: las tres letras se pintaban **siempre**, incluso con el grupo vacío.
+Prueba social de cero personas.
+
+**Lo hecho.** Un componente único, `GroupPeopleGlyph`, con un símbolo anónimo de grupo. No afirma
+identidades, y con cero personas no se pinta nada. La frase de al lado ya dice el número real
+—«N personas ya han pedido M unidades»— así que no se pierde información: se pierde el adorno
+falso. Además el recuento de avatares del panel de escritorio se calculaba con **unidades** y no
+con personas (A-04 otra vez); al desaparecer, desaparece el error.
+
 ---
 
-### 🟡 A-34 · Seis de los doce componentes de escritorio no los usa nadie
+### 🟡 A-34 · Seis de los doce componentes de escritorio no los usa nadie — 📋 VERIFICADO Y DOCUMENTADO 15 sep 2026
 710 líneas sin una sola referencia en todo `src/`: `DesktopProductCard` (207), `HomeProductCard`
 (165), `GroupSidebar` (169), `HomeSidebar` (139), `HomeCarousel` (74), `GroupCenterContent` (23).
 
@@ -1293,6 +1363,12 @@ el repositorio.
 No es urgente, pero sí es una trampa: cualquiera —persona o IA— que abra `DesktopProductCard.tsx`
 para arreglar una tarjeta estará editando código muerto. Merece una nota en `TECHNICAL_DEBT.md` o
 un borrado limpio.
+
+**Verificado componente a componente el 15 sep 2026:** los seis tienen cero importaciones. La
+única aparición de `DesktopProductCard` fuera de su fichero es un **comentario** en
+`src/lib/mock-data.ts:42`. Documentado en `TECHNICAL_DEBT.md` DT-04, con el comando exacto de
+borrado. **No lo he borrado yo**: borrar ficheros del repositorio es una decisión de Benjamin y él
+ejecuta git.
 
 ---
 
@@ -1325,14 +1401,14 @@ Estado a 14 de septiembre de 2026:
 
 *(A-14 pasó de 🟠 a 🟡 al comprobarse que el ahorro sí se calculaba.)*
 
-**27 de 37 cerrados.** Lo que queda, por lo que hace falta para cerrarlo:
+**29 de 37 cerrados** (15 sep: A-32 y A-33). Lo que queda, por lo que hace falta para cerrarlo:
 
 | Hace falta | Hallazgos |
 |---|---|
 | **Un abogado** | A-28 (los diez textos de `src/content/legal/` son borrador), y con él L-02 / L-03 / RULE-063 |
-| **Una decisión de producto tuya** | A-27 (¿etiqueta visible en el formulario?), A-05 (¿el nombre fuera de la foto?) |
-| **Trabajo de diseño de pantalla** | A-32 (el checkout no tiene vista de escritorio) |
-| **Decidir y limpiar** | A-24 (datos TEST en cuentas reales), A-34 (710 líneas de componentes huérfanos), A-33 (avatares A/B/C inventados) |
+| **Una decisión de producto tuya** | A-27 (¿etiqueta visible en el formulario?), A-05 (¿el nombre fuera de la foto?), A-24 (¿los grupos de prueba se ocultan en «Mis grupos» o se etiquetan?) |
+| **Un comando tuyo** | A-34 (710 líneas huérfanas: comando exacto en `TECHNICAL_DEBT.md` DT-04) |
+| **Tu ojo en una pantalla grande** | A-32 (hecho, sin mirar todavía en escritorio real) |
 | **Cosmética menor** | A-07, A-08, A-09, A-10 |
 | **Nada — vocabulario que sigue divergiendo** | A-31 (resto): navegación, «Ahorra/Ahorras», el selector de cantidad que solo existe en escritorio |
 

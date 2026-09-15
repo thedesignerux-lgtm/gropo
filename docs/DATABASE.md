@@ -467,7 +467,7 @@ Hay **dos identidades paralelas** que conviven:
 
 | Métrica | Valor |
 |---|---|
-| Grupos | **1** — `TEST · Algoritmo precio`, `status='open'`, `is_demo=false` |
+| Grupos | Dato de 6-sep, **desfasado**. A 15-sep hay grupos reales más 3 de prueba: `a0000000-…-0001` (`cancelled`, `is_demo=false` — mal marcado), `…-0006` y `…-0007` (`closed`, `is_demo=true`) |
 | Grupos cerrados o cancelados | **0** |
 | Pujas | **1** (`active`). Máximo de pujas activas en un grupo: **1** |
 | `group_members` | **15**, **todos en `authorized`** (5 `comprar`, 10 `esperar`) |

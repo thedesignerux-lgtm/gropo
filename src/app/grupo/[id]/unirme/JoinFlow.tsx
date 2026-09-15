@@ -373,7 +373,14 @@ export default function JoinFlow({
   const showKnob = projIdx >= 0 && projIdx < nTiers - 1 && projPos > projIdx / (nTiers - 1) + 1e-9;
 
   return (
-    <div>
+    /* A-32 · En escritorio esto es una rejilla de dos columnas: el formulario a la
+       izquierda y el producto con su progreso a la derecha, de modo que se ven a la
+       vez. En móvil no hay rejilla y el orden del DOM manda: producto y luego
+       formulario, que es como estaba. La lógica de dinero no se toca — esto es
+       colocación, nada más. */
+    <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_368px] lg:items-start lg:gap-8">
+      {/* Columna DERECHA en escritorio, bloque de arriba en móvil. */}
+      <div className="lg:col-start-2 lg:row-start-1 lg:min-w-0">
       {/* ── MODO ESPERAR / TARGET REACHED BANNER (money-critical display) ── */}
       {visualMode === 'esperar' ? (
         <>
@@ -825,7 +832,10 @@ export default function JoinFlow({
 
       </>
       )}
+      </div>
 
+      {/* Columna IZQUIERDA en escritorio: el formulario y el pago. */}
+      <div className="lg:col-start-1 lg:row-start-1 lg:min-w-0">
       {/* ── 2-4 + FOOTER (dentro de Elements) ── */}
       <Elements stripe={stripePromise} options={elementsOptions}>
         <InnerForm
@@ -847,6 +857,7 @@ export default function JoinFlow({
           onCheckoutEnd={() => setFrozenAmount(null)}
         />
       </Elements>
+      </div>
 
       {/* ── Bottom sheet compartido con la home ── */}
       <HowGropoSheet open={payInfoOpen} onClose={() => setPayInfoOpen(false)} />
@@ -1370,8 +1381,12 @@ function InnerForm({
       <LegalRow />
 
       {/* ── FOOTER FIJO: Hoy 0 € (retención, no cobro) ── */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-neutral-100 bg-white/95 backdrop-blur">
-        <div className="mx-auto max-w-md px-4 py-3 lg:max-w-lg">
+      {/* A-32 · En móvil sigue fija al borde inferior. En escritorio, fijarla al
+          fondo de una pantalla de 1.440 la dejaba a medio metro del formulario: ahí
+          pasa a ser pegajosa DENTRO de su columna, siempre a la vista y junto a los
+          campos que se están rellenando. */}
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-neutral-100 bg-white/95 backdrop-blur lg:sticky lg:inset-x-auto lg:bottom-4 lg:mt-6 lg:rounded-2xl lg:border lg:border-neutral-200 lg:shadow-[0_8px_30px_rgba(0,0,0,0.10)]">
+        <div className="mx-auto max-w-md px-4 py-3 lg:max-w-none">
           <button
             type="button"
             onClick={handleSubmit}

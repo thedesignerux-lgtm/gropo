@@ -13,6 +13,7 @@ import HowGropoSheet from '@/components/HowGropoSheet'
 import { modeAccent } from '@/lib/brand-colors'
 import EmptyShowcase from '@/components/EmptyShowcase'
 import GroupCountdown from '@/components/GroupCountdown'
+import GroupPeopleGlyph from '@/components/GroupPeopleGlyph'
 
 /**
  * UX-07 · Los tres carruseles se construyen sobre el MISMO conjunto de grupos,
@@ -306,11 +307,9 @@ function FeaturedGropoCard({ x, isFavorited, isAuthed, onOpenSheet }: { x: Price
             {savings > 0 && <span className="text-[11px] font-bold rounded-full px-2 py-0.5" style={{ color: '#0B7B44', background: '#E6F4EC' }}>Ahorras {fmt(savings)}</span>}
           </div>
           <div className="flex items-center gap-2 mt-2.5">
-            <div className="flex">
-              {['A', 'B', 'C'].map((c, i) => (
-                <span key={c} className="grid place-items-center rounded-full text-brand text-[7.5px] font-extrabold" style={{ width: 19, height: 19, background: '#DEEDEC', border: '2px solid #F2F7F7', marginLeft: i === 0 ? 0 : -6 }}>{c}</span>
-              ))}
-            </div>
+            {/* A-33 · Tres letras inventadas que además se pintaban con el grupo
+                vacío. Ahora un símbolo de grupo, y solo si hay alguien. */}
+            <GroupPeopleGlyph size="sm" count={p.memberCount ?? p.committedUnits ?? 0} />
             {/* A-04 · «confirmados» era vocabulario de banco para algo que nadie ha
                 pagado, y además contaba UNIDADES. Formato de tarjeta: compacto, los
                 dos datos con su nombre. */}
