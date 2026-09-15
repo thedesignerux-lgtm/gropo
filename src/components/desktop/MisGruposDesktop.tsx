@@ -52,6 +52,24 @@ const I = {
   share: <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" /></svg>,
 }
 
+/**
+ * Fecha y hora exacta del cierre, en hora de Madrid.
+ *
+ * El panel solo decía «2d 07h restantes». Una cuenta atrás transmite urgencia pero no
+ * sirve para organizarse: «¿me da tiempo a decirle a un amigo que entre este finde?».
+ * Van las dos cosas, y la zona horaria es EXPLÍCITA porque el cierre está definido a las
+ * 22:00 de España peninsular, no a las 22:00 de quien mira la pantalla.
+ */
+function closeDateLabel(closesAt: string): string {
+  const d = new Date(closesAt)
+  if (Number.isNaN(d.getTime())) return ''
+  return new Intl.DateTimeFormat('es-ES', {
+    timeZone: 'Europe/Madrid',
+    weekday: 'long', day: 'numeric', month: 'long',
+    hour: '2-digit', minute: '2-digit',
+  }).format(d)
+}
+
 function timeLeft(closesAt: string): string {
   const diff = new Date(closesAt).getTime() - Date.now()
   if (diff <= 0) return 'Cerrado'
@@ -61,7 +79,25 @@ function timeLeft(closesAt: string): string {
 
 // ── Derivación de estado + métricas desde datos reales ──
 export function derive(m: Membership, ladder: LadderRow[]) {
-  const commit = Number(m.guaranteed_price)
+  /**
+   * EL TECHO REAL, según la regla que de verdad se aplica al cerrar.
+   *
+   * `close_group` paso 4 (liquidación por precio máximo universal, verificado sobre la
+   * función VIVA en producción, no sobre el repositorio) cancela con campos distintos
+   * según el modo:
+   *
+   *   join_mode='esperar' → si `target_price < precio final`
+   *   join_mode='comprar' → si `guaranteed_price < precio final`
+   *
+   * Hoy los dos campos coinciden en las 27 membresías «esperar» de producción, así que
+   * leer solo `guaranteed_price` daba el mismo número. Pero eso es una coincidencia
+   * observada, no un constraint: si algún día `prepare_join` dejara de igualarlos, esta
+   * pantalla estaría prometiendo un techo que el cierre no respeta. Se lee el campo que
+   * manda en cada caso.
+   */
+  const commit = m.join_mode === 'esperar' && m.target_price != null
+    ? Number(m.target_price)
+    : Number(m.guaranteed_price)
   const cur = Number(m.current_price)
   const tiers = normalizeLadder(ladder)
 
@@ -222,6 +258,28 @@ export default function MisGruposDesktop({ memberships, ladderSeed, loading = fa
   )
 }
 
+/** Una de las salidas posibles al cierre. `ok` = se compra · `back` = vuelve el dinero. */
+function Outcome({ tone, children }: { tone: 'ok' | 'back'; children: React.ReactNode }) {
+  const color = tone === 'ok' ? '#0B7B44' : '#2563EB'
+  const bg = tone === 'ok' ? '#E7F7EF' : '#EFF6FF'
+  return (
+    <li className="flex gap-2.5">
+      <span
+        aria-hidden
+        className="grid place-items-center rounded-full shrink-0 mt-[1px]"
+        style={{ width: 20, height: 20, background: bg, color }}
+      >
+        {tone === 'ok' ? (
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12l5 5 9-11" /></svg>
+        ) : (
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round"><path d="M9 14L4 9l5-5" /><path d="M4 9h11a5 5 0 0 1 0 10h-3" /></svg>
+        )}
+      </span>
+      <span className="text-[12.5px] leading-[1.55] text-neutral-600">{children}</span>
+    </li>
+  )
+}
+
 /**
  * Esqueleto con la misma silueta que `MgCard`: mismo ancho de rejilla y una altura
  * cercana, para que al llegar los datos la página no pegue otro salto.
@@ -345,7 +403,10 @@ export function MgCard({ m, ladder, onOpen }: { m: Membership; ladder: LadderRow
               ? <span>Retención liberada · Sin cargos realizados</span>
               /* A-31 · «Estado: plaza asegurada», con su límite. La cifra es el
                  precio garantizado: el techo de lo que puede pagar. */
-              : <><span style={{ color: t.c }}>{I.shield}</span><span>Tu plaza está asegurada hasta {fmt(d.commit)}</span></>}
+              /* «asegurada hasta 85 €» con 3 unidades se lee como 85 € en total, y son
+                 85 € POR UNIDAD. En producción 25 de 184 membresías piden más de una
+                 —una de ellas 10—, así que no es un caso hipotético. */
+              : <><span style={{ color: t.c }}>{I.shield}</span><span>Tu plaza está asegurada hasta {fmt(d.commit)}{m.quantity > 1 ? ' por unidad' : ''}</span></>}
       </div>
       {/* CTA — A-35 · Era un <div> con aspecto de botón: funcionaba porque el onClick
           está en la tarjeta entera, pero NO se alcanzaba con el tabulador ni se
@@ -458,7 +519,7 @@ export function Drawer({ m, ladder, onClose }: { m: Membership; ladder: LadderRo
           </div>
           <div className="flex gap-3 items-start rounded-2xl p-3.5 mt-4" style={{ background: t.secbg }}>
             <span className="w-[38px] h-[38px] rounded-xl flex items-center justify-center text-white shrink-0" style={{ background: t.c }}>{I.shield}</span>
-            <div><h5 className="text-sm font-bold">Tu plaza está asegurada hasta {fmt(d.commit)}</h5><p className="text-[11.5px] text-neutral-600 mt-1 leading-snug">Solo pagarás el precio final del grupo, nunca más de {fmt(d.commit)}. El importe está retenido, no cobrado.</p></div>
+            <div><h5 className="text-sm font-bold">Tu plaza está asegurada hasta {fmt(d.commit)}{m.quantity > 1 ? ' por unidad' : ''}</h5><p className="text-[11.5px] text-neutral-600 mt-1 leading-snug">Solo pagarás el precio final del grupo, nunca más de {fmt(d.commit)}{m.quantity > 1 ? ' por unidad' : ''}. El importe está retenido, no cobrado.</p></div>
             <div className="ml-auto text-right shrink-0"><span className="text-xs font-bold rounded-lg px-2.5 py-1 bg-white inline-block" style={{ color: t.c, border: `1px solid ${t.bd}` }}>stripe</span><small className="block text-[10.5px] text-neutral-400 mt-1.5">Retención activa</small></div>
           </div>
           <div className="flex justify-between gap-2 mt-[18px]">
@@ -476,6 +537,57 @@ export function Drawer({ m, ladder, onClose }: { m: Membership; ladder: LadderRo
           ) : (
             <div className="flex justify-between text-xs mt-4"><span className="text-neutral-500">{d.groupUnits} uds en el grupo</span><span className="font-bold" style={{ color: t.c }}>Mejor precio alcanzado</span></div>
           )}
+          {/* ── P1-10 · Lo que el panel no contaba ────────────────────────────
+              Aquí había medio panel vacío. Lo que le faltaba no era relleno: eran
+              datos que el sistema ya tiene y que el comprador necesita justo aquí,
+              porque es la pantalla a la que vuelve días después de comprar.
+
+              El caso de RULE-032 es el más importante: si el precio final supera tu
+              máximo te quedas fuera y se libera la retención — y **ese comprador no
+              recibe ningún email** (`sendClosePaymentEmails` solo escribe a
+              `instructed` y `paid`). Esta pantalla es literalmente el único sitio
+              donde puede enterarse de que eso puede pasar. */}
+          <div className="mt-5 rounded-2xl border border-neutral-200 overflow-hidden">
+            <div className="px-4 py-3 border-b border-neutral-100 flex items-baseline justify-between gap-3">
+              <span className="text-[11px] font-bold uppercase tracking-wide text-neutral-500">Tu pedido</span>
+              <span className="text-[13px] font-semibold text-neutral-800">
+                {m.quantity} {m.quantity === 1 ? 'unidad' : 'unidades'}
+              </span>
+            </div>
+            <div className="px-4 py-3 flex items-baseline justify-between gap-3">
+              <span className="text-[12.5px] text-neutral-500">Tu precio máximo</span>
+              <span className="text-[13px] font-semibold text-neutral-800 whitespace-nowrap">
+                {fmt(d.commit)}{m.quantity > 1 ? ' / unidad' : ''}
+              </span>
+            </div>
+            {closeDateLabel(m.closes_at) && (
+              <div className="px-4 py-3 border-t border-neutral-100 flex items-baseline justify-between gap-3">
+                <span className="text-[12.5px] text-neutral-500">Cierra</span>
+                <span className="text-[13px] font-semibold text-neutral-800 text-right">
+                  {closeDateLabel(m.closes_at)}
+                  <span className="block text-[11px] font-normal text-neutral-400">hora peninsular</span>
+                </span>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-4">
+            <h5 className="text-[11px] font-bold uppercase tracking-wide text-neutral-500 mb-2.5">Qué pasa al cerrar</h5>
+            <ul className="space-y-2.5">
+              <Outcome tone="ok">
+                Si el precio final es <b className="font-semibold text-neutral-800">{fmt(d.commit)}</b> o menos,
+                se te cobra ese precio final — que puede ser más bajo. Nunca más.
+              </Outcome>
+              <Outcome tone="back">
+                Si el precio final lo supera, tu compra <b className="font-semibold text-neutral-800">no se ejecuta</b>:
+                se libera la retención y no se te cobra nada.
+              </Outcome>
+              <Outcome tone="back">
+                Si el grupo no sale adelante, tampoco se cobra nada y se libera la retención.
+              </Outcome>
+            </ul>
+          </div>
+
           <p className="text-[12.5px] text-neutral-500 mt-5 leading-relaxed">Cuantas más personas entren, antes se cierra el grupo y antes aseguras tu precio. Comparte tu enlace y baja el precio para todos.</p>
         </div>
         <div className="px-[22px] py-4 border-t border-neutral-100">

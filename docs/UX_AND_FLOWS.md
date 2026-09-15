@@ -519,3 +519,53 @@ que solo rellena el hueco, nunca sobrescribe lo que ya dijo el servidor.
 
 **Ya no queda ninguna pantalla completa sin barra en todo el producto** (comprobado: cero
 apariciones del marcador `···` en `src/app/`).
+
+---
+
+## P1-10 · «Ver estado de tu plaza», lo que el panel no contaba (15 sep 2026)
+
+Medio panel estaba vacío. Lo que le faltaba no era relleno: eran datos que el sistema ya tiene
+y que el comprador necesita **justo ahí**, porque es la pantalla a la que vuelve días después de
+comprar.
+
+### Lo añadido
+
+**Tu pedido.** Cantidad, precio máximo y **fecha y hora exacta de cierre** en hora peninsular.
+Antes solo había «2d 07h restantes»: una cuenta atrás transmite urgencia pero no sirve para
+organizarse.
+
+**Qué pasa al cerrar**, los tres desenlaces:
+
+1. Precio final ≤ tu máximo → se cobra el precio final, que puede ser más bajo.
+2. Precio final > tu máximo → tu compra **no se ejecuta**, se libera la retención, sin cargo.
+3. El grupo no sale adelante → tampoco se cobra nada.
+
+**Por qué esto importa más de lo que parece.** El caso 2 es RULE-032, y ese comprador **no recibe
+ningún email**: `sendClosePaymentEmails` solo escribe a `instructed` y `paid`. Este panel es
+literalmente el único sitio donde puede enterarse de que eso puede pasarle.
+
+### Dos errores encontrados al construirlo
+
+**1. «Tu plaza está asegurada hasta 85 €» es ambiguo con varias unidades.** `guaranteed_price`
+es POR UNIDAD, pero la frase se lee como el total. En producción **25 de 184 membresías piden más
+de una unidad, y una pide 10**: para esa persona la pantalla decía 85 € cuando su techo real son
+850 €. No es hipotético. Corregido en la tarjeta y en el panel con «por unidad» cuando procede.
+No se calcula un total, porque el importe retenido puede incluir gastos de envío y eso no viaja
+en `get_my_groups`: inventarlo sería justo el error que esta pantalla debe evitar.
+
+**2. El techo se leía del campo equivocado para quien espera a un precio.** `close_group` paso 4
+—comprobado sobre la **función viva**, no sobre el repositorio— cancela con campos distintos
+según el modo: `target_price` para `esperar`, `guaranteed_price` para `comprar`. El panel leía
+siempre `guaranteed_price`. Hoy coinciden en las 27 membresías «esperar» de producción, así que
+el número salía bien **por casualidad**, no por corrección. `derive` lee ahora el campo que manda
+en cada caso.
+
+### Verificado
+
+Las tres frases se comprobaron contra la misma regla que ejecuta el servidor, transcrita del
+`pg_get_functiondef` de producción, en 12 aserciones: en el techo exacto se compra (la
+comparación es estricta), un céntimo por encima se queda fuera, y por debajo se compra más
+barato. Incluido el caso en que los dos campos divergieran: con el campo equivocado el panel
+prometería comprar a 119 € y el cierre lo cancelaría.
+
+**Sin verificar:** el aspecto en pantalla. Nadie lo ha mirado todavía en un navegador.

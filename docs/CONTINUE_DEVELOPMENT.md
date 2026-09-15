@@ -425,7 +425,13 @@ ellas el abogado no tiene qué revisar.
 
 ## 2 · Producto / UX abiertos
 
-### P1-10 · El panel «Ver estado de tu plaza» tiene medio panel en blanco — 🟡 APROBADO, PENDIENTE
+### P1-10 · El panel «Ver estado de tu plaza» tenía medio panel en blanco — ✅ HECHO 15 sep 2026
+Añadidos: cantidad, precio máximo, hora exacta de cierre y los tres desenlaces al cerrar.
+De camino aparecieron dos errores reales: «asegurada hasta 85 €» era ambiguo con varias unidades
+(25 de 184 membresías piden más de una, una pide 10) y el techo se leía del campo equivocado para
+quien espera a un precio. Detalle y verificación en `UX_AND_FLOWS.md` § P1-10.
+
+<details><summary>Enunciado original</summary>
 Detectado el 15-sep en una captura de Benjamin. No está roto: es que ese panel tiene poco que
 contar. Hoy enseña el estado, los tres números (compromiso / actual / próximo objetivo), la barra
 y una frase de compartir. Debajo quedan ~500 px vacíos en escritorio.
@@ -441,6 +447,7 @@ Lo que le falta es información que el comprador querría y que el sistema ya ti
 
 Benjamin lo ha aprobado el 15-sep para **después** de verificar A-36 en producción. Es trabajo
 nuevo, no un arreglo: no tocar hasta entonces.
+</details>
 
 ### P1-08 · Apple Pay y Google Pay, retirados de la ficha
 Se quitaron (UX-04) porque se anunciaban sin funcionar. Para devolverlos: registrar el dominio en
