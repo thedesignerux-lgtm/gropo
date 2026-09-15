@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import DesktopNavbar from './DesktopNavbar'
 import PulseBar from '@/components/PulseBar'
 import { SITE_URL } from '@/lib/site'
+import { committedUnits, ladderProgress, normalizeLadder } from '@/lib/ladder'
 
 // ── Tipos ──────────────────────────────────────────────
 export interface Membership {
@@ -62,18 +63,29 @@ function timeLeft(closesAt: string): string {
 export function derive(m: Membership, ladder: LadderRow[]) {
   const commit = Number(m.guaranteed_price)
   const cur = Number(m.current_price)
-  const currentUnits = ladder.length ? Math.max(...ladder.map(t => Number(t.effective_demand ?? 0))) : 0
-  const nextTier = ladder.filter(t => !t.unlocked && Number(t.price) < cur).sort((a, b) => Number(b.price) - Number(a.price))[0] ?? null
-  // A-19 · Sin tramo siguiente NO hay objetivo, y ponerse uno mismo el listón
-  // (`target = currentUnits`) daba siempre «18 / 18 uds · 100 % completado»: no es
-  // «18 de las 18 que hacían falta», es «18 de las 18 que hay». Un denominador que se
-  // cumple solo. Cuando no queda escalera, la barra no se pinta: se dice que ya está
-  // el mejor precio, que es lo que de verdad ha pasado.
-  const hasNextTier = nextTier != null
-  const target = nextTier ? Number(nextTier.min_units) : currentUnits || m.quantity || 1
-  const missing = nextTier ? Math.max(0, Number(nextTier.min_units) - currentUnits) : 0
-  const nextObj = nextTier ? Number(nextTier.price) : null
-  const pct = target > 0 ? Math.min(100, Math.round((currentUnits / target) * 100)) : 100
+  const tiers = normalizeLadder(ladder)
+
+  // Unidades dentro del grupo, todas. Sirve para decir cuánta gente hay, NO para medir
+  // la distancia a un tramo.
+  const groupUnits = committedUnits(tiers)
+
+  // A-19 · Sin tramo siguiente NO hay objetivo, y ponerse uno mismo el listón daba
+  // siempre «18 / 18 uds · 100 % completado»: un denominador que se cumple solo.
+  //
+  // CORREGIDO 15-sep-2026. Aquí estaba el bug que Benjamin vio en cuatro capturas:
+  // `missing` restaba el umbral del tramo menos el TOTAL comprometido. Con 22 unidades
+  // en el grupo y un tramo de 20, daba 0 y la tarjeta cantaba «Faltan 0 uds · 100 %
+  // completado» de un tramo que el servidor marcaba como bloqueado —porque a ese precio
+  // la demanda eran 12, no 22—. La ficha, con la cuenta buena, decía «faltan 8» al
+  // mismo tiempo. La derivación es ahora la misma para las dos: `@/lib/ladder`.
+  const prog = ladderProgress(tiers)
+  const hasNextTier = prog.next != null
+  const currentUnits = hasNextTier ? prog.reached : groupUnits
+  const target = hasNextTier ? prog.target : groupUnits || m.quantity || 1
+  const missing = prog.missing
+  const nextObj = prog.next ? prog.next.price : null
+  const pct = prog.pct
+  const nextTier = prog.next
 
   // DOS EJES DISTINTOS, no colapsarlos (A-18):
   //   eje 1 — mi pago:  authorized (hold vivo) | paid | instructed | released | cancelled | auth_failed
@@ -97,7 +109,7 @@ export function derive(m: Membership, ladder: LadderRow[]) {
   } else {
     state = 'encurso'
   }
-  return { commit, cur, currentUnits, target, missing, nextObj, pct, state, hasNextTier, groupFailed, authFailed: ps === 'auth_failed' }
+  return { commit, cur, currentUnits, groupUnits, target, missing, nextObj, pct, state, hasNextTier, groupFailed, authFailed: ps === 'auth_failed' }
 }
 
 // Enriquecer con tier_demand (RPC anon, solo lectura) para la barra de progreso. Compartido desktop + móvil.
@@ -213,7 +225,7 @@ export function MgCard({ m, ladder, onOpen }: { m: Membership; ladder: LadderRow
         <div className="min-w-0 pt-0.5">
           <p className="text-[14.5px] font-bold text-neutral-900 leading-tight truncate">{m.product_name}</p>
           {m.product_spec && <p className="text-xs text-neutral-500 mt-1 truncate">{m.product_spec}</p>}
-          <p className="text-[11px] font-semibold mt-1 truncate" style={{ color: m.join_mode === 'esperar' ? '#D97706' : '#024947' }}>{m.join_mode === 'esperar' ? `Reserva a ${fmt(Number(m.target_price))}` : 'Compra directa'}</p>
+          <p className="text-[11px] font-semibold mt-1 truncate" style={{ color: m.join_mode === 'esperar' ? '#D97706' : '#024947' }}>{m.join_mode === 'esperar' ? 'En espera' : 'Compra directa'}</p>
         </div>
       </div>
       {/* financiero */}
@@ -249,8 +261,12 @@ export function MgCard({ m, ladder, onOpen }: { m: Membership; ladder: LadderRow
         </div>
       )}
       <div className="flex justify-between text-[12.5px] mt-2 mb-3">
+        {/* «X / Y uds» sin decir para qué tramo es ambiguo: parecía el total del
+            grupo, y no lo es. Son las unidades que cuentan PARA ESE PRECIO. */}
         <span className="text-neutral-500">{isOpen && d.state !== 'liberado'
-          ? (d.hasNextTier ? `${d.currentUnits} / ${d.target} uds en el grupo` : `${d.currentUnits} uds en el grupo`)
+          ? (d.hasNextTier
+              ? `${d.currentUnits} / ${d.target} uds para ${fmt(d.nextObj ?? 0)}`
+              : `${d.groupUnits} uds en el grupo`)
           : `${m.quantity} ud${m.quantity > 1 ? 's' : ''}`}</span>
         <span className="font-bold" style={{ color: d.state === 'noalc' ? '#94A3B8' : t.c }}>{d.state === 'meta' ? 'Objetivo alcanzado' : d.state === 'liberado' ? (isOpen ? 'El grupo sigue abierto' : 'Ya no participas') : d.state === 'noalc' ? 'Objetivo no alcanzado' : d.nextObj == null ? 'Precio mínimo' : d.missing === 1 ? 'Falta 1 ud' : `Faltan ${d.missing} uds`}</span>
       </div>
@@ -373,7 +389,7 @@ export function Drawer({ m, ladder, onClose }: { m: Membership; ladder: LadderRo
           </div>
           <div className="flex gap-3 items-center">
             <div className="w-[52px] h-[52px] rounded-xl bg-neutral-100 shrink-0 overflow-hidden">{m.image_url && <img src={m.image_url} alt="" className="w-full h-full object-cover" />}</div>
-            <div><div className="text-base font-bold">{m.product_name}</div>{spec && <div className="text-[12.5px] text-neutral-500 mt-0.5">{spec}</div>}<div className="text-[11px] font-semibold mt-1" style={{ color: m.join_mode === 'esperar' ? '#D97706' : '#024947' }}>{m.join_mode === 'esperar' ? `Reserva a ${fmt(Number(m.target_price))}` : 'Compra directa'}</div></div>
+            <div><div className="text-base font-bold">{m.product_name}</div>{spec && <div className="text-[12.5px] text-neutral-500 mt-0.5">{spec}</div>}<div className="text-[11px] font-semibold mt-1" style={{ color: m.join_mode === 'esperar' ? '#D97706' : '#024947' }}>{m.join_mode === 'esperar' ? 'En espera' : 'Compra directa'}</div></div>
           </div>
           <div className="flex gap-3 items-start rounded-2xl p-3.5 mt-4" style={{ background: t.secbg }}>
             <span className="w-[38px] h-[38px] rounded-xl flex items-center justify-center text-white shrink-0" style={{ background: t.c }}>{I.shield}</span>
@@ -390,10 +406,10 @@ export function Drawer({ m, ladder, onClose }: { m: Membership; ladder: LadderRo
           {d.hasNextTier ? (
             <>
               <div className="flex items-center mt-4"><div className="flex-1 h-1.5 rounded-full bg-neutral-200 overflow-hidden mr-1"><div className="h-full rounded-full" style={{ width: `${d.pct}%`, background: t.c }} /></div><span className="w-4 h-4 rounded-full bg-white shrink-0" style={{ border: `2.5px solid ${t.c}` }} /></div>
-              <div className="flex justify-between text-xs text-neutral-500 mt-2"><span>{d.currentUnits} / {d.target} uds</span><span>{d.pct}% completado</span></div>
+              <div className="flex justify-between text-xs text-neutral-500 mt-2"><span>{d.currentUnits} / {d.target} uds para {fmt(d.nextObj ?? 0)}</span><span>{d.pct}% completado</span></div>
             </>
           ) : (
-            <div className="flex justify-between text-xs mt-4"><span className="text-neutral-500">{d.currentUnits} uds en el grupo</span><span className="font-bold" style={{ color: t.c }}>Mejor precio alcanzado</span></div>
+            <div className="flex justify-between text-xs mt-4"><span className="text-neutral-500">{d.groupUnits} uds en el grupo</span><span className="font-bold" style={{ color: t.c }}>Mejor precio alcanzado</span></div>
           )}
           <p className="text-[12.5px] text-neutral-500 mt-5 leading-relaxed">Cuantas más personas entren, antes se cierra el grupo y antes aseguras tu precio. Comparte tu enlace y baja el precio para todos.</p>
         </div>
@@ -412,7 +428,7 @@ export function Drawer({ m, ladder, onClose }: { m: Membership; ladder: LadderRo
         <div className="px-[22px] py-5 overflow-y-auto flex-1">
           <div className="flex gap-3 items-center mb-2">
             <div className="w-[52px] h-[52px] rounded-xl bg-neutral-100 shrink-0 overflow-hidden">{m.image_url && <img src={m.image_url} alt="" className="w-full h-full object-cover" />}</div>
-            <div><div className="text-base font-bold">{m.product_name}</div>{spec && <div className="text-[12.5px] text-neutral-500 mt-0.5">{spec}</div>}<div className="text-[11px] font-semibold mt-1" style={{ color: m.join_mode === 'esperar' ? '#D97706' : '#024947' }}>{m.join_mode === 'esperar' ? `Reserva a ${fmt(Number(m.target_price))}` : 'Compra directa'}</div></div>
+            <div><div className="text-base font-bold">{m.product_name}</div>{spec && <div className="text-[12.5px] text-neutral-500 mt-0.5">{spec}</div>}<div className="text-[11px] font-semibold mt-1" style={{ color: m.join_mode === 'esperar' ? '#D97706' : '#024947' }}>{m.join_mode === 'esperar' ? 'En espera' : 'Compra directa'}</div></div>
           </div>
           <div className="border border-neutral-200 rounded-2xl p-4 mt-4">
             <h4 className="text-[11px] font-bold uppercase tracking-wide text-neutral-500 mb-3">Confirmación de compra</h4>
@@ -479,7 +495,7 @@ export function Drawer({ m, ladder, onClose }: { m: Membership; ladder: LadderRo
       <div className="px-[22px] py-5 overflow-y-auto flex-1">
         <div className="flex gap-3 items-center mb-2">
           <div className="w-[52px] h-[52px] rounded-xl bg-neutral-100 shrink-0 overflow-hidden">{m.image_url && <img src={m.image_url} alt="" className="w-full h-full object-cover" />}</div>
-          <div><div className="text-base font-bold">{m.product_name}</div>{spec && <div className="text-[12.5px] text-neutral-500 mt-0.5">{spec}</div>}<div className="text-[11px] font-semibold mt-1" style={{ color: m.join_mode === 'esperar' ? '#D97706' : '#024947' }}>{m.join_mode === 'esperar' ? `Reserva a ${fmt(Number(m.target_price))}` : 'Compra directa'}</div></div>
+          <div><div className="text-base font-bold">{m.product_name}</div>{spec && <div className="text-[12.5px] text-neutral-500 mt-0.5">{spec}</div>}<div className="text-[11px] font-semibold mt-1" style={{ color: m.join_mode === 'esperar' ? '#D97706' : '#024947' }}>{m.join_mode === 'esperar' ? 'En espera' : 'Compra directa'}</div></div>
         </div>
         <div className="flex gap-2.5 rounded-2xl p-3.5 mt-4 text-[12.5px] leading-relaxed" style={{ background: '#EFF6FF', color: '#1E3A8A' }}>
           <span className="shrink-0">{I.shield}</span>

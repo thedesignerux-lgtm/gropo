@@ -1387,6 +1387,82 @@ de desaparecer, hace lo único coherente con su aspecto: **llevar el foco al cam
 
 ---
 
+## HALLAZGO POSTERIOR · 15 de septiembre de 2026
+
+### 🔴 A-36 · El mismo grupo decía cosas distintas en cada pantalla — ✅ CORREGIDO 15 sep 2026
+Benjamin mandó cuatro capturas de las **Zapatillas Shimano RC503** tomadas a la vez. Lo que decía
+cada superficie:
+
+| Pantalla | Qué decía |
+|---|---|
+| Ficha (escritorio) | «13 personas ya han pedido **22 unidades**» · «Con **8 unidades** más baja a 99 €» |
+| Tarjeta de la home | «↓ Faltan **8 uds**» |
+| Mis grupos (tarjeta) | «**22 / 20** uds en el grupo» · «**Faltan 0 uds**» · dos tramos marcados como conseguidos |
+| Panel «Ver estado de tu plaza» | «Faltan **0 uds**» · «**100 % completado**» · barra llena |
+
+Y al lado de ese 100 %, en la misma tarjeta: «Estado actual **119 €**». Es decir, la pantalla
+anunciaba un tramo conseguido y el precio de ese tramo no se aplicaba.
+
+**Los datos reales de producción en ese momento** (`tier_demand`):
+
+| Tramo | Umbral | Demanda efectiva | Servidor |
+|---|---|---|---|
+| 119 € | ≥ 1 ud | 8 | **desbloqueado** |
+| 99 € | ≥ 20 uds | **12** | bloqueado |
+| 85 € | ≥ 45 uds | 22 | bloqueado |
+
+**La causa.** `min_units` de un tramo se compara contra la demanda efectiva **de ese mismo
+tramo**. `MisGruposDesktop.derive()` lo comparaba contra el **total de unidades comprometidas**:
+
+```ts
+const currentUnits = Math.max(...ladder.map(t => t.effective_demand))   // 22
+const missing = Math.max(0, nextTier.min_units - currentUnits)          // 20 − 22 → 0   ✗
+```
+
+Son dos cantidades distintas. Las 22 unidades comprometidas incluyen a quien solo compra si baja
+a 85 €; a 99 € esa gente no cuenta, y por eso la demanda a 99 € son 12. Un grupo puede tener 22
+unidades dentro y no desbloquear un tramo de 20: no son las 20 unidades correctas.
+
+La ficha lo hacía bien —`useTierDemand` restaba `nextTier.minUnits − nextTier.demand` = 8—. Dos
+implementaciones de la misma cuenta, una mal. **Era DT-07 cobrando su precio**, y lo introduje yo
+al cerrar A-19/A-20.
+
+**Y no eran dos, eran tres.** Al buscar hasta agotar apareció una tercera copia con el mismo
+error en `purchaseFeed.ts`: el aviso «Estás cerca del siguiente precio» restaba también el total
+comprometido, así que en los grupos con esperadores daba 0 y **el aviso no se disparaba nunca**.
+Un fallo silencioso: no enseñaba nada mal, simplemente no enseñaba. También la escribí yo, en la
+tanda del feed. Las tres usan ahora `@/lib/ladder`.
+
+**Por qué es 🔴 y no cosmético.** Es una afirmación económica falsa en la pantalla donde el
+comprador consulta su dinero. Ese comprador tiene un compromiso de 85 €; si el grupo cerrase con
+el precio en 119 €, su compra **no se ejecutaría** (RULE-032). La pantalla le decía «100 %
+completado».
+
+**Lo hecho.** La derivación se extrae a **`src/lib/ladder.ts`**, una sola definición que usan la
+ficha y Mis grupos. `unlocked` sigue viniendo del servidor: nunca se deduce comparando números en
+el cliente. De paso:
+
+- «22 / 20 uds **en el grupo**» → «12 / 20 uds **para 99 €**». El numerador y el denominador son
+  ahora del mismo tramo, y el texto dice de qué tramo habla.
+- La barra de progreso recibía las unidades totales y pasaba de largo un nodo que el servidor
+  marcaba como bloqueado. Ahora mide contra el tramo al que se aspira.
+- «Reserva a 85 €» desaparece: no está en el léxico cerrado (A-31) y repetía el mismo número que
+  la línea del escudo justo debajo. Queda «En espera» / «Compra directa», que es lo único que ese
+  texto aportaba.
+- El aviso de la ficha pasa a decir «Faltan 8 unidades **a este precio** para bajar a 99 €»
+  (decisión de Benjamin, 15-sep). Tres palabras que resuelven la aparente contradicción con las
+  «22 unidades» sin explicar todo el modelo ni quitar la prueba social.
+
+**Verificado** ejecutando la derivación contra las filas reales de ese grupo: precio actual 119 €,
+22 unidades comprometidas, siguiente tramo 99 €, faltan 8, 60 % del camino. Más los casos límite
+—escalera agotada, grupo vacío, RPC que devuelve basura—. La última prueba encontró un fallo de
+verdad: una fila nula tumbaba la función entera, y con ella la pantalla. Corregido.
+
+**Sin verificar:** nadie ha mirado las cuatro pantallas en un navegador después del arreglo. El
+cálculo sí está verificado contra los datos reales; lo que falta es el ojo.
+
+---
+
 ## RESUMEN DE LA AUDITORÍA
 
 **37 hallazgos** sobre 6 partes (recuento verificado sobre este mismo documento).

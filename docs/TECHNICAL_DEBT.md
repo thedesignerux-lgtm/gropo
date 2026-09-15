@@ -131,6 +131,25 @@ unidades adjudicadas — ver `ALGORITHM.md` §9).
 **Coste.** Las tres coinciden en el caso simple y divergen en escaleras con huecos. Es una
 fuente latente de inconsistencias de display.
 
+### Dejó de ser latente el 15 de septiembre de 2026
+
+Había una CUARTA definición sin documentar, en `MisGruposDesktop.derive()`, y estaba mal:
+restaba el umbral del tramo menos el **total de unidades comprometidas** en vez de menos la
+**demanda efectiva de ese tramo**. Resultado en producción, sobre el mismo grupo y a la misma
+hora: la ficha decía «faltan 8 uds» y «Mis grupos» decía «22 / 20 uds · Faltan 0 uds · 100 %
+completado» de un tramo que el servidor marcaba como bloqueado. Benjamin lo vio en cuatro
+capturas. Detalle en `UX_AUDIT_2.md` A-36.
+
+**Corregido en origen.** La derivación vive ahora en **`src/lib/ladder.ts`** —
+`normalizeLadder`, `currentLadderPrice`, `committedUnits`, `ladderProgress`— y la usan
+`useTierDemand` (ficha) y `derive` (Mis grupos). Quedan dos definiciones documentadas y
+deliberadas: la de `compute_price` (el motor, en SQL) y la de la home (`currentUnits`, un valor
+de **display** recortado al tramo siguiente, que por eso subestima y nunca debe usarse para
+restar stock).
+
+La regla, escrita donde no se pueda ignorar: **`min_units` se compara contra la demanda efectiva
+DE ESE MISMO TRAMO, nunca contra el total comprometido.**
+
 **Agravante:** `src/lib/mock-data.ts` mantiene `getStepPricing`, `getMilestones` y
 `getActivationState` marcados `@deprecated` — **matemática de precios replicada en el cliente**,
 exactamente lo que la arquitectura prohíbe. Siguen importándose (al menos los tipos

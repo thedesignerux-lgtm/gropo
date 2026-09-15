@@ -231,9 +231,14 @@ export default function GropoTargetSlider({
     if (selIdx < curIdx) {
       nudgeText = `Tu máximo sería ${fmt(selP)}, pero el grupo ya está en ${fmt(curP)}: eso es lo que pagarías.`
     } else {
+      // A-36 · «a este precio» no es relleno: sin esas tres palabras, la ficha
+      // enseña «22 unidades pedidas» y un peldaño de «20 uds», y el lector concluye
+      // que ese peldaño ya está superado. No lo está: de esas 22 unidades, solo las
+      // que aceptan pagar el precio del peldaño cuentan para desbloquearlo. Copy
+      // elegido por Benjamin el 15-sep-2026.
       nudgeText = `Este precio ya está disponible. Si te unes hoy pagas ${fmt(selP)}, y menos si el grupo sigue creciendo` +
         (nextP != null && faltan >= 1
-          ? `. Con ${faltan} unidad${faltan === 1 ? '' : 'es'} más baja a ${fmt(nextP)}.`
+          ? `. Faltan ${faltan} unidad${faltan === 1 ? '' : 'es'} a este precio para bajar a ${fmt(nextP)}.`
           : '.')
     }
   } else {

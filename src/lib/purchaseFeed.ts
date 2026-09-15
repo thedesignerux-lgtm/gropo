@@ -1,3 +1,4 @@
+import { ladderProgress, normalizeLadder } from '@/lib/ladder'
 /**
  * PURCHASE ACTIVITY FEED — la lógica de `/notificaciones`.
  *
@@ -125,14 +126,17 @@ export function buildPurchaseFeed(
     // Una plaza liberada o cancelada ya no es «mi compra»: nada que empujar.
     if (!['authorized', 'instructed', 'paid'].includes(m.payment_status)) continue
 
-    const ladder = ladders[m.group_id] ?? []
-    const unidades = ladder.length ? Math.max(...ladder.map((t) => num(t.effective_demand))) : 0
-    const siguiente = ladder
-      .filter((t) => !t.unlocked && num(t.price) < num(m.current_price))
-      .sort((a, b) => num(b.price) - num(a.price))[0]
+    // A-36 · Aquí había una TERCERA copia de la misma cuenta, y con el mismo error:
+    // restaba el umbral del tramo menos el total de unidades comprometidas. Con 22
+    // unidades dentro y un tramo de 20 daba 0, así que este aviso no se disparaba
+    // nunca en los grupos donde más falta hace. La derivación es la de `@/lib/ladder`,
+    // la misma que usan la ficha y Mis grupos.
+    const tiers = normalizeLadder(ladders[m.group_id] ?? [])
+    const prog = ladderProgress(tiers)
+    const siguiente = prog.next
 
     if (siguiente) {
-      const faltan = Math.max(0, num(siguiente.min_units) - unidades)
+      const faltan = prog.missing
       if (faltan > 0 && faltan <= NEAR_TIER_UNITS) {
         items.push({
           id: `near:${m.group_id}`,
@@ -143,7 +147,7 @@ export function buildPurchaseFeed(
           imageUrl: m.image_url,
           icon: '⚡',
           title: 'Estás cerca del siguiente precio',
-          body: `${faltan === 1 ? 'Falta 1 unidad' : `Faltan ${faltan} unidades`} para alcanzar ${eur(num(siguiente.price))}.`,
+          body: `${faltan === 1 ? 'Falta 1 unidad' : `Faltan ${faltan} unidades`} a este precio para alcanzar ${eur(siguiente.price)}.`,
           ctaLabel: 'Ver grupo',
           href: `/grupo/${m.group_id}`,
           live: true,

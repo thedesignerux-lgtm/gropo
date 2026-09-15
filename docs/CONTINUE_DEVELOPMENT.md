@@ -367,6 +367,27 @@ a una pantalla, leer lo que ya pinta el componente de debajo.
 
 ---
 
+## A-36 · La incoherencia entre pantallas (15 sep, tercera tanda)
+
+Benjamin mandó cuatro capturas del mismo producto: la ficha decía «faltan 8 uds» y «Mis grupos»
+decía «22 / 20 uds · Faltan 0 uds · 100 % completado» del mismo tramo, a la misma hora.
+
+**Causa:** `MisGruposDesktop.derive()` restaba el umbral del tramo menos el TOTAL comprometido
+(22) en vez de menos la demanda efectiva DE ESE TRAMO (12). La ficha lo hacía bien. Dos
+implementaciones de la misma cuenta; la de Mis grupos la introduje yo al cerrar A-19/A-20.
+
+**Corregido en origen:** `src/lib/ladder.ts` es ahora la única definición y la usan las dos
+pantallas. Verificado contra las filas reales del grupo y contra los casos límite; una de las
+pruebas encontró un fallo adicional (una fila nula tumbaba la pantalla entera).
+
+**LA REGLA, para no repetirlo:** `min_units` se compara contra la demanda efectiva **de ese mismo
+tramo**, nunca contra el total de unidades comprometidas. Están en `ALGORITHM.md` §9 como
+magnitudes distintas y lo son.
+
+Detalle en `UX_AUDIT_2.md` A-36 y en `TECHNICAL_DEBT.md` DT-07.
+
+---
+
 # PENDIENTE (lista del 13 de septiembre, actualizada)
 
 ## 1 · Bloqueantes de lanzamiento

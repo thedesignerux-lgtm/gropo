@@ -1,13 +1,9 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { currentLadderPrice, ladderProgress, type LadderTier } from '@/lib/ladder'
 
-export type TierRow = {
-  minUnits: number
-  price: number
-  demand: number
-  unlocked: boolean
-}
+export type TierRow = LadderTier
 
 export function useTierDemand(groupId: string) {
   const [tiers, setTiers] = useState<TierRow[]>([])
@@ -51,22 +47,11 @@ export function useTierDemand(groupId: string) {
     }
   }, [groupId])
 
-  // Derivados
-  const unlockedTiers = tiers.filter(t => t.unlocked)
-  const currentPrice = unlockedTiers.length > 0
-    ? Math.min(...unlockedTiers.map(t => t.price))
-    : tiers.length > 0 ? Math.max(...tiers.map(t => t.price)) : 0
-
-  // nextTier = tramo más cercano POR DEBAJO del precio actual que NO esté desbloqueado
-  const nextTier = [...tiers]
-    .filter(t => !t.unlocked && t.price < currentPrice)
-    .sort((a, b) => {
-      const missingA = Math.max(0, a.minUnits - a.demand)
-      const missingB = Math.max(0, b.minUnits - b.demand)
-      if (missingA !== missingB) return missingA - missingB
-      return a.price - b.price
-    })[0] ?? null
-  const missing = nextTier ? Math.max(0, nextTier.minUnits - nextTier.demand) : 0
+  // Derivados. La cuenta vive en `@/lib/ladder`, no aquí: esta misma derivación estaba
+  // duplicada en Mis grupos con una resta distinta, y las dos pantallas contaban cosas
+  // diferentes del mismo grupo. Ver la cabecera de ese fichero.
+  const currentPrice = currentLadderPrice(tiers)
+  const { next: nextTier, missing } = ladderProgress(tiers)
 
   return { tiers, loading, currentPrice, nextTier, missing, refreshKey }
 }
