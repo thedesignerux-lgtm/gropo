@@ -476,3 +476,46 @@ Mientras la escalera no había llegado, la tarjeta anunciaba **«Precio mínimo�
 tramo siguiente» y «todavía no sé nada de este grupo» se calculaban igual. Es el mismo error que
 A-36 en pequeño: afirmar lo que no se sabe. `derive` distingue ahora los dos casos con
 `ladderKnown`, y sin escalera la tarjeta deja el hueco en blanco en vez de inventarse un estado.
+
+### El mismo patrón, en `/perfil`
+
+Benjamin, después de dar por buena «Mis grupos»: «al darle al icono de perfil, por una
+milésima la pantalla queda en blanco».
+
+**Era el mismo fallo, en la última pantalla que lo tenía.** `/perfil` devolvía una pantalla
+completa con tres puntos y **sin barra de navegación** mientras `getUser()` viajaba a la red.
+
+Y aquí se ve por qué «Cómo funciona» y «Mi Radar» siempre fueron fluidas: son **componentes de
+servidor**. Next mantiene la página anterior a la vista hasta que la nueva está lista, así que
+no hay ningún estado vacío en el navegador. Las dos que parpadeaban eran las dos que comprueban
+la sesión desde el cliente.
+
+**Corregido con dos cambios.**
+
+1. **El marco se queda.** La rama de espera pinta la barra, el fondo y un esqueleto con la
+   silueta del perfil. Ya no hay nada que «desaparezca».
+2. **Dos preguntas en vez de una.** `getSession()` lee del almacenamiento local y responde en
+   el mismo instante; `getUser()` va a la red y sigue siendo la autoridad. La local **solo
+   adelanta el caso positivo**: si dice que hay sesión, el perfil se pinta ya. Si dijera que no,
+   no se adelanta nada, porque enseñar «entra en tu perfil» y cambiarlo un instante después
+   sería peor que esperar.
+
+No relaja ninguna seguridad: decide **qué pantalla se enseña**, no a qué datos se accede — eso
+lo autoriza el servidor en cada petición.
+
+**Las seis combinaciones, comprobadas:**
+
+| Sesión local | Servidor | Quién llega antes | Resultado |
+|---|---|---|---|
+| sí | sí | local | perfil |
+| sí | sí | red | perfil |
+| sí | **no** (caducada) | local | **entrar** |
+| sí | **no** | red | **entrar** |
+| no | sí (recién entrado) | local | perfil |
+| no | no | — | entrar |
+
+La respuesta local **nunca resucita una sesión muerta**: la guarda es `prev === undefined`, así
+que solo rellena el hueco, nunca sobrescribe lo que ya dijo el servidor.
+
+**Ya no queda ninguna pantalla completa sin barra en todo el producto** (comprobado: cero
+apariciones del marcador `···` en `src/app/`).

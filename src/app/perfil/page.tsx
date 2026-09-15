@@ -48,9 +48,35 @@ export default function PerfilPage() {
 
   // Sesión real (Supabase Auth). undefined = comprobando · null = sin sesión.
   const [sessionEmail, setSessionEmail] = useState<string | null | undefined>(undefined)
+
+  /**
+   * DOS PREGUNTAS, NO UNA (15-sep-2026). Benjamin: «al darle al icono de perfil, por
+   * una milésima la pantalla queda en blanco».
+   *
+   * `getUser()` va a la red —y de paso refresca el token—, así que durante ese viaje
+   * esta pantalla no sabía nada y pintaba una pantalla vacía. `getSession()` lee del
+   * almacenamiento local y responde de inmediato.
+   *
+   * Se lanzan las dos. La local solo adelanta el caso POSITIVO: si dice que hay sesión,
+   * el perfil se pinta ya. Si dijera que no, no se adelanta nada, porque enseñar
+   * «entra en tu perfil» y cambiarlo un instante después sería peor que esperar.
+   *
+   * `getUser()` sigue siendo la autoridad y corrige si hacía falta. Y esto no relaja
+   * ninguna seguridad: decide QUÉ PANTALLA se enseña, no a qué datos se accede — eso
+   * lo autoriza el servidor en cada petición.
+   */
   useEffect(() => {
-    sb.auth.getUser().then(({ data }) => setSessionEmail(data.user?.email ?? null))
-  }, [])
+    let cancelled = false
+    sb.auth.getSession().then(({ data }) => {
+      if (cancelled) return
+      const email = data.session?.user?.email
+      if (email) setSessionEmail((prev) => (prev === undefined ? email : prev))
+    })
+    sb.auth.getUser().then(({ data }) => {
+      if (!cancelled) setSessionEmail(data.user?.email ?? null)
+    })
+    return () => { cancelled = true }
+  }, [sb])
 
   async function handleSignOut() {
     // Cierre de sesión DE VERDAD: antes solo se borraba localStorage, así que
@@ -77,7 +103,9 @@ export default function PerfilPage() {
         }
       })
     }
-  }, [sessionEmail])
+    // `sb` sale de un `useState` con inicializador: la instancia es estable y añadirlo
+    // a las dependencias no reejecuta nada. Estaba omitido y el lint lo avisaba.
+  }, [sessionEmail, sb])
 
   // Cerrar menú con ESC / clic fuera. El listener de clic se registra en el
   // SIGUIENTE tick y SOLO mientras hay un menú abierto: así el mismo clic que
@@ -179,11 +207,30 @@ export default function PerfilPage() {
   const initials = (user?.name || 'V').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase() || 'V'
   const inputCls = 'w-full text-sm border border-neutral-200 rounded-lg px-3 py-2 outline-none focus:border-brand focus:ring-2 focus:ring-brand/15'
 
-  // Comprobando sesión
+  // Comprobando sesión. El marco se queda: lo que cambia es el contenido.
   if (sessionEmail === undefined) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F7F9FC' }}>
-        <p className="text-sm text-neutral-400">···</p>
+      <div className="min-h-screen" style={{ backgroundColor: '#F7F9FC' }}>
+        <div className="hidden lg:block"><DesktopNavbar /></div>
+        <div className="flex-1 min-w-0 flex flex-col pb-24 lg:pb-0">
+          <main className="w-full max-w-[1180px] mx-auto px-4 lg:px-8 pt-5 lg:pt-8 pb-10" aria-hidden>
+            <div className="flex items-center gap-4 lg:gap-5 mb-6 animate-pulse">
+              <div className="w-16 h-16 lg:w-[72px] lg:h-[72px] rounded-full bg-neutral-200/70 shrink-0" />
+              <div className="min-w-0 flex-1">
+                <div className="h-7 w-52 rounded bg-neutral-200/70" />
+                <div className="mt-2 h-4 w-72 max-w-full rounded bg-neutral-200/70" />
+              </div>
+            </div>
+            <div className="grid gap-5 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] items-start animate-pulse">
+              <div className="flex flex-col gap-[18px]">
+                <div className="h-[196px] rounded-2xl border border-neutral-200 bg-white" />
+                <div className="h-[260px] rounded-2xl border border-neutral-200 bg-white" />
+              </div>
+              <div className="h-[220px] rounded-2xl border border-neutral-200 bg-white" />
+            </div>
+          </main>
+        </div>
+        <div className="lg:hidden"><BottomNav /></div>
       </div>
     )
   }
