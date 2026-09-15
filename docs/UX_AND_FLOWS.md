@@ -348,3 +348,55 @@ Y no existe SVG de los logos, solo PNG; hará falta el día que se haga BIMI.
   `#0F8A4D`, `#F4F0FE`) introducidos en los rediseños de julio. Ver `TECHNICAL_DEBT.md` DT-09.
 - `<html lang="en">` en `layout.tsx:40` pese a ser una app en castellano (las plantillas de
   email **sí** usan `lang="es"`).
+
+---
+
+## BARRA SUPERIOR DE ESCRITORIO (15 sep 2026)
+
+Rehecha sobre el mockup de Benjamin («Gropo header.html»). Estructura del mockup, letra y
+logo del producto.
+
+| Elemento | Destino | Nota |
+|---|---|---|
+| Logo | `/` | `public/logo.png`, 1200×383, a 40 px de alto ocupa 125 px |
+| Explorar | `/` | activo solo con `pathname === '/'` |
+| Mis grupos | `/mis-grupos` | |
+| Mi Radar | `/favoritos` | |
+| Cómo funciona | `/como-funciona` | |
+| Buscador | `/?q=…` | visible desde `xl` (1280 px) |
+| Crea tu grupo | `/crear-peticion` | CTA naranja |
+| Campana | `/notificaciones` | **única entrada** a la actividad de compra |
+| Avatar | `/perfil` | |
+
+**Lo que NO se copió del mockup, y por qué**
+
+1. **Tipografía.** El mockup usa Outfit; el producto usa Geist / Space Grotesk / Instrument
+   Serif. Decisión de Benjamin: estructura del mockup, letra actual.
+2. **Enlaces.** El mockup lista «Productos · Cómo funciona · Comunidad · Mi Radar».
+   «Comunidad» no existe como ruta y «Mis grupos» faltaba. Se mantienen los cuatro reales.
+3. **Contraste.** El CTA del mockup es texto blanco sobre naranja: **2,87:1**, no pasa AA
+   (calculado). Se aplica la regla que ya estaba en `tailwind.config.ts`: fondo `accent` con
+   texto casi negro, **6,04:1**. El subrayado del activo es un elemento gráfico y AA le pide
+   3:1; `accent` (#FF6A00) da 2,79:1, así que ahí va **#EC5600** (3,46:1).
+4. **Botón «Entrar» con el nombre del usuario.** Necesita que la barra consulte la sesión, cosa
+   que hoy no hace. Queda el avatar. **Pendiente.**
+
+**El buscador tenía que ir a algún sitio.** Antes vivía solo dentro de la home y filtraba en
+cliente. En una barra global tiene que funcionar desde cualquier página, así que envía a
+`/?q=…` y `HomeDesktopView` lee ese parámetro (`useSearchParams`, seguro porque la página es
+`force-dynamic`). Estando ya en la home, la URL cambia sin remontar el componente: por eso hay
+un `useEffect` que sincroniza. Sin esto sería otro control con aspecto de hacer algo — el error
+de A-35.
+
+**Presupuesto de anchura**, comprobado con aritmética en los puntos donde puede romperse:
+
+| Viewport | Disponible | Usado | Sobra |
+|---|---|---|---|
+| 1024 px (sin buscador) | 960 | 844 | 116 |
+| 1280 px (aparece el buscador) | 1176 | 1096 | 80 |
+| 1920 px | 1176 | 1096 | 80 |
+
+Por debajo de 1024 px esta barra no se renderiza: las páginas la envuelven en
+`hidden lg:block` y en móvil manda `BottomNav`.
+
+**Sin verificar:** nadie la ha mirado todavía en un navegador.

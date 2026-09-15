@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import type { GroupProduct } from '@/lib/mock-data'
 import { getStepPricing } from '@/lib/mock-data'
 import { useCheckout } from '@/components/checkout/CheckoutProvider'
@@ -50,7 +50,20 @@ interface Props {
 }
 
 export default function HomeDesktopView({ products, favoriteIds = [], isAuthed = false }: Props) {
-  const [query, setQuery] = useState('')
+  /**
+   * El buscador de la barra superior manda aquí con `?q=...`. La home arranca con ese
+   * término aplicado; a partir de ahí el campo de la home manda y el parámetro deja de
+   * mirarse, para que escribir en la caja no pelee con la URL.
+   *
+   * `force-dynamic` en la página hace que `useSearchParams` no necesite Suspense.
+   */
+  const searchParams = useSearchParams()
+  const qParam = searchParams.get('q') ?? ''
+  const [query, setQuery] = useState(qParam)
+  // Estando YA en la home, buscar desde la barra cambia la URL pero no remonta este
+  // componente: sin esto, el término se escribía en la barra y aquí no pasaba nada.
+  // Solo reacciona al parámetro, así que escribir en la caja de la home no se pisa.
+  useEffect(() => { setQuery(qParam) }, [qParam])
   const searchRef = useRef<HTMLInputElement>(null)  // A-35
   const favSet = new Set(favoriteIds)
   const countdown = useCountdown()

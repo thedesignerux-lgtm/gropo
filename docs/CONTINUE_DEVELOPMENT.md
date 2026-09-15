@@ -425,6 +425,23 @@ ellas el abogado no tiene qué revisar.
 
 ## 2 · Producto / UX abiertos
 
+### P1-10 · El panel «Ver estado de tu plaza» tiene medio panel en blanco — 🟡 APROBADO, PENDIENTE
+Detectado el 15-sep en una captura de Benjamin. No está roto: es que ese panel tiene poco que
+contar. Hoy enseña el estado, los tres números (compromiso / actual / próximo objetivo), la barra
+y una frase de compartir. Debajo quedan ~500 px vacíos en escritorio.
+
+Lo que le falta es información que el comprador querría y que el sistema ya tiene:
+
+- **cuántas unidades pediste** (`group_members.quantity` — hoy no aparece en ningún sitio del panel);
+- **la hora exacta de cierre**, no solo «2d 07h restantes»;
+- **qué pasa al cerrar, en cada caso**: si el precio final queda en o por debajo de tu máximo se
+  cobra el precio final; si queda por encima, no se cobra nada y se libera la retención; si el
+  grupo no arranca, tampoco. Eso hoy solo se cuenta en el checkout, y el comprador que vuelve
+  días después a mirar su plaza no lo tiene delante.
+
+Benjamin lo ha aprobado el 15-sep para **después** de verificar A-36 en producción. Es trabajo
+nuevo, no un arreglo: no tocar hasta entonces.
+
 ### P1-08 · Apple Pay y Google Pay, retirados de la ficha
 Se quitaron (UX-04) porque se anunciaban sin funcionar. Para devolverlos: registrar el dominio en
 Stripe — **test y live son listas separadas** —, probar en un móvil real y solo entonces
