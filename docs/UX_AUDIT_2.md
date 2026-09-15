@@ -361,22 +361,51 @@ Sigue sin responderse **si habrá otra ronda**. Eso no es copy: es una decisión
 está tomada, y prefiero dejar el hueco visible antes que insinuar algo que el sistema no puede
 cumplir.
 
-### ⚠️ A-11b · `confirm_join` no comprueba el estado del grupo — ABIERTO
-Comprobado: **cero** referencias a `v_group.status` en `confirm_join`. El guard de `prepare_join`
-cierra la puerta de entrada, pero si el grupo se cierra —por el cron o a mano desde el admin—
-**mientras alguien está a mitad del pago**, el webhook llamará a `confirm_join` y creará la
-membresía en un grupo ya liquidado. Ese miembro queda fuera del reparto, sin `final_price`, sin
-email de cierre, y con el hold vivo.
+### ❌ A-11b · «`confirm_join` no comprueba el estado del grupo» — **FALSO POSITIVO** (retirado 14 sep 2026)
+> **Este hallazgo estaba mal. Lo retiro entero.**
+>
+> Escribí: *«Comprobado: **cero** referencias a `v_group.status` en `confirm_join`»*. La frase es
+> literalmente cierta y completamente engañosa. `confirm_join` **no usa** una variable llamada
+> `v_group` —esa es de `prepare_join`—, pero **sí comprueba el estado**, y lo hace mejor de lo que
+> yo iba a proponer:
+>
+> ```sql
+> -- RE-VALIDACIÓN (carrera hold→confirm) + candado de fila
+> PERFORM 1 FROM groups WHERE id = p_group_id AND status = 'open' FOR UPDATE;
+> IF NOT FOUND THEN
+>   RETURN json_build_object('status', 'needs_release', 'reason', 'group_closed');
+> END IF;
+> ```
+>
+> Con `FOR UPDATE`, que es la garantía real contra la carrera con `close_group`. Y devolviendo
+> `needs_release`, que es exactamente la salida que yo describía como «lo que habría que
+> construir». Ya estaba construida.
+>
+> **El círculo está cerrado de punta a punta.** El webhook (`api/stripe/webhook/route.ts:93`)
+> recibe ese `needs_release`, cancela el hold, y si la cancelación falla devuelve **500 para que
+> Stripe reintente durante días** — con un comentario que explica que sin eso el cliente se
+> quedaría una semana con el dinero retenido sin que nadie se entere.
+>
+> **Y la documentación ya lo decía.** `PROJECT_KNOWLEDGE_PACK.md`, INV-03: *«Un grupo cerrado no
+> acepta miembros nuevos ✅ — `confirm_join` exige `status='open'` bajo el mismo `FOR UPDATE` que
+> usa `close_group`»*. Escribí lo contrario sin contrastarlo con un documento que yo mismo había
+> citado en otras partes de esta auditoría.
+>
+> **La causa del error:** busqué por el nombre de una variable en vez de por la condición. Un
+> `grep` de `v_group.status` no encuentra `WHERE ... AND status = 'open'`.
 
-**No se ha tocado a propósito.** Rechazar sin más sería peor: el dinero ya está autorizado y el
-comprador se quedaría con una retención sin membresía. La salida correcta es la que la función ya
-tiene para otros casos: devolver `needs_release`, que hace que el webhook cancele el hold. Pero eso
-es tocar el corazón de la idempotencia de pagos —la rama `unique_violation` que **jamás** debe
-devolver `needs_release` para `uniq_group_members_pi`— y necesita su propia pasada y una prueba
-real en modo test.
+---
 
-**Probabilidad real:** baja por el cron (haría falta más de una hora entre empezar el pago y
-confirmarlo), **alta por el botón manual del admin**.
+**Lo que decía el hallazgo, para que se entienda qué se retira:** que si el grupo se cerraba
+mientras alguien estaba a mitad del pago, el webhook crearía la membresía en un grupo ya liquidado,
+dejando a ese comprador fuera del reparto y con el hold vivo. **No puede pasar.**
+
+**Un matiz que sí es real, y que no es un fallo.** El guard mira `status`, no `closes_at`. Entre el
+vencimiento del plazo y la pasada del cron —ahora como mucho un día, desde P0-09— el grupo sigue
+`open`, así que un PaymentIntent creado **antes** del vencimiento todavía puede confirmarse. Eso es
+**correcto**: ese comprador pagó dentro de plazo, el grupo sigue abierto y entra en la liquidación
+normal. Rechazarlo por unos segundos de diferencia sería peor. Y no puede empezar nadie nuevo:
+`prepare_join` sí mira `closes_at` desde A-11.
 
 ---
 
@@ -1037,7 +1066,7 @@ la pantalla, y **eso es criterio visual de Benjamin, no mío**. Queda propuesto,
 
 ---
 
-### 🔴 A-28 · El checkout no menciona términos, privacidad ni desistimiento
+### 🟠 A-28 · El checkout no menciona términos, privacidad ni desistimiento — ⚠️ MITAD DE PRODUCTO CERRADA 15 sep 2026
 **Comprobado:** cero apariciones de «términos», «condiciones», «privacidad», «desistimiento»,
 «RGPD», «aceptas» o «al continuar» en todo el flujo de checkout (`unirme/` y `components/checkout/`).
 
@@ -1055,6 +1084,21 @@ del dinero en el momento justo, con tres variantes según el modo — *«Hoy no 
 retenemos X en tu tarjeta y al cierre se cobra el precio final, que puede ser menor»*, *«Solo
 pagas si el gropo baja a tu precio objetivo»*, *«El grupo ya alcanzó tu precio objetivo…»*. Esa
 honestidad es el activo del producto.
+
+**Lo hecho el 15 de septiembre.** Existen diez documentos legales en `src/content/legal/`, una
+ruta `/legal/[slug]` que los pinta, un índice en `/legal`, un pie de página en las pantallas
+públicas y, en el checkout, un bloque con la obligación de pago y enlaces a Condiciones de compra,
+Devoluciones y Privacidad, más una línea de aceptación pegada al botón. El comprador ya no firma
+a ciegas: puede leer bajo qué condiciones lo hace.
+
+**Lo que NO se ha cerrado, y hay que decirlo claro.** Los textos son un borrador. Llevan huecos
+(`[RAZÓN SOCIAL]`, `[NIF]`, `[FECHA]`…) porque la sociedad todavía no está constituida, y las
+páginas se marcan `noindex` automáticamente mientras los tengan. La mitad jurídica de A-28 sigue
+abierta y sigue bloqueando el lanzamiento: hacen falta un abogado español y, antes que él, cuatro
+respuestas que solo puede dar Benjamin (razón social, quién emite la factura, cómo está montado
+Stripe Connect, y quién asume devoluciones y contracargos). Ver `docs/LEGAL.md`.
+
+La baja de 🔴 a 🟠 mide exactamente eso: ya no falta *nada*, falta la validación.
 
 ---
 
@@ -1274,7 +1318,7 @@ Estado a 14 de septiembre de 2026:
 
 | Severidad | Total | Corregidos | Abiertos |
 |---|---|---|---|
-| 🔴 crítico | 11 | **10** — A-01, A-02, A-11, A-12, A-15, A-18 (con A-18b), A-21, A-25, A-29, A-30 | **1** — A-28 |
+| 🔴 crítico | 11 | **10** — A-01, A-02, A-11, A-12, A-15, A-18 (con A-18b), A-21, A-25, A-29, A-30 | **0** — A-28 baja a 🟠: producto hecho, falta abogado |
 | 🟠 importante | 14 | **13** — A-03, A-04, A-05, A-06, A-11c, A-13, A-16, A-19, A-20, A-22, A-26, A-27 y A-31 (estos dos, en parte) | 1 |
 | 🟡 mejora | 11 | **4** — A-14, A-17, A-23, A-35 | 7 |
 | ⚠️ a la espera | 1 — A-11b | 0 | 1 (no tocado a propósito) |
@@ -1285,12 +1329,69 @@ Estado a 14 de septiembre de 2026:
 
 | Hace falta | Hallazgos |
 |---|---|
-| **Un abogado** | A-28 (checkout sin términos ni desistimiento), y con él L-03 / RULE-063 |
+| **Un abogado** | A-28 (los diez textos de `src/content/legal/` son borrador), y con él L-02 / L-03 / RULE-063 |
 | **Una decisión de producto tuya** | A-27 (¿etiqueta visible en el formulario?), A-05 (¿el nombre fuera de la foto?) |
 | **Trabajo de diseño de pantalla** | A-32 (el checkout no tiene vista de escritorio) |
-| **Una pasada con prueba en modo test** | A-11b (`confirm_join` sin guard de estado) |
 | **Decidir y limpiar** | A-24 (datos TEST en cuentas reales), A-34 (710 líneas de componentes huérfanos), A-33 (avatares A/B/C inventados) |
 | **Cosmética menor** | A-07, A-08, A-09, A-10 |
+| **Nada — vocabulario que sigue divergiendo** | A-31 (resto): navegación, «Ahorra/Ahorras», el selector de cantidad que solo existe en escritorio |
+
+**Ya no queda ninguna deuda de dinero abierta de esta auditoría.** A-11b, que era la última, resultó
+ser un falso positivo (ver más abajo).
+
+---
+
+## LOS TRES TEMAS DE FONDO
+
+Por debajo de los hallazgos sueltos, la auditoría encontró tres cosas, y las tres explican por qué
+aparecen una y otra vez:
+
+1. **Nadie había diseñado el después.** El grupo cerrado, el grupo cancelado, la plaza liberada, el
+   comprador que se queda fuera: el producto estaba construido entero para el momento de entrar.
+   A-11c, A-15, A-16, A-18, A-22, P2-06. *Cerrado en su mayor parte el 14 de septiembre.*
+2. **Dos árboles de UI que se habían separado.** No era duplicación de código: es que contaban
+   cosas distintas, y los arreglos llegaban solo a uno de los dos. DT-03, A-29, A-30, A-31.
+3. **La escasez y la activación existían en los datos y no en la pantalla.** `min_execution`,
+   `max_stock` y `closes_at` se calculaban bien, se hacían cumplir en el servidor, y no se
+   enseñaban: solo servían para **impedir**, nunca para **avisar**. A-01, A-02, A-12, A-29.
+   *Cerrado.*
+
+---
+
+## DOS LECCIONES DE MÉTODO
+
+### 1 · «Ya está arreglado» no vale sin comprobar los dos árboles
+Tres veces en el mismo día di por bueno un arreglo que solo existía en la mitad del producto:
+
+| Se creía | La realidad |
+|---|---|
+| A-11 corregido | solo en móvil; escritorio siguió vendiendo un grupo cerrado |
+| A-30 nuevo, solo de escritorio | el mismo `lockPhase` estaba en la ficha móvil |
+| `maxStock` / `minExecution` ignorados solo en `GroupRightSidebar` | `GroupLiveSection` **también** los declaraba sin desestructurar |
+
+Es **DT-03** cobrando su precio. La regla operativa: **al cerrar cualquier hallazgo de ficha, home
+o mis-grupos, comprobar los dos componentes antes de marcarlo** — y si una prop se declara y no se
+usa, sospechar que en el gemelo pasa lo mismo.
+
+### 2 · Una afirmación de ausencia exige buscar hasta agotar
+**Tres veces** escribí que algo no existía, y las tres veces existía:
+
+| Escribí | La realidad |
+|---|---|
+| A-25 · «el email no se valida en ninguna capa» | `get_my_groups` **sí** lo valida… al leer, devolviendo lista vacía en silencio. Peor de lo que yo decía, pero no lo que yo decía |
+| A-14 · «el ahorro no se calcula en ninguna parte» | `savingsPerUnit` existía y se pintaba; estaba mal **colocado**, no ausente |
+| A-11b · «`confirm_join` no comprueba el estado del grupo» | **Sí lo comprueba**, con `FOR UPDATE` y devolviendo `needs_release`. Y `PROJECT_KNOWLEDGE_PACK.md` ya lo tenía registrado como INV-03 garantizada |
+
+Las tres las descubrí **al ir a implementar el arreglo**, no al escribir el hallazgo.
+
+**El patrón del error, idéntico las tres veces:** buscar por una FORMA —el nombre de una variable,
+un archivo concreto, una cadena— y concluir una AUSENCIA GENERAL. `grep v_group.status` no
+encuentra `WHERE status = 'open'`; buscar validación de email en `src/lib/` no encuentra una regex
+dentro de una función SQL; buscar el ahorro en la tarjeta de precio no lo encuentra al final del
+bloque de dinero.
+
+**Antes de escribir «no existe»: buscar la capacidad, no la implementación que uno espera, y
+contrastar con la documentación que ya la tenga registrada.** Si la duda persiste, **UNKNOWN**.
 
 ---
 

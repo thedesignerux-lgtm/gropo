@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase-server'
 import type { GroupProduct, Tier } from '@/lib/mock-data'
 import GroupsGrid from '@/components/GroupsGrid'
 import BottomNav from '@/components/BottomNav'
+import SiteFooter from '@/components/SiteFooter'
 import HomeDesktopView from '@/components/desktop/HomeDesktopView'
 
 export const dynamic = 'force-dynamic'
@@ -144,12 +145,14 @@ export default async function Home() {
     <>
       <div className="hidden lg:block">
         <HomeDesktopView products={products} favoriteIds={favoriteIds} isAuthed={isAuthed} />
+        <SiteFooter />
       </div>
 
       <div className="lg:hidden min-h-screen" style={{ background: '#FBFAF8' }}>
-        <div className="max-w-md mx-auto min-h-screen pb-28">
+        <div className="max-w-md mx-auto pb-8">
           <GroupsGrid products={products} favoriteIds={favoriteIds} isAuthed={isAuthed} />
         </div>
+        <SiteFooter />
         <BottomNav />
       </div>
     </>

@@ -13,6 +13,7 @@
 // logos de pago y acordeón). La LÓGICA de precio/cantidad/dirección/Stripe/holds
 // es la misma de siempre; aquí solo cambia el marcado.
 
+import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import {
@@ -889,6 +890,40 @@ function PayLogos() {
   );
 }
 
+/* A-28 (mitad de producto) · Acceso a las condiciones desde el checkout.
+ *
+ * Hasta ahora el comprador firmaba una autorización de pago sin que existiera en
+ * ninguna pantalla un enlace a las condiciones bajo las que firma. La LSSI pide acceso
+ * permanente a esa información y la normativa de consumo pide información
+ * precontractual ANTES de quedar vinculado; el pie del sitio cubre lo primero, esto
+ * cubre lo segundo, que es donde de verdad importa.
+ *
+ * Los textos siguen siendo un borrador pendiente de revisión jurídica: esto resuelve
+ * el acceso, no la validez del contenido.
+ */
+function LegalRow() {
+  const link = 'font-semibold text-neutral-700 underline underline-offset-2 hover:text-neutral-900';
+  return (
+    <section className="px-4 pt-3">
+      <div className="rounded-2xl border border-neutral-100 bg-neutral-50 px-4 py-3.5">
+        <p className="text-[12px] leading-relaxed text-neutral-500">
+          Al confirmar autorizas una retención por el importe máximo indicado. Si el precio
+          final es igual o inferior, se cobrará ese precio final; si es superior, tu compra no
+          se ejecutará y no se te cobrará nada.
+        </p>
+        <p className="mt-2 text-[12px] leading-relaxed text-neutral-500">
+          Consulta las{' '}
+          <Link href="/legal/condiciones-compra" target="_blank" className={link}>Condiciones de compra</Link>,
+          la{' '}
+          <Link href="/legal/devoluciones" target="_blank" className={link}>Política de devoluciones</Link>{' '}
+          y la{' '}
+          <Link href="/legal/privacidad" target="_blank" className={link}>Política de privacidad</Link>.
+        </p>
+      </div>
+    </section>
+  );
+}
+
 /* Fila "¿Cómo funciona Gropo?" — abre el bottom sheet compartido. */
 function HowGropoRow({ onOpen }: { onOpen: () => void }) {
   return (
@@ -1331,6 +1366,9 @@ function InnerForm({
       {/* ── ¿CÓMO FUNCIONA GROPO? ── */}
       <HowGropoRow onOpen={onOpenHow} />
 
+      {/* ── CONDICIONES (A-28) ── */}
+      <LegalRow />
+
       {/* ── FOOTER FIJO: Hoy 0 € (retención, no cobro) ── */}
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-neutral-100 bg-white/95 backdrop-blur">
         <div className="mx-auto max-w-md px-4 py-3 lg:max-w-lg">
@@ -1374,6 +1412,13 @@ function InnerForm({
               Pago seguro · 3D Secure
             </p>
             <PayLogos />
+            <p className="mt-2 text-center text-[10.5px] leading-snug text-neutral-400">
+              Al confirmar aceptas las{' '}
+              <Link href="/legal/condiciones-compra" target="_blank" className="underline underline-offset-2 hover:text-neutral-600">
+                Condiciones de compra
+              </Link>
+              .
+            </p>
           </div>
         </div>
       </div>

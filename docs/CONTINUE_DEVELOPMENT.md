@@ -228,6 +228,7 @@ configuradas en Vercel. Requieren acceso a esos paneles. Ver `PAYMENTS.md` §12.
 | Qué vulnerabilidades hay | `SECURITY.md` |
 | Qué está roto y con qué prioridad | `KNOWN_ISSUES.md` |
 | Qué hace el proyecto caro de cambiar | `TECHNICAL_DEBT.md` |
+| Qué documentos legales hay, qué falta y qué bloquea el lanzamiento | `LEGAL.md` |
 
 ---
 
@@ -265,11 +266,73 @@ configuradas en Vercel. Requieren acceso a esos paneles. Ver `PAYMENTS.md` §12.
 
 ---
 
-# PENDIENTE AL 13 DE SEPTIEMBRE DE 2026
+# ESTADO AL 14 DE SEPTIEMBRE DE 2026
 
-Estado guardado al pausar el trabajo de bugs y pasar a la auditoría heurística de UX.
-Todo lo de esta lista está **abierto**; lo cerrado ese día está en `KNOWN_ISSUES.md`
-(P2-01, P2-01b) y en `BUSINESS_RULES.md` (RULE-061, RULE-062).
+> **Actualizado tras la jornada de auditoría.** La lista de abajo se guardó el 13 de septiembre;
+> gran parte se cerró el 14. Lo que sigue abierto está marcado. El detalle de cada hallazgo de UX
+> vive en `UX_AUDIT_2.md`; los de dinero y datos, en `KNOWN_ISSUES.md`.
+
+## Lo que se cerró el 14 de septiembre
+
+**Dinero e infraestructura**
+
+| | |
+|---|---|
+| **P0-09** | El cron de cierre corría solo los domingos pero `closes_at` puede ser cualquier día: un hold podía llegar a la captura por encima del límite de 7 días de Stripe. Cron **diario** a las 22:00 UTC, siempre por detrás del cierre de las 22:00 de Madrid en verano e invierno. Margen recalculado: ~158 h de 168 |
+| **A-11** | El plazo de cierre no era una regla que el servidor hiciera cumplir. Guard en `prepare_join` + estado en las dos fichas |
+| **A-25** | El email no se validaba **al entrar** (sí al leer, devolviendo lista vacía en silencio). Ahora se valida en `create-intent`, con la misma regex que `get_my_groups` |
+
+**Pantallas que mentían** — A-01, A-02, A-12, A-13, A-18, A-19, A-20, A-21, A-29, A-30, A-11c.
+El patrón común: el dato existía y era correcto; la pantalla afirmaba otra cosa.
+
+**Decisiones de producto tomadas e implementadas**
+
+| | |
+|---|---|
+| **Léxico cerrado** | «Asegurar hasta X €» en todo el producto; personas ≠ unidades. Fijado en `PRODUCT_PRINCIPLES.md` §7 |
+| **Las dos superficies** | `/mis-grupos` = estado actual · `/notificaciones` = Purchase Activity Feed. Especificación en `UX_AND_FLOWS.md` §3-bis |
+
+**27 de 37 hallazgos cerrados.** Recuento y detalle en `UX_AUDIT_2.md`.
+
+## Tres lecciones de método, por si sirven en la próxima sesión
+
+1. **«Ya está arreglado» no vale sin comprobar los dos árboles de UI.** Tres veces en el mismo día
+   un arreglo existía solo en la mitad del producto (A-11 vivo en escritorio, A-30 vivo en móvil,
+   props declaradas-sin-usar en los dos). Es DT-03 cobrando su precio.
+2. **Una afirmación de ausencia exige buscar hasta agotar.** Dos hallazgos decían «no existe» y las
+   dos veces existía: el email SÍ se validaba (al leer), el ahorro SÍ se calculaba (mal colocado).
+   Las dos se descubrieron al ir a implementar, no al auditar.
+3. **El contraste y los números se calculan, no se estiman.** El primer degradado propuesto para
+   A-05 daba 1,96:1 y habría pasado por bueno; medirlo costó dos minutos.
+
+**A-11b, la última deuda de dinero de la auditoría, resultó ser un FALSO POSITIVO.** `confirm_join`
+**sí** comprueba `status = 'open'`, bajo `FOR UPDATE`, y devuelve `needs_release` para que el
+webhook cancele el hold — el círculo estaba cerrado de punta a punta, y `PROJECT_KNOWLEDGE_PACK.md`
+ya lo documentaba como INV-03. Retirado. **No queda ninguna deuda de dinero abierta de esta
+auditoría.**
+
+---
+
+# ESTADO AL 15 DE SEPTIEMBRE DE 2026
+
+## Paquete legal — construido, sin validar
+
+Diez documentos legales en `src/content/legal/` como datos tipados, ruta `/legal/[slug]`, índice
+en `/legal`, pie de página en las pantallas públicas y enlaces desde el checkout con la
+obligación de pago explícita. `noindex` automático mientras queden huecos por rellenar: hoy **44
+huecos, los diez documentos en `noindex`**.
+
+Con esto **A-28 baja de 🔴 a 🟠**: su mitad de producto está cerrada. La mitad jurídica no, y
+sigue bloqueando el lanzamiento.
+
+Lo que hace falta ahora, en orden, está en **`docs/LEGAL.md`**. Resumen: constituir la sociedad,
+auditar cómo está montado Stripe Connect de verdad, ajustar textos u operativa a lo que diga esa
+auditoría, y llevarlo a un abogado español. **No publicar estos textos como definitivos antes de
+eso.**
+
+---
+
+# PENDIENTE (lista del 13 de septiembre, actualizada)
 
 ## 1 · Bloqueantes de lanzamiento
 
@@ -291,9 +354,12 @@ que hoy tampoco se comprueba.
 Los 14 días naturales **no se pueden renunciar por contrato**. RULE-061 (la plaza no se retira)
 probablemente es válida antes del cierre, pero **no después del cobro y la entrega**. Falta:
 (a) cuándo se perfecciona el contrato en este modelo, (b) si una retención de hasta 6,5 días sin
-salida es cláusula admisible, (c) qué debe decir la política de devoluciones, que no existe.
+salida es cláusula admisible, (c) qué debe decir la política de devoluciones — que ya **existe como borrador** en
+`src/content/legal/devoluciones.ts`, pero sin revisar.
 
-**L-02 y L-03 son la misma consulta.** Una sola visita al abogado las cierra las dos.
+**L-02, L-03 y la mitad jurídica de A-28 son la misma consulta.** Una sola visita al abogado las
+cierra las tres — pero antes hay que responder las cuatro preguntas de `LEGAL.md` §5, porque sin
+ellas el abogado no tiene qué revisar.
 
 ## 2 · Producto / UX abiertos
 
@@ -323,6 +389,8 @@ Lo que sigue abierto de esta regla:
 | # | Qué | Dónde |
 |---|-----|-------|
 | P2-01 (resto) | `groups.total_units` **no baja** cuando un miembro se libera. Ya no afecta al checkout, sí a la home, la ficha y el admin | `ALGORITHM.md` |
+| A-28 | El checkout **no menciona términos, privacidad ni desistimiento**. Cero cadenas. Misma consulta que L-02 y L-03 | `UX_AUDIT_2.md` |
+| A-24 / A-34 | Datos `TEST · Algoritmo precio` dentro de cuentas reales, y 710 líneas de componentes de escritorio huérfanos. Los dos necesitan decidir y limpiar, no arreglar | `UX_AUDIT_2.md` |
 | P2-02 | Adjudicación sin relleno: si el siguiente miembro no cabe entero, quedan fuera él y todos los posteriores. **UNKNOWN** si es deliberado | `KNOWN_ISSUES.md` |
 | P2-03 | `rate_limits` crece sin límite y no tiene primary key | `KNOWN_ISSUES.md` |
 | P2-04 | Copy de compartir desactualizado tras el cambio de `next_price` | `KNOWN_ISSUES.md` |
@@ -330,6 +398,16 @@ Lo que sigue abierto de esta regla:
 | P2-08 | La cookie de admin **es** el `ADMIN_SECRET`: sin rotación, sin caducidad, sin 2FA, sin auditoría. El panel mueve dinero real | `SECURITY.md` SEC-03 |
 | DT-03 | Móvil y escritorio son árboles de UI duplicados. Cada cambio de copy hay que hacerlo dos o tres veces | `TECHNICAL_DEBT.md` |
 | RULE-041/062 | `withdrawBid` y `releaseMember` recalculan **sin lock**. Suposición operativa: "solo Benjamin usa el admin" | `BUSINESS_RULES.md` |
+
+## 3-bis · Lo que quedó a medias a propósito, esperando criterio de Benjamin
+
+| | Qué falta decidir |
+|---|---|
+| **A-27** | Las etiquetas del checkout van en `sr-only`: el autorrelleno y los lectores de pantalla ya funcionan, pero al escribir sigue sin verse qué es cada caja. Hacerlas visibles cambia la altura del formulario — decisión visual |
+| **A-05** | El nombre del producto sobre la foto cumple ya el contraste AA (5,89:1), pero el arreglo de fondo sería sacarlo **fuera** de la imagen, que es el patrón estándar con producto recortado. Cambia la composición de la tarjeta |
+| **A-31 (resto)** | El CTA ya es único en todo el producto. Siguen divergiendo la navegación («Explorar» vs «Inicio»), «Grupo destacado» vs «★ Gropo destacada», «Ahorra» vs «Ahorras», y el selector de cantidad que existe en escritorio y no en móvil |
+| **A-32** | El checkout no tiene vista de escritorio: una columna de 512 px centrada en 1.440, sin navegación. Es trabajo de diseño de pantalla, no de copy |
+| **Contador del feed** | La campana lleva ya a `/notificaciones`, pero sin número. Saber si hay novedades exige cargar membresías y eventos: necesita un endpoint ligero propio antes de meterlo en la home |
 
 ## 4 · Basura en producción
 

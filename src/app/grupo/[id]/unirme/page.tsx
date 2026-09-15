@@ -117,7 +117,7 @@ export default async function UnirmePage({
 
   return (
     <div className="min-h-screen bg-neutral-50">
-      <div className="mx-auto min-h-screen max-w-md bg-white pb-48 lg:max-w-lg">
+      <div className="mx-auto min-h-screen max-w-md bg-white pb-52 lg:max-w-lg">
 
         {/* ── CABECERA: marca + pago seguro 3D Secure ── */}
         <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-neutral-100 bg-white/95 px-4 backdrop-blur">

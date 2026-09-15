@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import DesktopNavbar from '@/components/desktop/DesktopNavbar'
 import BottomNav from '@/components/BottomNav'
+import SiteFooter from '@/components/SiteFooter'
 import { CONTACT_EMAIL } from '@/lib/site'
 
 const FAQS = [
@@ -25,7 +26,7 @@ export default function AyudaPage() {
     <div className="min-h-screen" style={{ backgroundColor: '#F7F9FC' }}>
       <div className="hidden lg:block"><DesktopNavbar /></div>
 
-      <div className="flex-1 min-w-0 flex flex-col pb-24 lg:pb-0">
+      <div className="flex-1 min-w-0 flex flex-col">
         <main className="w-full max-w-[760px] mx-auto px-4 lg:px-10 pt-6 lg:pt-10 pb-14">
           <span className="inline-block text-xs font-bold uppercase tracking-wide text-brand bg-brand/10 rounded-full px-3 py-1 mb-4">Centro de ayuda</span>
           <h1 className="text-[28px] lg:text-4xl font-extrabold tracking-tight text-neutral-900">¿En qué te ayudamos?</h1>
@@ -65,6 +66,8 @@ export default function AyudaPage() {
           </p>
         </main>
       </div>
+
+      <SiteFooter />
 
       <div className="lg:hidden"><BottomNav /></div>
     </div>
