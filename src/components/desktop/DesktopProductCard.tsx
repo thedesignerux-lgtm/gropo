@@ -10,6 +10,7 @@ import { usePulse } from '@/hooks/usePulse'
 import FavoriteButton from '@/components/FavoriteButton'
 import GropoTargetSlider, { type Detent } from '@/components/GropoTargetSlider'
 import { modeAccent } from '@/lib/brand-colors'
+import { fmtSaving } from '@/lib/money'
 
 function fmt(price: number): string {
   return (price % 1 === 0 ? String(price) : price.toFixed(2).replace('.', ',')) + ' €'
@@ -180,7 +181,7 @@ export default function DesktopProductCard({ product, isFavorited = false, isAut
       {product.pvp > currentPrice && (
         <div className="flex items-center gap-1.5 mt-2.5 text-[13px] font-semibold text-brand-green">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" /></svg>
-          Ahorras {fmt(product.pvp - currentPrice)} respecto al PVP
+          Ahorras {fmtSaving(product.pvp - currentPrice)} respecto al PVP
         </div>
       )}
 

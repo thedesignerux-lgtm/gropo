@@ -70,6 +70,31 @@ interface Props {
   chrome?: 'none' | 'nudge' | 'status' | 'full'
   /** Unidades que faltan para el siguiente tramo (para el nudge). Si no se pasa, se calcula. */
   udsToNext?: number
+  /**
+   * Demanda efectiva DE CADA TRAMO, con las unidades del tramo como clave.
+   * Ej.: { 5: 2, 15: 7, 30: 0 } → «2 / 5 uds.», «7 / 15 uds.», «0 / 30 uds.».
+   *
+   * Si se pasa, cada peldaño se pinta como TARJETA con su propia mini-barra. Si no, se
+   * mantienen las etiquetas sueltas de siempre. La barra principal no cambia en ningún
+   * caso: las tarjetas van debajo, donde antes solo había precio y unidades.
+   *
+   * Es por tramo a propósito. El total comprometido NO vale aquí: las unidades que
+   * cuentan para desbloquear 259 € son las de quien acepta pagar 259 € o más, no todas
+   * las del grupo. Es la regla de `@/lib/ladder`, y confundirla fue el fallo A-36.
+   */
+  tierDemand?: Record<number, number>
+  /**
+   * Unidades que el usuario tiene puestas en el selector de cantidad de la ficha.
+   *
+   * Se pintan como una PROYECCIÓN, nunca mezcladas con el dato del grupo: la barra lleva
+   * un segundo tramo más claro y la cifra se escribe «12 + 3 / 20», no «15 / 20». El
+   * grupo no tiene 15 unidades; tiene 12 y tú estás pensando en poner 3. Enseñarlo como
+   * un único número sería exactamente el error de A-36.
+   *
+   * Cuentas en un tramo si aceptas su precio, o sea desde el que has elegido hacia
+   * abajo: es la misma regla que ya usa el checkout (`JoinFlow`, `buyerCounts`).
+   */
+  myUnits?: number
   /** GROPO PULSE: estado por tramo (de usePulse). Decorativo; si no se pasa, no se pinta. */
   pulse?: TierPulse[]
   /** Bruma de observadores 0–3 (de usePulse). */
@@ -105,7 +130,7 @@ interface Props {
 }
 
 export default function GropoTargetSlider({
-  detents, curIdx, selIdx, onSelIdx, size = 'full', chrome = 'none', udsToNext,
+  detents, curIdx, selIdx, onSelIdx, size = 'full', chrome = 'none', udsToNext, tierDemand, myUnits = 0,
   pulse, glow = 0, onCommit, minIdx = 0, disabled = false, anchorMode = false,
   anchorFading = false, hideThumb = false, locked = false,
   shortfallTicks = false, currentUnits,
@@ -435,24 +460,151 @@ export default function GropoTargetSlider({
           })()}
         </div>
 
-        {/* Labels */}
-        <div style={{ position: 'relative', height: 40, marginTop: 12 }}>
-          {detents.map((d, i) => {
-            const achieved = i <= curIdx
-            const priceColor = i === selIdx ? accent : (achieved ? '#024947' : '#9a97a2')
-            return (
-              <div key={i} style={{ position: 'absolute', left: pos(i), top: 0, transform: 'translateX(-50%)', textAlign: 'center' }}>
-                <div style={{ fontSize: ui.priceFont, fontWeight: 800, color: priceColor, whiteSpace: 'nowrap' }}>{fmt(d.price)}</div>
-                <div style={{ fontSize: ui.udsFont, fontWeight: 400, color: '#9a97a2', marginTop: 2, whiteSpace: 'nowrap' }}>{d.uds} {d.uds === 1 ? 'ud' : 'uds'}</div>
-              </div>
-            )
-          })}
-        </div>
+        {/* Labels — tarjeta por tramo cuando conocemos su demanda; si no, como siempre. */}
+        {tierDemand ? (
+          <div
+            role="radiogroup"
+            aria-label="Elige tu precio máximo"
+            style={{
+              display: 'grid',
+              /* Un tramo ya superado (hay otro más barato desbloqueado) no se puede
+                 elegir, así que no merece una columna entera: se queda en su ancho
+                 mínimo y el espacio va a las tarjetas que sí son una decisión. */
+              gridTemplateColumns: detents
+                .map((_, i) => (i < curIdx ? 'auto' : 'minmax(0, 1fr)'))
+                .join(' '),
+              gap: 8,
+              marginTop: 14,
+              alignItems: 'center',
+            }}
+          >
+            {detents.map((d, i) => {
+              const achieved = i <= curIdx
+              const selected = i === selIdx
+              const have = Math.max(0, Number(tierDemand[d.uds] ?? 0))
+
+              /* Tramo superado: ya hay un precio más barato desbloqueado, así que
+                 nadie puede volver a este. El track ya lo impedía (`effectiveMin`);
+                 la tarjeta tenía que impedirlo igual. Se reduce a su precio. */
+              if (i < curIdx) {
+                return (
+                  <div
+                    key={i}
+                    style={{
+                      fontSize: mini ? 11.5 : 13,
+                      fontWeight: 600,
+                      color: '#9a97a2',
+                      textAlign: 'center',
+                      whiteSpace: 'nowrap',
+                      padding: '0 2px',
+                    }}
+                  >
+                    {fmt(d.price)}
+                  </div>
+                )
+              }
+
+              const pickable = !disabled && !locked && i >= effectiveMin
+
+              /* Cuentas en este tramo si aceptas su precio: desde el elegido hacia abajo.
+                 Misma regla que `buyerCounts` en el checkout. */
+              const mine = myUnits > 0 && i >= selIdx ? myUnits : 0
+
+              const pctTramo = d.uds > 0 ? Math.min(100, Math.round((Math.min(have, d.uds) / d.uds) * 100)) : 0
+              /* El tramo tuyo empieza donde acaba el del grupo y no pasa del 100 %. */
+              const pctMio = d.uds > 0 ? Math.min(100 - pctTramo, Math.round((mine / d.uds) * 100)) : 0
+
+              const borderCol = selected ? accent : achieved ? '#BFE0DD' : '#E6EDEC'
+              const pick = (e: { preventDefault: () => void }) => {
+                if (!pickable) return
+                e.preventDefault()
+                if (i !== selIdx) onSelIdx(i)
+              }
+              return (
+                <div
+                  key={i}
+                  role="radio"
+                  aria-checked={selected}
+                  aria-label={`${fmt(d.price)} a partir de ${d.uds} ${d.uds === 1 ? 'unidad' : 'unidades'}`}
+                  tabIndex={pickable && selected ? 0 : -1}
+                  /* Se elige en `pointerdown`, no en `click`: el guardia nativo del
+                     componente cancela TODOS los clics en fase de captura para que un
+                     slider dentro de un <a> no navegue, y eso también se comería este.
+                     El teclado va por `keydown`, que el guardia no toca. */
+                  onPointerDown={pick}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') pick(e)
+                    /* Las flechas no pueden bajar de `effectiveMin`: es el mismo tope
+                       que el arrastre del track. Antes llegaban hasta 0. */
+                    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); if (!disabled && !locked) onSelIdx(Math.min(detents.length - 1, selIdx + 1)) }
+                    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); if (!disabled && !locked) onSelIdx(Math.max(effectiveMin, selIdx - 1)) }
+                  }}
+                  style={{
+                    border: `1.5px solid ${borderCol}`,
+                    borderRadius: 14,
+                    background: achieved ? '#F2F9F8' : '#fff',
+                    padding: mini ? '8px 7px' : '11px 9px',
+                    textAlign: 'center',
+                    minWidth: 0,
+                    cursor: pickable ? 'pointer' : 'default',
+                    outlineOffset: 2,
+                    transition: 'border-color .2s, background .2s, box-shadow .2s',
+                    boxShadow: selected ? `0 0 0 3px ${accent}22` : 'none',
+                  }}
+                >
+                  <div style={{ fontSize: ui.priceFont, fontWeight: 800, color: selected ? accent : achieved ? '#024947' : '#3a3a42', whiteSpace: 'nowrap' }}>
+                    {fmt(d.price)}
+                  </div>
+                  <div style={{ fontSize: ui.udsFont, fontWeight: 400, color: '#9a97a2', marginTop: 1, whiteSpace: 'nowrap' }}>
+                    {d.uds} {d.uds === 1 ? 'ud' : 'uds'}
+                  </div>
+
+                  {/* Mini-barra del propio tramo. */}
+                  <div style={{ display: 'flex', height: 5, borderRadius: 999, background: '#E4ECEA', overflow: 'hidden', marginTop: mini ? 7 : 9 }}>
+                    <div style={{ width: `${pctTramo}%`, background: achieved ? '#024947' : '#04817E', transition: 'width .3s ease' }} />
+                    {/* Lo tuyo, más claro: es una proyección, no lo que hay. */}
+                    {pctMio > 0 && (
+                      <div style={{ width: `${pctMio}%`, background: accent, opacity: 0.45, transition: 'width .3s ease' }} />
+                    )}
+                  </div>
+
+                  {achieved ? (
+                    <div style={{ fontSize: mini ? 9.5 : 11, fontWeight: 700, color: '#024947', marginTop: 6, lineHeight: 1.25 }}>
+                      Desbloqueado<br />para todos
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: mini ? 9.5 : 11, fontWeight: 600, color: '#6B7B7E', marginTop: 6, whiteSpace: 'nowrap' }}>
+                      {have}
+                      {mine > 0 && <span style={{ color: accent, fontWeight: 700 }}> + {mine}</span>}
+                      {' '}/ {d.uds} uds.
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <div style={{ position: 'relative', height: 40, marginTop: 12 }}>
+            {detents.map((d, i) => {
+              const achieved = i <= curIdx
+              const priceColor = i === selIdx ? accent : (achieved ? '#024947' : '#9a97a2')
+              return (
+                <div key={i} style={{ position: 'absolute', left: pos(i), top: 0, transform: 'translateX(-50%)', textAlign: 'center' }}>
+                  <div style={{ fontSize: ui.priceFont, fontWeight: 800, color: priceColor, whiteSpace: 'nowrap' }}>{fmt(d.price)}</div>
+                  <div style={{ fontSize: ui.udsFont, fontWeight: 400, color: '#9a97a2', marginTop: 2, whiteSpace: 'nowrap' }}>{d.uds} {d.uds === 1 ? 'ud' : 'uds'}</div>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {(chrome === 'full' || chrome === 'status' || chrome === 'nudge') && (
-        <div className="flex items-start gap-2.5 rounded-2xl" style={{ background: nudgeBg, border: `1px solid ${nudgeBr}`, padding: '13px 15px', marginTop: 6 }}>
-          <div style={{ width: 24, height: 24, borderRadius: 7, background: accent, display: 'grid', placeItems: 'center', flex: '0 0 auto', color: '#fff', fontSize: 13, fontWeight: 900 }}>{confirmed ? '✓' : '!'}</div>
+        /* Aquí había un cuadrado de 24 px con «✓» o «!». Se ha quitado: el color del
+           fondo y del borde ya distinguen los dos estados, así que el icono no añadía
+           información y se comía 34 px de ancho en una caja de texto estrecha, que en
+           el panel de escritorio empujaba la frase a cuatro líneas. */
+        <div className="rounded-2xl" style={{ background: nudgeBg, border: `1px solid ${nudgeBr}`, padding: '13px 15px', marginTop: 6 }}>
           <div style={{ fontSize: 13, lineHeight: 1.5, color: '#3a3a42' }}>{nudgeText}</div>
         </div>
       )}

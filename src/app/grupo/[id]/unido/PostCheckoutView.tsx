@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase-browser'
 import AuthPanel from '@/components/AuthPanel'
 import { readLocalIdentity } from '@/lib/local-identity'
+import { fmtSaving } from '@/lib/money'
 
 export type PostCheckoutGroup = {
   id: string
@@ -358,7 +359,7 @@ export default function PostCheckoutView({ group }: { group: PostCheckoutGroup }
               {(group.pvp - (memberPrice ?? displayPrice)) > 0.5 && (
                 <div className="flex justify-between text-[13px]">
                   <span className="text-neutral-400">Ahorro vs PVP</span>
-                  <span className="font-bold text-green-600">{eur(group.pvp - (memberPrice ?? displayPrice))}/ud</span>
+                  <span className="font-bold text-green-600">{fmtSaving(group.pvp - (memberPrice ?? displayPrice))}/ud</span>
                 </div>
               )}
             </div>

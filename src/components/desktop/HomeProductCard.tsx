@@ -9,6 +9,7 @@ import { useCheckout } from '@/components/checkout/CheckoutProvider'
 import { usePulse } from '@/hooks/usePulse'
 import FavoriteButton from '@/components/FavoriteButton'
 import GropoTargetSlider, { type Detent } from '@/components/GropoTargetSlider'
+import { fmtSaving } from '@/lib/money'
 
 function fmt(n: number): string {
   return (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
@@ -137,7 +138,7 @@ export default function HomeProductCard({ product, isFavorited = false, isAuthed
             )}
           </div>
           {savings > 0 && (
-            <div className="text-xs font-bold text-[#0B7B44] mt-2">Ahorra {fmt(savings)}</div>
+            <div className="text-xs font-bold text-[#0B7B44] mt-2">Ahorra {fmtSaving(savings)}</div>
           )}
         </Link>
 

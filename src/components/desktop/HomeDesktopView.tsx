@@ -11,6 +11,7 @@ import GropoTargetSlider, { type Detent } from '@/components/GropoTargetSlider'
 import DesktopNavbar from '@/components/desktop/DesktopNavbar'
 import { modeAccent } from '@/lib/brand-colors'
 import EmptyShowcase from '@/components/EmptyShowcase'
+import { fmtSaving } from '@/lib/money'
 
 const fmt = (n: number) => (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
 
@@ -343,7 +344,7 @@ function FeaturedCard({ product, isFavorited, isAuthed, countdown }: { product: 
             </div>
           </div>
           {s.savings > 0 && (
-            <div className="text-[12.5px] font-bold pb-1" style={{ color: '#A8F0C0' }}>Ahorra {fmt(s.savings)}</div>
+            <div className="text-[12.5px] font-bold pb-1" style={{ color: '#A8F0C0' }}>Ahorra {fmtSaving(s.savings)}</div>
           )}
         </div>
       </Link>
@@ -399,7 +400,7 @@ function GridCard({ product, isFavorited, isAuthed }: { product: GroupProduct; i
             {!s.isComplete && s.nextTier && <span className="text-[11.5px] text-white/70">→ {fmt(s.nextTier.price)}</span>}
           </div>
           {s.savings > 0 && (
-            <div className="text-[11px] font-bold mt-0.5" style={{ color: '#A8F0C0' }}>Ahorra {fmt(s.savings)}</div>
+            <div className="text-[11px] font-bold mt-0.5" style={{ color: '#A8F0C0' }}>Ahorra {fmtSaving(s.savings)}</div>
           )}
         </div>
       </Link>

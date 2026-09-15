@@ -241,19 +241,42 @@ grupos ha bajado hoy. Y «Gropos populares», ¿según qué?
 
 ---
 
-### 🟡 A-07 · La mini-escalera de las tarjetas es ilegible
+### 🟡 A-07 · La mini-escalera de las tarjetas es ilegible — ✅ CORREGIDO 15 sep 2026
 Bajo cada tarjeta de carrusel hay tres precios a **7,5 px** («449 € · 419 € · 389 €»). A ese
 tamaño no se leen; ocupan espacio y añaden ruido sin comunicar nada. O crecen, o se van.
+
+**Decisión de Benjamin:** se van los números, se queda la barra. Agrandarlos a 10 px era la
+otra opción, pero en una tarjeta de 132 px tres precios de cuatro cifras («1.849 €») se tocan
+entre ellos. La barra y sus puntos ya dicen lo único que la tarjeta tiene que decir —el precio
+baja por tramos y vamos por aquí— y el precio de verdad está justo encima a 14 px.
+`src/components/GroupsGrid.tsx`.
 
 ### 🟡 A-08 · Dos botones flotantes por tarjeta compiten con el producto
 Compartir y favorito, 30 px cada uno, sobre una tarjeta de 132 px: ocupan casi la mitad del ancho
 superior de la foto. Multiplicado por nueve tarjetas visibles, son 18 botones peleando con el
 catálogo.
 
-### 🟡 A-09 · Descuentos con y sin decimales en la misma fila
+### 🟡 A-09 · Descuentos con y sin decimales en la misma fila — ✅ CORREGIDO 15 sep 2026
 «−150,99 €» junto a «−347 €» y «−750 €». Es el comportamiento del helper (oculta los decimales si
 el número es entero), pero en una fila de badges canta. Para un descuento, redondear a «−151 €» es
 más legible y no engaña a nadie.
+
+**No era cosa del catálogo.** Comprobado en producción el 15 sep 2026: los PVP reales acaban en
+,99 o ,95 (Garmin 599,99 €, Casco Giro 329,99 €, Zapatillas 159,99 €) y nuestros precios son
+redondos, así que el ahorro nace con céntimos en 3 de los grupos abiertos y sin ellos en los
+demás. Mientras haya PVP acabados en ,99 esto vuelve solo.
+
+**Regla, decidida por Benjamin:** el ahorro se escribe redondeado al euro en TODAS las pantallas.
+Vive en `src/lib/money.ts` (`fmtSaving`), una sola función importada en los **14 sitios** donde se
+mostraba el ahorro: 12 vivos y 2 dentro de componentes huérfanos (`HomeProductCard`,
+`DesktopProductCard`, en la lista de DT-04). Uno de los 14 —«Estás ahorrando», en el panel de
+escritorio de Mis grupos— no salía al buscar «Ahorr» con mayúscula y habría quedado fuera; el
+barrido final fue insensible a mayúsculas. `BestPriceReached` y `GroupLiveSection2c` también lo
+muestran y NO se han tocado: son huérfanos ya documentados y no se renderizan en ninguna pantalla. Lo que se
+COBRA (precio, total, envío, hold) no pasa por ahí y sigue exacto al céntimo; el PVP tachado que
+acompaña al ahorro tampoco se redondea, porque es dato del vendedor. En el peor caso la cifra del
+ahorro exagera en 1 céntimo (150,99 → 151 €); Benjamin lo aceptó explícitamente frente a la
+alternativa de redondear hacia abajo, que nunca exagera pero regala hasta 99 céntimos de argumento.
 
 ### 🟡 A-10 · «Hoy 0 €» es el argumento más fuerte y está en 11 px gris
 No pagar hoy es lo que separa a Gropo de una tienda normal. Aparece debajo del botón, en gris, en
@@ -1472,12 +1495,13 @@ Estado a 14 de septiembre de 2026:
 |---|---|---|---|
 | 🔴 crítico | 11 | **10** — A-01, A-02, A-11, A-12, A-15, A-18 (con A-18b), A-21, A-25, A-29, A-30 | **0** — A-28 baja a 🟠: producto hecho, falta abogado |
 | 🟠 importante | 14 | **13** — A-03, A-04, A-05, A-06, A-11c, A-13, A-16, A-19, A-20, A-22, A-26, A-27 y A-31 (estos dos, en parte) | 1 |
-| 🟡 mejora | 11 | **4** — A-14, A-17, A-23, A-35 | 7 |
+| 🟡 mejora | 11 | **6** — A-07, A-09, A-14, A-17, A-23, A-35 | 5 |
 | ⚠️ a la espera | 1 — A-11b | 0 | 1 (no tocado a propósito) |
 
 *(A-14 pasó de 🟠 a 🟡 al comprobarse que el ahorro sí se calculaba.)*
 
-**29 de 37 cerrados** (15 sep: A-32 y A-33). Lo que queda, por lo que hace falta para cerrarlo:
+**31 de 37 cerrados** (15 sep: A-32, A-33, A-07 y A-09). Lo que queda, por lo que hace falta para
+cerrarlo:
 
 | Hace falta | Hallazgos |
 |---|---|
@@ -1485,7 +1509,7 @@ Estado a 14 de septiembre de 2026:
 | **Una decisión de producto tuya** | A-27 (¿etiqueta visible en el formulario?), A-05 (¿el nombre fuera de la foto?), A-24 (¿los grupos de prueba se ocultan en «Mis grupos» o se etiquetan?) |
 | **Un comando tuyo** | A-34 (710 líneas huérfanas: comando exacto en `TECHNICAL_DEBT.md` DT-04) |
 | **Tu ojo en una pantalla grande** | A-32 (hecho, sin mirar todavía en escritorio real) |
-| **Cosmética menor** | A-07, A-08, A-09, A-10 |
+| **Cosmética menor** | A-08 (dos botones flotantes por tarjeta), A-10 («Hoy 0 €» en 11 px gris) |
 | **Nada — vocabulario que sigue divergiendo** | A-31 (resto): navegación, «Ahorra/Ahorras», el selector de cantidad que solo existe en escritorio |
 
 **Ya no queda ninguna deuda de dinero abierta de esta auditoría.** A-11b, que era la última, resultó

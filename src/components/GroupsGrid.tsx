@@ -14,6 +14,7 @@ import { modeAccent } from '@/lib/brand-colors'
 import EmptyShowcase from '@/components/EmptyShowcase'
 import GroupCountdown from '@/components/GroupCountdown'
 import GroupPeopleGlyph from '@/components/GroupPeopleGlyph'
+import { fmtSaving } from '@/lib/money'
 
 /**
  * UX-07 · Los tres carruseles se construyen sobre el MISMO conjunto de grupos,
@@ -304,7 +305,7 @@ function FeaturedGropoCard({ x, isFavorited, isAuthed, onOpenSheet }: { x: Price
           <div className="flex items-baseline gap-[7px] mt-px flex-wrap">
             <span className="text-[22px] font-extrabold text-brand leading-none" style={{ fontFamily: 'var(--font-space-grotesk), sans-serif' }}>{fmt(currentPrice)}</span>
             {p.pvp > currentPrice && <span className="text-[12px] font-semibold text-neutral-400 line-through">{fmt(p.pvp)}</span>}
-            {savings > 0 && <span className="text-[11px] font-bold rounded-full px-2 py-0.5" style={{ color: '#0B7B44', background: '#E6F4EC' }}>Ahorras {fmt(savings)}</span>}
+            {savings > 0 && <span className="text-[11px] font-bold rounded-full px-2 py-0.5" style={{ color: '#0B7B44', background: '#E6F4EC' }}>Ahorras {fmtSaving(savings)}</span>}
           </div>
           <div className="flex items-center gap-2 mt-2.5">
             {/* A-33 · Tres letras inventadas que además se pintaban con el grupo
@@ -461,7 +462,7 @@ function CarouselCard({ x, isFavorited, wide }: { x: Priced; isFavorited: boolea
           <div className="text-[12.5px] font-extrabold text-white leading-tight line-clamp-2" style={{ textShadow: '0 1px 3px rgba(0,0,0,.7)' }}>{p.name}</div>
           <div className="flex items-baseline justify-between gap-1 mt-0.5">
             <span className="text-[14px] font-extrabold text-white" style={{ fontFamily: 'var(--font-space-grotesk), sans-serif', textShadow: '0 1px 3px rgba(0,0,0,.7)' }}>{fmt(currentPrice)}</span>
-            {savings > 0 && <span className="text-[10px] font-extrabold" style={{ color: '#5FD08A', textShadow: '0 1px 3px rgba(0,0,0,.7)' }}>−{fmt(savings)}</span>}
+            {savings > 0 && <span className="text-[10px] font-extrabold" style={{ color: '#5FD08A', textShadow: '0 1px 3px rgba(0,0,0,.7)' }}>−{fmtSaving(savings)}</span>}
           </div>
         </div>
       </Link>
@@ -476,11 +477,11 @@ function CarouselCard({ x, isFavorited, wide }: { x: Priced; isFavorited: boolea
               <span key={i} className="absolute rounded-full" style={{ left: `${pct(i)}%`, top: '50%', transform: 'translate(-50%,-50%)', width: 7, height: 7, background: i <= curIdx ? '#024947' : '#D6E8E7' }} />
             ))}
           </div>
-          <div className="relative" style={{ height: 12, marginTop: 2 }}>
-            {detents.map((d, i) => (
-              <span key={i} className="absolute" style={{ left: `${pct(i)}%`, transform: 'translateX(-50%)', fontFamily: 'var(--font-space-grotesk), sans-serif', fontSize: 7.5, whiteSpace: 'nowrap', color: i === curIdx ? '#024947' : '#9a97a2', fontWeight: i === curIdx ? 700 : 500 }}>{fmt(d.price)}</span>
-            ))}
-          </div>
+          {/* A-07 · Aquí iban los precios de cada tramo a 7,5 px («449 € · 419 € ·
+              389 €»). A ese tamaño no se leen, y son tres números compitiendo con el
+              precio real de la tarjeta, que está justo encima a 14 px. La barra y sus
+              puntos ya cuentan lo único que la tarjeta necesita contar —el precio baja
+              por tramos y vamos por aquí—; los números se leen al abrir la ficha. */}
         </div>
       )}
     </div>

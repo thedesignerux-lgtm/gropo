@@ -10,6 +10,7 @@ import GropoTargetSlider, { type Detent } from '@/components/GropoTargetSlider'
 import { modeAccent } from '@/lib/brand-colors'
 import GroupPeopleGlyph from '@/components/GroupPeopleGlyph'
 import { getActivation } from '@/lib/activation'
+import { fmtSaving } from '@/lib/money'
 
 function fmt(n: number): string {
   return (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
@@ -47,6 +48,15 @@ export default function GroupRightSidebar({
   // usan `group_committed_units` y `prepare_join`. El copy de abajo aún dice
   // «personas»: ver A-04 en UX_AUDIT_2.md.
   const committedUnits = demandTiers.length > 0 ? Math.max(...demandTiers.map(t => t.demand)) : 0
+
+  /**
+   * Demanda de CADA tramo para las tarjetas del slider, con las unidades como clave.
+   * Sale de `tier_demand`, que es quien sabe cuántas unidades cuentan a cada precio.
+   */
+  const tierDemand = useMemo(
+    () => Object.fromEntries(demandTiers.map((t) => [t.minUnits, t.demand])),
+    [demandTiers],
+  )
 
   // Detents: tramos ordenados por minUnits asc (= precio desc)
   const detents: Detent[] = useMemo(
@@ -171,7 +181,7 @@ export default function GroupRightSidebar({
             {pvp > displayPrice && displayPrice > 0 && !notActivated && (
               <p className="mt-1.5 text-[12.5px] text-neutral-500">
                 <span className="line-through">{fmt(pvp)}</span>
-                <span className="ml-2 font-bold text-[#0B7B44]">Ahorras {fmt(pvp - displayPrice)}</span>
+                <span className="ml-2 font-bold text-[#0B7B44]">Ahorras {fmtSaving(pvp - displayPrice)}</span>
               </p>
             )}
             {notActivated && pvp > 0 && (
@@ -188,7 +198,7 @@ export default function GroupRightSidebar({
 
         {/* ── Gente del grupo (A-33) ── */}
         {committedUnits > 0 && (
-          <div className="flex items-center justify-between mt-4">
+          <div className="flex items-center gap-2.5 mt-4">
             {/* A-33 · Aquí había tres círculos con las letras A, B y C. No eran
                 iniciales de nadie. Ahora un símbolo de grupo, que no afirma nada. */}
             <GroupPeopleGlyph count={memberCount > 0 ? memberCount : committedUnits} />
@@ -265,6 +275,8 @@ export default function GroupRightSidebar({
             /* `status`, no `full`: la pregunta la escribe esta pantalla arriba. */
             chrome="status"
             udsToNext={missing}
+            tierDemand={tierDemand}
+            myUnits={quantity}
             pulse={pulseData?.steps}
             glow={pulseData?.glow}
             locked={busy}

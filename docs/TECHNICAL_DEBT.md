@@ -358,3 +358,11 @@ no debe formatearse; ahí `1849.00` es un dato para una hoja de cálculo, no un 
 **Corregido ya (14 sep 2026):** `admin/grupos/[id]/actions.ts` escribía el error de `withdrawBid`
 con **punto** decimal (`1849.00 €`) mientras el de `releaseMember`, en el mismo fichero, usaba
 coma. La coma decimal en español no es opcional.
+
+**`src/lib/money.ts` ya existe (15 sep 2026), con UNA función.** Al cerrar A-09 hizo falta una
+regla única para el ahorro, así que el fichero que este DT proponía se ha creado con `fmtSaving`
+y nada más. **No es la unificación descrita arriba:** los ~34 ficheros siguen con su `fmt` o su
+`eur` local para los precios. Lo que cambia es que ahora hay un sitio al que llevarlos cuando se
+decida, y un precedente de cómo escribir la regla —en el propio fichero, con el dato de
+producción que la justifica—. La distinción que este DT pedía poner por escrito está escrita ahí:
+lo que se COBRA va exacto al céntimo, lo que se COMPARA va redondeado.

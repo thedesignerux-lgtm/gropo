@@ -7,6 +7,7 @@ import DesktopNavbar from './DesktopNavbar'
 import PulseBar from '@/components/PulseBar'
 import { SITE_URL } from '@/lib/site'
 import { committedUnits, ladderProgress, normalizeLadder } from '@/lib/ladder'
+import { fmtSaving } from '@/lib/money'
 
 // ── Tipos ──────────────────────────────────────────────
 export interface Membership {
@@ -362,7 +363,7 @@ export function MgCard({ m, ladder, onOpen }: { m: Membership; ladder: LadderRow
           ) : d.state === 'noalc' ? (
             <><p className="text-[10px] font-bold uppercase tracking-wide text-neutral-500">Estado final</p><p className="text-[16px] font-extrabold mt-1 text-neutral-600">No alcanzado</p></>
           ) : (
-            <><p className="text-[10px] font-bold uppercase tracking-wide text-neutral-500">Estado actual</p><p className="text-[18px] font-extrabold mt-0.5 tabular-nums whitespace-nowrap" style={{ color: t.c }}>{fmt(d.cur)}</p>{saving > 0.005 && <p className="text-[11px] font-semibold mt-0.5" style={{ color: '#0B7B44' }}>Ahorras {fmt(saving)}</p>}</>
+            <><p className="text-[10px] font-bold uppercase tracking-wide text-neutral-500">Estado actual</p><p className="text-[18px] font-extrabold mt-0.5 tabular-nums whitespace-nowrap" style={{ color: t.c }}>{fmt(d.cur)}</p>{saving > 0.005 && <p className="text-[11px] font-semibold mt-0.5" style={{ color: '#0B7B44' }}>Ahorras {fmtSaving(saving)}</p>}</>
           )}
         </div>
       </div>
@@ -524,7 +525,7 @@ export function Drawer({ m, ladder, onClose }: { m: Membership; ladder: LadderRo
           </div>
           <div className="flex justify-between gap-2 mt-[18px]">
             <div><div className="text-[11px] text-neutral-500">Mi compromiso</div><div className="text-[19px] font-extrabold mt-1 whitespace-nowrap">{fmt(d.commit)}</div></div>
-            <div className="text-center"><div className="text-[11px] text-neutral-500">Estado actual</div><div className="text-[19px] font-extrabold mt-1 whitespace-nowrap" style={{ color: '#0B7B44' }}>{fmt(d.cur)}</div>{saving > 0.005 && <div className="text-[11.5px] mt-0.5" style={{ color: '#0B7B44' }}>Estás ahorrando {fmt(saving)}</div>}</div>
+            <div className="text-center"><div className="text-[11px] text-neutral-500">Estado actual</div><div className="text-[19px] font-extrabold mt-1 whitespace-nowrap" style={{ color: '#0B7B44' }}>{fmt(d.cur)}</div>{saving > 0.005 && <div className="text-[11.5px] mt-0.5" style={{ color: '#0B7B44' }}>Estás ahorrando {fmtSaving(saving)}</div>}</div>
             <div className="text-right"><div className="text-[11px] text-neutral-500">Próximo objetivo</div><div className="text-[19px] font-extrabold mt-1 whitespace-nowrap">{d.nextObj != null ? fmt(d.nextObj) : '—'}</div><div className="text-[11.5px] text-neutral-500 mt-0.5">{d.nextObj != null ? (d.missing === 1 ? 'Falta 1 ud' : `Faltan ${d.missing} uds`) : d.ladderKnown ? 'Precio mínimo' : '\u00A0'}</div></div>
           </div>
           {/* A-19 · Sin tramo siguiente no hay porcentaje que medir: la barra estaría

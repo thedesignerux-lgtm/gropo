@@ -6,6 +6,7 @@ import PulseZone from '@/components/PulseZone'
 import RadarCardMenu from '@/components/RadarCardMenu'
 import BottomNav from '@/components/BottomNav'
 import DesktopNavbar from '@/components/desktop/DesktopNavbar'
+import { fmtSaving } from '@/lib/money'
 
 export const dynamic = 'force-dynamic'
 
@@ -505,7 +506,7 @@ function SecuredCard({ group: g }: { group: RadarGroup }) {
         {saving > 0.01 && (
           <div className="flex items-center gap-1.5 bg-green-100 text-green-700 text-[13px] font-bold rounded-lg px-3 py-2 mt-3.5">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
-            Ahorras {fmt(saving)}
+            Ahorras {fmtSaving(saving)}
           </div>
         )}
       </div>
@@ -598,7 +599,7 @@ function MobileRadarCard({ group: g }: { group: RadarGroup }) {
             <div className="text-[14.5px] font-bold tracking-tight truncate">{g.name}</div>
             <div className="flex items-baseline gap-1.5 mt-0.5">
               <span className="text-base font-bold tabular-nums">{fmt(g.currentPrice)}</span>
-              {saving > 0 && <span className="text-[11.5px] font-bold text-[#0B7B44]">Ahorra {fmt(saving)}</span>}
+              {saving > 0 && <span className="text-[11.5px] font-bold text-[#0B7B44]">Ahorra {fmtSaving(saving)}</span>}
             </div>
           </Link>
         </div>

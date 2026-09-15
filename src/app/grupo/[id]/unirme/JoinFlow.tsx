@@ -29,6 +29,7 @@ import { isValidEmail } from '@/lib/email';
 import { supabase } from '@/lib/supabase';
 import HowGropoSheet from '@/components/HowGropoSheet';
 import { readLocalIdentity, saveLocalIdentity } from '@/lib/local-identity';
+import { fmtSaving } from '@/lib/money'
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
@@ -1252,7 +1253,7 @@ function InnerForm({
               <span className="text-[13px] text-neutral-500">Precio en tienda</span>
               <span className="text-[13px]">
                 <span className="text-neutral-400 line-through">{eur(group.pvp * quantity)}</span>
-                <span className="ml-2 font-bold text-[#0B7B44]">Ahorras {eur(savings)}</span>
+                <span className="ml-2 font-bold text-[#0B7B44]">Ahorras {fmtSaving(savings)}</span>
               </span>
             </div>
           )}

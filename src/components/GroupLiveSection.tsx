@@ -11,6 +11,7 @@ import { createClient } from '@/lib/supabase-browser'
 import { modeAccent } from '@/lib/brand-colors'
 import { getActivation } from '@/lib/activation'
 import GroupPeopleGlyph from '@/components/GroupPeopleGlyph'
+import { fmtSaving } from '@/lib/money'
 
 function fmt(n: number | undefined | null): string {
   if (n === undefined || n === null) return '—'
@@ -68,6 +69,15 @@ export default function GroupLiveSection({
   const savings = pvp > 0 ? pvp - displayPrice : 0
 
   // ── Detents del target slider
+  /**
+   * Demanda de CADA tramo para las tarjetas del slider, con las unidades como clave.
+   * Sale de `tier_demand`, que es quien sabe cuántas unidades cuentan a cada precio.
+   */
+  const tierDemand = useMemo(
+    () => Object.fromEntries(demandTiers.map((t) => [t.minUnits, t.demand])),
+    [demandTiers],
+  )
+
   const detents: Detent[] = useMemo(
     () => [...tiers].sort((a, b) => a.minUnits - b.minUnits).map(t => ({ price: t.price, uds: t.minUnits })),
     [tiers]
@@ -183,7 +193,7 @@ export default function GroupLiveSection({
                 {savings > 0.01 && !notActivated && !hasClosed && (
                   <span className="inline-flex items-center gap-1 text-xs font-bold text-[#0B7B44] bg-[#E6F4EC] rounded-full px-2.5 py-1.5">
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" /><line x1="7" y1="7" x2="7.01" y2="7" /></svg>
-                    Ahorras {fmt(savings)}
+                    Ahorras {fmtSaving(savings)}
                   </span>
                 )}
               </div>
@@ -259,6 +269,7 @@ export default function GroupLiveSection({
                 size="mini"
                 chrome="nudge"
                 udsToNext={missing}
+                tierDemand={tierDemand}
                 pulse={pulseData?.steps}
                 glow={pulseData?.glow}
                 locked={busy}
@@ -271,7 +282,7 @@ export default function GroupLiveSection({
 
           {/* Gente del grupo (A-33) */}
           {totalParticipants > 0 && (
-            <div className="flex items-center justify-between mt-3.5">
+            <div className="flex items-center gap-2.5 mt-3.5">
               {/* A-33 · Antes tres círculos con las letras A, B y C. Inventadas. */}
               <GroupPeopleGlyph count={memberCount > 0 ? memberCount : totalParticipants} />
               {/* A-04 · Dos datos, dos nombres. Antes este mismo número de UNIDADES
