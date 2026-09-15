@@ -109,28 +109,50 @@ export function derive(m: Membership, ladder: LadderRow[]) {
   } else {
     state = 'encurso'
   }
-  return { commit, cur, currentUnits, groupUnits, target, missing, nextObj, pct, state, hasNextTier, groupFailed, authFailed: ps === 'auth_failed' }
+  /**
+   * `ladderKnown` separa dos cosas que la escalera vacía confundía: «este grupo ya está
+   * en su precio mínimo» y «todavía no sé nada de este grupo». Sin esa distinción, una
+   * tarjeta anunciaba «Precio mínimo» durante el instante en que la escalera aún no
+   * había llegado. Es exactamente el error de A-36: afirmar algo que no se sabe.
+   */
+  const ladderKnown = tiers.length > 0
+
+  return { commit, cur, currentUnits, groupUnits, target, missing, nextObj, pct, state, hasNextTier, ladderKnown, groupFailed, authFailed: ps === 'auth_failed' }
 }
 
 // Enriquecer con tier_demand (RPC anon, solo lectura) para la barra de progreso. Compartido desktop + móvil.
-export function useLadders(memberships: Membership[]) {
-  const [ladders, setLadders] = useState<Record<string, LadderRow[]>>({})
+/**
+ * `seed` son las escaleras que ya vienen con `/api/my-groups`. Con ellas las tarjetas se
+ * pintan completas en la primera pasada; sin ellas —o para los grupos que falten— se
+ * piden desde aquí como antes.
+ */
+export function useLadders(memberships: Membership[], seed?: Record<string, LadderRow[]>) {
+  const [ladders, setLadders] = useState<Record<string, LadderRow[]>>(seed ?? {})
+
+  // Si llegan escaleras nuevas con la respuesta, entran sin esperar a ninguna petición.
+  useEffect(() => {
+    if (seed && Object.keys(seed).length) setLadders((prev) => ({ ...prev, ...seed }))
+  }, [seed])
+
   useEffect(() => {
     let cancelled = false
     async function run() {
       const openGroups = memberships.filter(m => m.status === 'open').map(m => m.group_id)
-      const uniq = Array.from(new Set(openGroups))
+      // Solo lo que NO haya venido ya servido. Con la siembra completa, cero peticiones.
+      const uniq = Array.from(new Set(openGroups)).filter(gid => !(seed && seed[gid]))
+      if (uniq.length === 0) return
       const entries = await Promise.all(uniq.map(async gid => {
         try {
           const { data } = await supabase.rpc('tier_demand', { p_group_id: gid })
           return [gid, (Array.isArray(data) ? data : []) as LadderRow[]] as const
         } catch { return [gid, [] as LadderRow[]] as const }
       }))
-      if (!cancelled) setLadders(Object.fromEntries(entries))
+      if (!cancelled) setLadders(prev => ({ ...prev, ...Object.fromEntries(entries) }))
     }
     if (memberships.length) run()
     return () => { cancelled = true }
-  }, [memberships])
+  }, [memberships, seed])
+
   return ladders
 }
 
@@ -139,8 +161,8 @@ export function useLadders(memberships: Membership[]) {
  * vacía y sin saber que está cargando, pintaba «Aún no participas en ningún grupo» a
  * alguien que sí participa, y un segundo después las tarjetas. Un esqueleto no miente.
  */
-export default function MisGruposDesktop({ memberships, loading = false }: { memberships: Membership[]; loading?: boolean }) {
-  const ladders = useLadders(memberships)
+export default function MisGruposDesktop({ memberships, ladderSeed, loading = false }: { memberships: Membership[]; ladderSeed?: Record<string, LadderRow[]>; loading?: boolean }) {
+  const ladders = useLadders(memberships, ladderSeed)
   const [open, setOpen] = useState<string | null>(null)
 
   // Cerrar drawer con ESC + bloquear scroll de fondo.
@@ -311,7 +333,7 @@ export function MgCard({ m, ladder, onOpen }: { m: Membership; ladder: LadderRow
               ? `${d.currentUnits} / ${d.target} uds para ${fmt(d.nextObj ?? 0)}`
               : `${d.groupUnits} uds en el grupo`)
           : `${m.quantity} ud${m.quantity > 1 ? 's' : ''}`}</span>
-        <span className="font-bold" style={{ color: d.state === 'noalc' ? '#94A3B8' : t.c }}>{d.state === 'meta' ? 'Objetivo alcanzado' : d.state === 'liberado' ? (isOpen ? 'El grupo sigue abierto' : 'Ya no participas') : d.state === 'noalc' ? 'Objetivo no alcanzado' : d.nextObj == null ? 'Precio mínimo' : d.missing === 1 ? 'Falta 1 ud' : `Faltan ${d.missing} uds`}</span>
+        <span className="font-bold" style={{ color: d.state === 'noalc' ? '#94A3B8' : t.c }}>{d.state === 'meta' ? 'Objetivo alcanzado' : d.state === 'liberado' ? (isOpen ? 'El grupo sigue abierto' : 'Ya no participas') : d.state === 'noalc' ? 'Objetivo no alcanzado' : !d.ladderKnown ? '\u00A0' : d.nextObj == null ? 'Precio mínimo' : d.missing === 1 ? 'Falta 1 ud' : `Faltan ${d.missing} uds`}</span>
       </div>
       {/* estado / social */}
       <div className="flex items-center gap-2 mb-3.5 text-[12px] text-neutral-600">
@@ -442,7 +464,7 @@ export function Drawer({ m, ladder, onClose }: { m: Membership; ladder: LadderRo
           <div className="flex justify-between gap-2 mt-[18px]">
             <div><div className="text-[11px] text-neutral-500">Mi compromiso</div><div className="text-[19px] font-extrabold mt-1 whitespace-nowrap">{fmt(d.commit)}</div></div>
             <div className="text-center"><div className="text-[11px] text-neutral-500">Estado actual</div><div className="text-[19px] font-extrabold mt-1 whitespace-nowrap" style={{ color: '#0B7B44' }}>{fmt(d.cur)}</div>{saving > 0.005 && <div className="text-[11.5px] mt-0.5" style={{ color: '#0B7B44' }}>Estás ahorrando {fmt(saving)}</div>}</div>
-            <div className="text-right"><div className="text-[11px] text-neutral-500">Próximo objetivo</div><div className="text-[19px] font-extrabold mt-1 whitespace-nowrap">{d.nextObj != null ? fmt(d.nextObj) : '—'}</div><div className="text-[11.5px] text-neutral-500 mt-0.5">{d.nextObj != null ? (d.missing === 1 ? 'Falta 1 ud' : `Faltan ${d.missing} uds`) : 'Precio mínimo'}</div></div>
+            <div className="text-right"><div className="text-[11px] text-neutral-500">Próximo objetivo</div><div className="text-[19px] font-extrabold mt-1 whitespace-nowrap">{d.nextObj != null ? fmt(d.nextObj) : '—'}</div><div className="text-[11.5px] text-neutral-500 mt-0.5">{d.nextObj != null ? (d.missing === 1 ? 'Falta 1 ud' : `Faltan ${d.missing} uds`) : d.ladderKnown ? 'Precio mínimo' : '\u00A0'}</div></div>
           </div>
           {/* A-19 · Sin tramo siguiente no hay porcentaje que medir: la barra estaría
               siempre llena contra un objetivo que se pone ella misma. */}

@@ -452,3 +452,27 @@ barras flotantes —macOS, que es donde trabaja Benjamin, y el móvil— no hay 
 `gutter:auto` da X=100 tanto en página corta como larga. Y `scrollbar-gutter: stable`
 habría estrechado el sitio 15 px igualmente (X=92,5), a cambio de nada. Descartado, con
 la medición escrita en `globals.css` por si aparece en Windows o Linux.
+
+### Segunda tanda: las escaleras viajaban aparte
+
+Quitada la cadena de peticiones, quedaba una segunda espera menos visible pero igual de real:
+recibidos los pedidos, el navegador lanzaba **un `tier_demand` por cada grupo abierto**. Por eso
+las tarjetas aparecían primero y los números —«faltan N uds», la barra de progreso— se
+rellenaban después.
+
+Medido antes de tocar nada: `get_my_groups` tarda **0,24 ms** y `tier_demand` **4,7 ms**
+(`EXPLAIN ANALYZE` sobre producción). La base de datos no era el problema; lo eran las idas y
+vueltas.
+
+**Corregido:** `/api/my-groups` trae las escaleras con los pedidos, en paralelo y desde el mismo
+centro de datos. Encarece la respuesta unos milisegundos y ahorra una tanda entera en el
+cliente; las tarjetas se pintan completas en una sola pasada. `useLadders` acepta esa siembra y
+solo pide lo que falte, así que la vía de identidad local y la suscripción en vivo siguen
+funcionando igual.
+
+### Y una afirmación que sobraba
+
+Mientras la escalera no había llegado, la tarjeta anunciaba **«Precio mínimo»** — porque «no hay
+tramo siguiente» y «todavía no sé nada de este grupo» se calculaban igual. Es el mismo error que
+A-36 en pequeño: afirmar lo que no se sabe. `derive` distingue ahora los dos casos con
+`ladderKnown`, y sin escalera la tarjeta deja el hueco en blanco en vez de inventarse un estado.

@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useLadders, MgCard, Drawer, type Membership } from '@/components/desktop/MisGruposDesktop'
 
-export default function MisGruposMobile({ memberships }: { memberships: Membership[] }) {
-  const ladders = useLadders(memberships)
+export default function MisGruposMobile({ memberships, ladderSeed }: { memberships: Membership[]; ladderSeed?: Record<string, any[]> }) {
+  const ladders = useLadders(memberships, ladderSeed as any)
   const [open, setOpen] = useState<string | null>(null)
 
   useEffect(() => {

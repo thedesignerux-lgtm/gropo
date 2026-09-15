@@ -63,7 +63,10 @@ export default function NotificacionesPage() {
   const [loaded, setLoaded] = useState(false)
   const [identified, setIdentified] = useState(true)
   const [lastSeen] = useState<string | null>(() => readLastSeen())
-  const ladders = useLadders(memberships)
+  // Las escaleras vienen con `/api/my-groups`: una tanda menos de peticiones aquí
+  // también. Por la vía de identidad local no llegan y `useLadders` las pide él.
+  const [ladderSeed, setLadderSeed] = useState<Record<string, any[]> | undefined>(undefined)
+  const ladders = useLadders(memberships, ladderSeed)
   const now = Date.now()
 
   /**
@@ -83,6 +86,7 @@ export default function NotificacionesPage() {
         if (res.ok) {
           const data = await res.json()
           groups = (data?.groups ?? []) as Membership[]
+          if (data?.ladders && !cancelled) setLadderSeed(data.ladders)
         }
       } catch { /* sin sesión o endpoint caído → identidad local */ }
 

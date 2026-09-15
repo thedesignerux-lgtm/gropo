@@ -70,6 +70,8 @@ export default function MisGruposPage() {
   const [phase, setPhase] = useState<Phase>('loading')
   const [userName, setUserName] = useState('')
   const [memberships, setMemberships] = useState<Membership[]>([])
+  // Las escaleras llegan con los pedidos: las tarjetas se pintan completas de una vez.
+  const [ladderSeed, setLadderSeed] = useState<Record<string, any[]> | undefined>(undefined)
   const [error, setError] = useState<string | null>(null)
 
   // Única petición del camino crítico. El 401 ES la respuesta «no hay sesión».
@@ -87,6 +89,7 @@ export default function MisGruposPage() {
         const data = await res.json()
         if (cancelled) return
         setMemberships(data.groups ?? [])
+        setLadderSeed(data.ladders ?? undefined)
         setPhase('ready')
       } catch (e: any) {
         if (cancelled) return
@@ -139,7 +142,7 @@ export default function MisGruposPage() {
           </Link>
         </DesktopShell>
       ) : (
-        <MisGruposDesktop memberships={memberships} loading={phase === 'loading'} />
+        <MisGruposDesktop memberships={memberships} ladderSeed={ladderSeed} loading={phase === 'loading'} />
       )}
 
       {/* ═══ Móvil ═══ */}
@@ -166,7 +169,7 @@ export default function MisGruposPage() {
                   {[0, 1].map((i) => <MgSkeleton key={i} />)}
                 </div>
               ) : (
-                !error && <MisGruposMobile memberships={memberships} />
+                !error && <MisGruposMobile memberships={memberships} ladderSeed={ladderSeed} />
               )}
             </>
           )}

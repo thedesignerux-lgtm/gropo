@@ -243,18 +243,38 @@ Programado: **`30 8 * * *`** (diario 08:30 UTC).
 
 ### 16 · `GET /api/my-groups`
 Exige sesión (401 sin `user.email`). Busca `users.phone` por el **email del JWT** y llama a
-`get_my_groups(phone, email)`.
+`get_my_groups(phone, email)`. Después trae en paralelo la escalera de cada grupo abierto.
 ```jsonc
 { "groups": [ { member_id, quantity, guaranteed_price, final_price, payment_status,
                 join_mode, target_price, group_id, product_name, product_spec, image_url,
-                status, closes_at, current_price, payment_info } ] }
+                status, closes_at, current_price, payment_info } ],
+  // Añadido el 15-sep-2026. Clave = group_id, solo grupos `open`.
+  // Un grupo cuyo `tier_demand` falle NO aparece: el navegador lo pedirá él.
+  "ladders": { "<group_id>": [ { min_units, price, effective_demand, unlocked } ] } }
 ```
 ✅ **Es el patrón seguro:** el email nunca viene del cliente.
 
-> ⚠️ **Fallback ineficiente (líneas 27-54):** si no encuentra teléfono por email, lee **los 50
-> `group_members` más recientes de TODA la tabla** y por cada uno hace **otra consulta** a
-> `users` para comparar el email. Hasta 51 round-trips. No es un fallo de seguridad (compara
-> contra el email del JWT), pero es O(n) innecesario.
+**Por qué las escaleras viajan aquí.** Antes el navegador recibía los pedidos y entonces
+lanzaba un `tier_demand` por cada grupo abierto: una segunda tanda de idas y vueltas, y por eso
+las tarjetas aparecían primero y los números —«faltan N uds», la barra— se rellenaban después.
+Esa consulta cuesta **4,7 ms** en el servidor (medido con `EXPLAIN ANALYZE`) y va en paralelo
+desde el mismo centro de datos: encarece esta respuesta unos milisegundos y ahorra una tanda
+entera en el cliente.
+
+`ladders` es un campo **nuevo y opcional**: quien no lo lea sigue funcionando igual, y
+`useLadders` pide solo las escaleras que no hayan venido servidas.
+
+**401 significa «no hay sesión», y las pantallas lo usan como tal.** `/mis-grupos` ya no
+pregunta antes a Supabase desde el navegador: lanza esta petición y decide con el código de
+estado. Si algún día este endpoint dejara de devolver 401 sin sesión, esa pantalla se rompería.
+
+> **Corregido el 15-sep-2026:** este apartado describía un *fallback* que leía los 50
+> `group_members` más recientes de toda la tabla con una consulta extra por cada uno. **Ya no
+> existe**: se retiró al cerrar A-17 —era además inalcanzable— y hoy la ausencia de teléfono
+> devuelve directamente la lista vacía, que es la respuesta correcta.
+
+> ⚠️ `users.phone` no tiene índice: hoy son 158 filas y da igual, pero esta ruta filtra por ahí
+> en cada carga. Con volumen real, mirar aquí.
 
 ---
 
