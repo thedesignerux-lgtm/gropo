@@ -55,8 +55,19 @@ interface Props {
   onSelIdx: (i: number) => void
   /** 'full' muestra tallas grandes; 'mini' compacto para cards */
   size?: 'mini' | 'full'
-  /** 'none' solo slider · 'nudge' slider + nudge · 'full' encabezado+estado + nudge */
-  chrome?: 'none' | 'nudge' | 'full'
+  /**
+   * Cuánto marco pinta el slider además del propio control:
+   *   'none'   → solo el slider
+   *   'nudge'  → slider + frase de abajo
+   *   'status' → slider + píldora de estado + frase, SIN encabezado
+   *   'full'   → todo lo anterior más su propio encabezado
+   *
+   * `status` existe por un choque real: 'full' juntaba dos decisiones que no van
+   * juntas —el encabezado y la píldora de estado— así que una pantalla que ya
+   * escribe su propia pregunta se quedaba sin píldora o con la pregunta dos veces.
+   * Le pasó a la ficha de escritorio el 15-sep-2026.
+   */
+  chrome?: 'none' | 'nudge' | 'status' | 'full'
   /** Unidades que faltan para el siguiente tramo (para el nudge). Si no se pasa, se calcula. */
   udsToNext?: number
   /** GROPO PULSE: estado por tramo (de usePulse). Decorativo; si no se pasa, no se pinta. */
@@ -304,9 +315,11 @@ export default function GropoTargetSlider({
 
   return (
     <div ref={rootRef} className="select-none">
-      {chrome === 'full' && (
-        <div className="flex items-center justify-between gap-3">
-          <div className="font-extrabold text-neutral-900" style={{ fontSize: mini ? 14 : 16 }}>¿Cuál es el máximo que pagarías?</div>
+      {(chrome === 'full' || chrome === 'status') && (
+        <div className={`flex items-center gap-3 ${chrome === 'full' ? 'justify-between' : 'justify-end'}`}>
+          {chrome === 'full' && (
+            <div className="font-extrabold text-neutral-900" style={{ fontSize: mini ? 14 : 16 }}>¿Cuál es el máximo que pagarías?</div>
+          )}
           <div className="inline-flex items-center gap-1.5 font-extrabold rounded-full whitespace-nowrap" style={{ fontSize: 12.5, color: accent, background: statusBg, padding: '6px 11px' }}>
             <span style={{ width: 7, height: 7, borderRadius: '50%', background: accent }} />
             {statusLabel}
@@ -432,7 +445,7 @@ export default function GropoTargetSlider({
         </div>
       </div>
 
-      {(chrome === 'full' || chrome === 'nudge') && (
+      {(chrome === 'full' || chrome === 'status' || chrome === 'nudge') && (
         <div className="flex items-start gap-2.5 rounded-2xl" style={{ background: nudgeBg, border: `1px solid ${nudgeBr}`, padding: '13px 15px', marginTop: 6 }}>
           <div style={{ width: 24, height: 24, borderRadius: 7, background: accent, display: 'grid', placeItems: 'center', flex: '0 0 auto', color: '#fff', fontSize: 13, fontWeight: 900 }}>{confirmed ? '✓' : '!'}</div>
           <div style={{ fontSize: 13, lineHeight: 1.5, color: '#3a3a42' }}>{nudgeText}</div>

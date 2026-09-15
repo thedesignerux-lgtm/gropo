@@ -349,6 +349,22 @@ un email de verdad, ya será tarde. Detalle y opciones en `UX_AUDIT_2.md` A-24.
 **Cuarta vez** que un hallazgo estaba vivo en más sitios de los que decía el hallazgo (A-33 en
 tres componentes). La lección 1 de este documento sigue cobrando.
 
+### Corregido el mismo día: la pregunta duplicada de la ficha de escritorio
+
+Benjamin mandó una captura: «¿Cuál es el precio máximo que pagarías?» y «¿Cuál es el máximo que
+pagarías?», una debajo de otra. **Lo introduje yo** al cerrar A-03: escribí que el slider de
+escritorio «no tenía ningún encabezado» sin abrir el componente, y `GropoTargetSlider` con
+`chrome="full"` ya pintaba el suyo.
+
+Arreglado **en origen**, no tapando una de las dos: `chrome` juntaba dos cosas independientes —el
+encabezado y la píldora de estado— de modo que una pantalla con su propia pregunta tenía que elegir
+entre repetirla o perder la píldora. Nuevo valor `chrome="status"`: píldora sí, título no. La ficha
+de escritorio lo usa; los otros ocho usos del slider no cambian.
+
+Es el **quinto** caso de afirmación de ausencia sin agotar la búsqueda, y **el primero que llegó a
+producción**. Lección 2 de `UX_AUDIT_2.md`, ampliada con la regla que faltaba: antes de añadir copy
+a una pantalla, leer lo que ya pinta el componente de debajo.
+
 ---
 
 # PENDIENTE (lista del 13 de septiembre, actualizada)

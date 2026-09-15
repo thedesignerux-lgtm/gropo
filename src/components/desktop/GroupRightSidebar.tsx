@@ -239,8 +239,14 @@ export default function GroupRightSidebar({
           </div>
         )}
 
-        {/* A-03 · En escritorio el slider no tenía NINGÚN encabezado: se pedía la
-            decisión sin enunciarla. Copy de Benjamin, versión larga: aquí hay sitio. */}
+        {/* A-03 · La decisión se pedía sin enunciarla con las palabras de Benjamin.
+            Copy suyo, versión larga: aquí hay sitio.
+
+            CORRECCIÓN 15-sep-2026. El comentario anterior decía que «el slider no
+            tenía NINGÚN encabezado». Era falso: con `chrome="full"` el propio slider
+            pintaba «¿Cuál es el máximo que pagarías?», así que al añadir esto la
+            pregunta salía DOS VECES, con dos redacciones distintas. El slider pasa a
+            `chrome="status"`, que mantiene la píldora de estado y calla el título. */}
         {detents.length > 1 && !hasClosed && (
           <>
             <p className="text-[12.5px] leading-snug text-neutral-500 mb-1">El precio baja si el grupo crece. Tú marcas el máximo que pagarías.</p>
@@ -256,7 +262,8 @@ export default function GroupRightSidebar({
             selIdx={selIdx}
             onSelIdx={handleSelIdx}
             size="full"
-            chrome="full"
+            /* `status`, no `full`: la pregunta la escribe esta pantalla arriba. */
+            chrome="status"
             udsToNext={missing}
             pulse={pulseData?.steps}
             glow={pulseData?.glow}

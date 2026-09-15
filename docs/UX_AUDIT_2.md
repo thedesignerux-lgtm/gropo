@@ -1436,6 +1436,8 @@ aparecen una y otra vez:
 
 ## DOS LECCIONES DE MÉTODO
 
+*(Actualizadas el 15 de septiembre: la segunda pasó de tres casos a cinco.)*
+
 ### 1 · «Ya está arreglado» no vale sin comprobar los dos árboles
 Tres veces en el mismo día di por bueno un arreglo que solo existía en la mitad del producto:
 
@@ -1450,17 +1452,20 @@ o mis-grupos, comprobar los dos componentes antes de marcarlo** — y si una pro
 usa, sospechar que en el gemelo pasa lo mismo.
 
 ### 2 · Una afirmación de ausencia exige buscar hasta agotar
-**Tres veces** escribí que algo no existía, y las tres veces existía:
+**Cinco veces** escribí que algo no existía, y las cinco veces existía:
 
 | Escribí | La realidad |
 |---|---|
 | A-25 · «el email no se valida en ninguna capa» | `get_my_groups` **sí** lo valida… al leer, devolviendo lista vacía en silencio. Peor de lo que yo decía, pero no lo que yo decía |
 | A-14 · «el ahorro no se calcula en ninguna parte» | `savingsPerUnit` existía y se pintaba; estaba mal **colocado**, no ausente |
 | A-11b · «`confirm_join` no comprueba el estado del grupo» | **Sí lo comprueba**, con `FOR UPDATE` y devolviendo `needs_release`. Y `PROJECT_KNOWLEDGE_PACK.md` ya lo tenía registrado como INV-03 garantizada |
+| A-32 · «no hay navegación para volver» en el checkout | La cabecera siempre tuvo su flecha atrás, con `aria-label="Volver al gropo"` |
+| A-03 · «en escritorio el slider no tenía NINGÚN encabezado» | `GropoTargetSlider` con `chrome="full"` **ya pintaba uno**. Al añadir el mío, la pregunta salió **dos veces y con dos redacciones distintas**, y así estuvo en producción hasta que Benjamin lo vio en una captura el 15-sep |
 
-Las tres las descubrí **al ir a implementar el arreglo**, no al escribir el hallazgo.
+Las cinco las descubrí **al ir a implementar el arreglo o después**, no al escribir el hallazgo. La
+quinta es la más cara: **llegó a producción**. Las otras cuatro solo costaron tiempo.
 
-**El patrón del error, idéntico las tres veces:** buscar por una FORMA —el nombre de una variable,
+**El patrón del error, idéntico las cinco veces:** buscar por una FORMA —el nombre de una variable,
 un archivo concreto, una cadena— y concluir una AUSENCIA GENERAL. `grep v_group.status` no
 encuentra `WHERE status = 'open'`; buscar validación de email en `src/lib/` no encuentra una regex
 dentro de una función SQL; buscar el ahorro en la tarjeta de precio no lo encuentra al final del
@@ -1468,6 +1473,16 @@ bloque de dinero.
 
 **Antes de escribir «no existe»: buscar la capacidad, no la implementación que uno espera, y
 contrastar con la documentación que ya la tenga registrada.** Si la duda persiste, **UNKNOWN**.
+
+**Y una regla nueva, del caso A-03:** antes de añadir un texto a una pantalla, **leer lo que ya
+pinta el componente que va debajo**. `GropoTargetSlider` recibía `chrome="full"`, y ese nombre no
+dice que incluya un encabezado: hay que abrirlo. Añadir copy sin mirar al vecino produce
+duplicados que el typecheck no ve, el lint no ve y solo aparecen con el navegador abierto.
+
+Corregido en origen, no en la superficie: `chrome` juntaba dos decisiones independientes —el
+encabezado y la píldora de estado— así que una pantalla que ya escribe su propia pregunta tenía que
+elegir entre repetirla o quedarse sin píldora. Ahora existe `chrome="status"`, que da la píldora
+sin el título.
 
 ---
 
