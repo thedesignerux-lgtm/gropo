@@ -152,7 +152,7 @@ export default function DesktopNavbar() {
           <Link
             href="/crear-peticion"
             className="whitespace-nowrap text-[14.5px] font-bold rounded-full px-5 py-2.5 transition-transform active:scale-[0.98]"
-            style={{ background: '#FF6A00', color: '#1A1A1F', boxShadow: '0 10px 22px rgba(255,106,0,0.20)' }}
+            style={{ background: 'transparent', color: '#FF6A00', border: '2px solid #FF6A00' }}
           >
             Crea tu grupo
           </Link>
