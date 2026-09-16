@@ -22,7 +22,6 @@ import {
   useStripe,
   useElements,
 } from '@stripe/react-stripe-js';
-import confetti from 'canvas-confetti';
 import { PROVINCIAS_ES } from '@/lib/provincias';
 import { normalizePhone } from '@/lib/phone';
 import { isValidEmail } from '@/lib/email';
@@ -155,16 +154,7 @@ function CompactCountdown({ closesAt }: { closesAt: string }) {
   );
 }
 
-function fireConfetti() {
-  if (typeof window === 'undefined') return;
-  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-  confetti({
-    particleCount: 90,
-    spread: 75,
-    origin: { y: 0.75 },
-    colors: ['#024947', '#04817E', '#F5FAFA'],
-  });
-}
+
 
 const SECTION = 'px-4 pt-6';
 const H = 'text-sm font-semibold text-neutral-900 mb-3';
@@ -241,7 +231,6 @@ export default function JoinFlow({
   const [quote, setQuote] = useState<{ pricePerUnit: number | null }>({
     pricePerUnit: group.current_price,
   });
-  const prevPrice = useRef<number | null>(null);
 
 
   const sorted = useMemo(() => [...group.tiers].sort((a, b) => a.minUnits - b.minUnits), [group.tiers]);
@@ -265,9 +254,7 @@ export default function JoinFlow({
       .then((r) => r.json())
       .then((d) => {
         const p = d.pricePerUnit != null ? Number(d.pricePerUnit) : null;
-        // Confeti SOLO al bajar de tramo (cruce a la baja), una vez por cruce.
-        if (prevPrice.current != null && p != null && p < prevPrice.current) fireConfetti();
-        if (p != null) prevPrice.current = p;
+
         setQuote({ pricePerUnit: p });
       })
       .catch(() => {});
@@ -369,9 +356,7 @@ export default function JoinFlow({
   };
   const groupPos = positionOf(lastUnlockedIdx, 'demand');
   const projPos = positionOf(projIdx, 'withYou');
-  // El punto (knob) solo se muestra mientras avanza ENTRE hitos; al llegar
-  // justo a un tramo, ese nodo pasa a check y el punto desaparece.
-  const showKnob = projIdx >= 0 && projIdx < nTiers - 1 && projPos > projIdx / (nTiers - 1) + 1e-9;
+
 
   return (
     /* A-32 · En escritorio esto es una rejilla de dos columnas: el formulario a la
@@ -458,9 +443,7 @@ export default function JoinFlow({
                 <div className="absolute left-[6%] right-[6%] top-[9px] h-[3px] rounded-full bg-black/[0.07]" />
                 <div className="absolute left-[6%] top-[9px] h-[3px] rounded-full bg-brand transition-[width] duration-300 ease-out" style={{ width: `calc(88% * ${projPos})` }} />
                 <div className="absolute left-[6%] top-[9px] h-[3px] rounded-full bg-brand transition-[width] duration-300 ease-out" style={{ width: `calc(88% * ${groupPos})` }} />
-                {showKnob && (
-                  <div className="absolute top-[6px] z-[1] h-[9px] w-[9px] -translate-x-1/2 rounded-full bg-brand ring-2 ring-white shadow-sm transition-[left] duration-300 ease-out" style={{ left: `calc(6% + 88% * ${projPos})` }} />
-                )}
+
                 <div className="relative flex justify-between">
                   {sorted.map((t, i) => {
                     const groupReached = ladder[i].groupReached;
@@ -758,9 +741,7 @@ export default function JoinFlow({
                 <div className="absolute left-[6%] right-[6%] top-[9px] h-[3px] rounded-full bg-black/[0.07]" />
                 <div className="absolute left-[6%] top-[9px] h-[3px] rounded-full bg-brand transition-[width] duration-300 ease-out" style={{ width: `calc(88% * ${projPos})` }} />
                 <div className="absolute left-[6%] top-[9px] h-[3px] rounded-full bg-brand transition-[width] duration-300 ease-out" style={{ width: `calc(88% * ${groupPos})` }} />
-                {showKnob && (
-                  <div className="absolute top-[6px] z-[1] h-[9px] w-[9px] -translate-x-1/2 rounded-full bg-brand ring-2 ring-white shadow-sm transition-[left] duration-300 ease-out" style={{ left: `calc(6% + 88% * ${projPos})` }} />
-                )}
+
                 <div className="relative flex justify-between">
                   {sorted.map((t, i) => {
                     const groupReached = ladder[i].groupReached;
