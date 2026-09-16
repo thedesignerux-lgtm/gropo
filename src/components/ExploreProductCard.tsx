@@ -21,8 +21,19 @@ export interface ExploreProductCardProps {
 
 /* ───────────────────────── helpers ─────────────────────── */
 
+/**
+ * Formatea un precio para tarjetas de catálogo:
+ * - Sin decimales si la cifra es entera (819 €, 1.100 €).
+ * - Con 2 decimales y coma si tiene céntimos (49,95 €).
+ * - Separador de miles con punto (estándar ES).
+ */
 function fmtPrice(n: number): string {
-  return n.toFixed(2).replace('.', ',') + ' €'
+  const isRound = n % 1 === 0
+  if (isRound) {
+    return n.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €'
+  }
+  const [int, dec] = n.toFixed(2).split('.')
+  return int.replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ',' + dec + ' €'
 }
 
 function getBadge(status: CardStatus) {
@@ -61,13 +72,17 @@ export default function ExploreProductCard({
 
   const badge = getBadge(status)
 
-  /* ── footer ── */
+  /* ── ahorro neto al siguiente tramo ── */
+  const savingsToNext =
+    nextTierPrice != null ? Math.round(currentPrice - nextTierPrice) : 0
+
+  /* ── footer: vocabulario unificado → "compradores" ── */
   const footerText =
     status === 'new'
       ? '👥 Grupo recién abierto'
-      : `👥 ${group.currentUnits} / ${nextTierMinUnits ?? '–'} personas`
+      : `👥 ${group.currentUnits} / ${nextTierMinUnits ?? '–'} compradores`
 
-  /* ── oportunidad ── */
+  /* ── bloque de oportunidad ── */
   const opportunityBlock = (() => {
     if (status === 'new') {
       return (
@@ -79,7 +94,10 @@ export default function ExploreProductCard({
     if (unitsToNext > 0 && nextTierPrice != null) {
       return (
         <div className="bg-teal-50 text-teal-700 text-xs font-medium px-3 py-2 rounded-lg">
-          ↓ Faltan {unitsToNext} compradores para {fmtPrice(nextTierPrice)}
+          Faltan {unitsToNext} para {fmtPrice(nextTierPrice)}
+          {savingsToNext > 0 && (
+            <span className="font-bold"> (-{savingsToNext} €)</span>
+          )}
         </div>
       )
     }
@@ -152,9 +170,11 @@ export default function ExploreProductCard({
             )}
           </div>
 
-          {/* precio */}
+          {/* precio — PVP tachado prominente + precio actual + descuento */}
           <div className="flex items-baseline gap-2 flex-wrap">
-            <span className="text-xs text-gray-400 line-through">{fmtPrice(group.pvp)}</span>
+            <span className="text-sm text-gray-500 line-through decoration-gray-400">
+              {fmtPrice(group.pvp)}
+            </span>
             <span className="text-lg font-bold text-gray-900">{fmtPrice(currentPrice)}</span>
             {discount > 0 && (
               <span className="text-xs font-semibold text-emerald-600">-{discount}%</span>
