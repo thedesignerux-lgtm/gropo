@@ -565,8 +565,8 @@ export default function JoinFlow({
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4.5" /><circle cx="12" cy="12" r="1" /></svg>
               </div>
               <div className="min-w-0">
-                <div className="text-[15px] font-bold text-brand">¡Objetivo conseguido! Compras a {eur(displayPricePerUnit)}</div>
-                <div className="mt-px text-xs font-medium" style={{ color: '#024947' }}>al reservar, tu compra se confirma automáticamente</div>
+                <div className="text-[15px] font-bold text-brand">¡Precio asegurado! Tu unidad ya sale a {eur(displayPricePerUnit)}</div>
+                <div className="mt-px text-xs font-medium" style={{ color: '#024947' }}>Al confirmar, garantizas este precio.</div>
               </div>
               <div className="ml-auto flex-shrink-0 whitespace-nowrap text-[22px] font-extrabold leading-none tracking-tight tabular-nums text-brand">{eur(displayPricePerUnit)}</div>
             </div>
@@ -621,7 +621,7 @@ export default function JoinFlow({
                 </div>
               </div>
               {comprarGoalIdx >= 0 ? (
-                <div className="mt-1 text-center text-xs font-medium text-neutral-500">Faltan <b className="text-accent-dark">{ladder[comprarGoalIdx].missing} {ladder[comprarGoalIdx].missing === 1 ? 'unidad' : 'unidades'}</b> para bajar al siguiente tramo: {eur(sorted[comprarGoalIdx].price)}</div>
+                <div className="mt-1 text-center text-xs font-medium text-neutral-500">Solo faltan <b className="text-accent-dark">{ladder[comprarGoalIdx].missing} {ladder[comprarGoalIdx].missing === 1 ? 'unidad' : 'unidades'}</b> para que el precio baje a {eur(sorted[comprarGoalIdx].price)}</div>
               ) : (
                 <div className="mt-1 text-center text-xs font-bold text-[#0B7B44]">Ya estás en el mejor precio 🎉</div>
               )}
@@ -633,7 +633,7 @@ export default function JoinFlow({
             <div className="flex gap-[11px] rounded-2xl border border-[#CFEADA] bg-[#EEF8F1] p-[13px]">
               <svg width="19" height="19" className="mt-px flex-none" viewBox="0 0 24 24" fill="none" stroke="#0B7B44" strokeWidth="2"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11z" /><path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" /></svg>
               <div className="text-xs font-semibold leading-[1.5] text-[#0D6B3D]">
-                <b>Compra confirmada al reservar.</b> El grupo ya alcanzó tu precio, así que tu compra a {eur(displayPricePerUnit)} queda asegurada. Se retiene el importe y el cargo se hace al cierre del grupo.{' '}
+                Si más personas se unen antes del cierre, tu precio final seguirá bajando.{' '}
                 <button type="button" onClick={() => setPayInfoOpen(true)} className="font-extrabold underline">Cómo funciona</button>
               </div>
             </div>
@@ -1257,13 +1257,7 @@ function InnerForm({
             </div>
           )}
 
-          <p className="mt-2.5 border-t border-neutral-100 pt-2.5 text-xs leading-relaxed text-neutral-500">
-            {esperando
-              ? `Hoy no se te cobra nada. Retenemos ${eur(holdTotal)} en tu tarjeta y solo se cobra si el grupo llega a tu precio. Si no llega, se libera entera.`
-              : holdExceedsTotal
-                ? 'Hoy no se te cobra nada. Al cierre se cobra el total y se libera la diferencia.'
-                : `Hoy no se te cobra nada: retenemos ${eur(holdTotal)} en tu tarjeta y al cierre se cobra el precio final, que puede ser menor.`}
-          </p>
+
 
         </div>
       </section>
@@ -1392,7 +1386,7 @@ function InnerForm({
           </button>
           {targetReached && (
             <p className="mt-2 text-center text-xs text-neutral-500">
-              El grupo ya alcanzó tu precio objetivo. Se retiene el importe y el cargo se realiza al cierre del grupo; si no ejecuta, se libera sin cargo.
+              Hoy solo retenemos este importe. Si el precio final baja, pagarás menos. Si la compra se cancela, no pagas nada.
             </p>
           )}
           {showAdjust && visualMode !== 'esperar' && (
