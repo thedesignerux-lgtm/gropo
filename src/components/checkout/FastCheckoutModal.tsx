@@ -15,7 +15,7 @@
 //     [cargo silencioso con el PM por defecto — endpoint money-critical, Gate A3.money]
 //   · Editar / nueva tarjeta (acordeón abierto, PaymentElement) → create-intent (A2)
 //     + stripe.confirmPayment. Ruta ya funcional.
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { PROVINCIAS_ES } from '@/lib/provincias';
@@ -201,7 +201,8 @@ export default function FastCheckoutModal({
             ctxLoading={ctxLoading}
             hasLadder={hasLadder}
             detents={detents}
-            curIdx={curIdx}
+            curIdx={floorIdx}
+            currentUnits={ctx?.committedUnits}
             selIdx={effectiveSelIdx}
             setSelIdx={setSelIdx}
             selectedPrice={hasLadder ? (selectedPrice as number) : pricePerUnit}
@@ -236,6 +237,7 @@ function InnerCheckout({
   hasLadder,
   detents,
   curIdx,
+  currentUnits,
   selIdx,
   setSelIdx,
   selectedPrice,
@@ -254,7 +256,12 @@ function InnerCheckout({
   ctxLoading: boolean;
   hasLadder: boolean;
   detents: Detent[];
+  /** 16-sep-2026 . Aqui llega el SUELO (floorIdx), no el tramo del grupo a
+      solas: con varias unidades el techo real puede ser mas barato que el
+      precio vigente (A-29). Pasar el tramo del grupo dejaba el check y el
+      tope del slider congelados aunque subieras la cantidad. */
   curIdx: number;
+  currentUnits?: number;
   selIdx: number;
   setSelIdx: (i: number) => void;
   selectedPrice: number;
@@ -455,7 +462,7 @@ function InnerCheckout({
       {/* Tramo de precio — mismo control que la ficha, en miniatura */}
       {hasLadder && detents.length > 1 && (
         <div className="mt-3">
-          <GropoTargetSlider detents={detents} curIdx={curIdx} selIdx={selIdx} onSelIdx={setSelIdx} size="mini" />
+          <GropoTargetSlider detents={detents} curIdx={curIdx} selIdx={selIdx} onSelIdx={setSelIdx} currentUnits={currentUnits} size="mini" />
         </div>
       )}
 
