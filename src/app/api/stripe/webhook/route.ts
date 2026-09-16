@@ -16,6 +16,9 @@ import { Resend } from 'resend';
 import { joinConfirmationEmail } from '@/lib/emails/joinConfirmation';
 import { runPulseTrigger } from '@/lib/pulse';
 import { notifyReachableWatchers } from '@/lib/pulse-notify';
+import { tryRecordCommunication, markEmailSent } from '@/lib/buyerComms';
+import { sendSelectedPriceReached } from '@/lib/resend';
+import { SITE_URL } from '@/lib/site';
 
 // Instanciación perezosa: NO crear el cliente al importar el módulo (rompe `next build`
 // en "collecting page data" si falta la key). Se crea en runtime, al enviar el email.
@@ -161,6 +164,70 @@ export async function POST(req: Request) {
         }
       } catch (emailErr: any) {
         console.error('[webhook] email de confirmación falló (no-fatal):', emailErr?.message);
+      }
+
+      // Sistema de comunicaciones del comprador — registrar la participación
+      // confirmada (para el futuro Centro de notificaciones) y avisar a quien
+      // ya tenía una participación viva cuyo precio elegido ACABA de alcanzarse
+      // con esta compra (confirm_join ya calculó exactamente quién, en
+      // `reached_member_ids` — no se recalcula nada aquí, solo se lee).
+      try {
+        const { data: newMember } = await supabaseAdmin
+          .from('group_members')
+          .select('id')
+          .eq('stripe_payment_intent_id', pi.id)
+          .maybeSingle();
+        if (newMember) {
+          await tryRecordCommunication({
+            memberId: newMember.id,
+            type: 'participation_confirmed',
+          });
+        }
+      } catch (commErr: any) {
+        console.error('[webhook] registro participation_confirmed falló (no-fatal):', commErr?.message);
+      }
+
+      const reachedIds: string[] = Array.isArray(data?.reached_member_ids) ? data.reached_member_ids : [];
+      if (reachedIds.length > 0) {
+        try {
+          const { data: reachedMembers } = await supabaseAdmin
+            .from('group_members')
+            .select('id, group_id, target_price, quantity, users(name, email)')
+            .in('id', reachedIds);
+
+          const { data: groupInfo } = await supabaseAdmin
+            .from('groups')
+            .select('id, product_name, current_price, total_units, closes_at')
+            .eq('id', m.group_id)
+            .single();
+
+          for (const rm of reachedMembers ?? []) {
+            const u = (rm as any).users;
+            if (!u?.email || !groupInfo) continue;
+            const rec = await tryRecordCommunication({
+              memberId: rm.id,
+              type: 'selected_price_reached',
+            });
+            if (!rec.isNew) continue; // ya se le avisó de este precio (dedup)
+            try {
+              await sendSelectedPriceReached({
+                to: u.email,
+                nombre: u.name ?? undefined,
+                productName: groupInfo.product_name,
+                targetPrice: Number(rm.target_price),
+                currentPrice: Number(groupInfo.current_price),
+                totalUnits: Number(groupInfo.total_units),
+                closesAt: groupInfo.closes_at,
+                groupUrl: `${SITE_URL}/grupo/${groupInfo.id}`,
+              });
+              await markEmailSent(rec.id);
+            } catch (sendErr: any) {
+              console.error('[webhook] email selected_price_reached falló:', rm.id, sendErr?.message);
+            }
+          }
+        } catch (reachedErr: any) {
+          console.error('[webhook] aviso selected_price_reached falló (no-fatal):', reachedErr?.message);
+        }
       }
 
       // GROPO PULSE (no-fatal): una compra confirmada acerca la masa crítica.

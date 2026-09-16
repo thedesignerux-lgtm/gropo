@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { supabaseAdmin } from '@/lib/supabase-admin'
-import { sendClosePaymentEmails } from '@/lib/emails/sendClose'
+import { sendClosePaymentEmails, sendClosedNotReachedEmails, sendAuthorizationFailedEmails } from '@/lib/emails/sendClose'
 import { captureGroupPayments } from '@/lib/stripe-capture'
 import { sendAdminAlert } from '@/lib/resend'
 import { generateShippingLabels, type ShippingResult } from '@/lib/shipping-sendcloud'
@@ -49,6 +49,18 @@ export async function closeGroup(
       } catch (e) {
         console.error('sendAdminAlert (captura) falló:', e)
       }
+
+      // Sistema de comunicaciones · Sección G — el propio comprador también debe
+      // saber que su cobro falló y que ha quedado fuera del grupo (antes solo se
+      // enteraba el admin). BLINDADO: un fallo aquí no debe afectar al cierre.
+      try {
+        await sendAuthorizationFailedEmails(
+          groupId,
+          cap.failed.map(f => ({ memberId: f.memberId, finalPrice: f.finalPrice })),
+        )
+      } catch (e) {
+        console.error('sendAuthorizationFailedEmails falló (cierre OK igualmente):', e)
+      }
     }
   } catch (e) {
     console.error('captureGroupPayments falló (cierre OK igualmente):', e)
@@ -61,6 +73,16 @@ export async function closeGroup(
     } catch (e) {
       console.error('sendClosePaymentEmails falló (cierre OK igualmente):', e)
     }
+  }
+
+  // Email/notificación a quien NO alcanzó el precio elegido — Sección E/F de la
+  // spec de comunicaciones. Se comprueba siempre (no solo en 'closed'/'surplus'):
+  // 'no_active_bids' y 'no_execution' cancelan a TODOS los miembros igual que un
+  // cierre parcial. BLINDADO.
+  try {
+    await sendClosedNotReachedEmails(groupId)
+  } catch (e) {
+    console.error('sendClosedNotReachedEmails falló (cierre OK igualmente):', e)
   }
 
   revalidatePath(`/admin/grupos/${groupId}`)

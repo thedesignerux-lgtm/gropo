@@ -98,5 +98,22 @@ export async function GET() {
   )
   const ladders = Object.fromEntries(ladderEntries.filter(([, v]) => v !== null))
 
-  return NextResponse.json({ groups, ladders })
+  // Sistema de comunicaciones del comprador — notificaciones persistidas por
+  // participación (participación confirmada, precio alcanzado, cierre exacto,
+  // retención fallida, envío). No-fatal: si falla, el resto de la respuesta
+  // sigue siendo válida y el feed se queda con lo que ya tenía (`events`).
+  let notifications: unknown[] = []
+  try {
+    const { data: notifData, error: notifError } = await supabaseAdmin
+      .rpc('get_my_notifications', { p_phone: phone, p_email: userEmail })
+    if (notifError) {
+      console.warn('[api/my-groups] get_my_notifications falló:', notifError.message)
+    } else {
+      notifications = (notifData as any)?.notifications ?? []
+    }
+  } catch (e: any) {
+    console.warn('[api/my-groups] get_my_notifications excepción:', e?.message)
+  }
+
+  return NextResponse.json({ groups, ladders, notifications })
 }

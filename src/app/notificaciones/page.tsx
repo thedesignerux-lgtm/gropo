@@ -32,6 +32,11 @@ import {
   type FeedItem,
   type FeedMembership,
 } from '@/lib/purchaseFeed'
+import {
+  buildCommsFeedItems,
+  groupsWithPreciseClose,
+  type MyNotificationRow,
+} from '@/lib/buyerCommsFeed'
 
 /** «hace 5 min» · «hace 3 h» · «ayer» · «13 sept». */
 function cuando(iso: string, now: number): string {
@@ -55,11 +60,19 @@ const ICONO_BG: Record<string, { bg: string; fg: string }> = {
   closing_soon: { bg: '#FDEBE3', fg: '#B4541A' },
   closed: { bg: '#E7F7EF', fg: '#0B7B44' },
   not_executed: { bg: '#F1F5F9', fg: '#475569' },
+  // Sistema de comunicaciones del comprador — derivados de buyer_communications.
+  participation_confirmed: { bg: '#F0F7F7', fg: '#024947' },
+  price_reached: { bg: '#E7F7EF', fg: '#0B7B44' },
+  closed_success: { bg: '#E7F7EF', fg: '#0B7B44' },
+  closed_not_reached: { bg: '#F1F5F9', fg: '#475569' },
+  auth_failed: { bg: '#FDEBE3', fg: '#B4541A' },
+  shipment_confirmed: { bg: '#F0F7F7', fg: '#024947' },
 }
 
 export default function NotificacionesPage() {
   const [memberships, setMemberships] = useState<Membership[]>([])
   const [events, setEvents] = useState<FeedEvent[]>([])
+  const [notifications, setNotifications] = useState<MyNotificationRow[]>([])
   const [loaded, setLoaded] = useState(false)
   const [identified, setIdentified] = useState(true)
   const [lastSeen] = useState<string | null>(() => readLastSeen())
@@ -81,24 +94,40 @@ export default function NotificacionesPage() {
     async function load() {
       let groups: Membership[] = []
 
+      let notifs: MyNotificationRow[] = []
+
       try {
         const res = await fetch('/api/my-groups')
         if (res.ok) {
           const data = await res.json()
           groups = (data?.groups ?? []) as Membership[]
+          notifs = (data?.notifications ?? []) as MyNotificationRow[]
           if (data?.ladders && !cancelled) setLadderSeed(data.ladders)
         }
       } catch { /* sin sesión o endpoint caído → identidad local */ }
 
+      let localIdentity: { phone?: string; email?: string } | null = null
       if (groups.length === 0) {
         const u = readLocalIdentity()
         if (u.phone && u.email) {
+          localIdentity = u
           const { data } = await supabase.rpc('get_my_groups', { p_phone: u.phone, p_email: u.email })
           groups = ((data as any)?.groups ?? []) as Membership[]
         } else if (!cancelled) {
           setIdentified(false)
         }
       }
+
+      // Por identidad local (sin sesión), las notificaciones se piden aparte —
+      // el mismo patrón de verificación teléfono+email que get_my_groups.
+      if (notifs.length === 0 && localIdentity?.phone && localIdentity?.email) {
+        const { data } = await supabase.rpc('get_my_notifications', {
+          p_phone: localIdentity.phone,
+          p_email: localIdentity.email,
+        })
+        notifs = ((data as any)?.notifications ?? []) as MyNotificationRow[]
+      }
+      if (!cancelled) setNotifications(notifs)
 
       if (cancelled) return
       setMemberships(groups)
@@ -130,13 +159,23 @@ export default function NotificacionesPage() {
     if (loaded && memberships.length > 0) markSeen()
   }, [loaded, memberships.length])
 
-  const items = useMemo(
-    () => buildPurchaseFeed(memberships as unknown as FeedMembership[], events, ladders as any, new Date(now)),
+  const items = useMemo(() => {
+    const base = buildPurchaseFeed(memberships as unknown as FeedMembership[], events, ladders as any, new Date(now))
+    const comms = buildCommsFeedItems(notifications)
+    // Cuando existe una comunicación de cierre PRECISA (por participación) para
+    // un grupo, se descarta la versión aproximada derivada de `events` (por
+    // grupo) para ESE grupo — evita mostrar dos veces "el grupo ha cerrado" con
+    // matices distintos. Los grupos cerrados antes de este sistema no tienen
+    // fila en `buyer_communications` y siguen viendo la versión aproximada.
+    const preciseGroups = groupsWithPreciseClose(notifications)
+    const baseFiltrado = base.filter(
+      (it) => !((it.kind === 'closed' || it.kind === 'not_executed') && preciseGroups.has(it.groupId)),
+    )
+    return [...baseFiltrado, ...comms].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
     // `now` cambia en cada render; se fija a la carga a propósito para que el feed
     // no se reordene mientras se lee.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [memberships, events, ladders],
-  )
+  }, [memberships, events, ladders, notifications])
 
   const vivos = items.filter((i) => i.live)
   const historico = items.filter((i) => !i.live)

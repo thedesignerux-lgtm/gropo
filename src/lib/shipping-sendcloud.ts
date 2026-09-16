@@ -3,6 +3,8 @@
 // Espejo de stripe-capture.ts: idempotente, no-fatal, aísla errores por miembro.
 // Disparo: botón admin manual "Generar etiquetas" (NO automático al cierre en V0).
 import { supabaseAdmin } from '@/lib/supabase-admin';
+import { tryRecordCommunication, markEmailSent } from '@/lib/buyerComms';
+import { sendShipmentConfirmed } from '@/lib/resend';
 const SENDCLOUD_BASE = 'https://panel.sendcloud.sc/api/v3';
 const SHIPPING_OPTION_CODE =
   process.env.SENDCLOUD_SHIPPING_OPTION_CODE ?? 'sendcloud:letter';
@@ -48,7 +50,7 @@ export async function generateShippingLabels(groupId: string): Promise<ShippingR
       'id, quantity, payment_status, shipping_parcel_id, ' +
       'shipping_name, shipping_phone, shipping_address_line1, shipping_address_line2, ' +
       'shipping_city, shipping_province, shipping_postal_code, shipping_country, ' +
-      'users(email)'
+      'groups(product_name), users(name, email)'
     )
     .eq('group_id', groupId)
     .in('payment_status', ['instructed', 'paid']);
@@ -139,6 +141,30 @@ export async function generateShippingLabels(groupId: string): Promise<ShippingR
         continue;
       }
       result.created++;
+
+      // Email 06 del sistema de comunicaciones — "Pedido enviado". BLINDADO: un
+      // fallo de email no debe afectar a la generación de etiquetas, que ya está
+      // hecha y guardada en Sendcloud/BD.
+      try {
+        const email: string | undefined = m.users?.email;
+        if (email) {
+          const rec = await tryRecordCommunication({ memberId: m.id, type: 'shipment_confirmed' });
+          if (rec.isNew) {
+            const { error: mailErr } = await sendShipmentConfirmed({
+              to: email,
+              nombre: m.users?.name ?? undefined,
+              productName: m.groups?.product_name ?? 'tu producto',
+              trackingCode: parcel.tracking_number ?? null,
+              carrier,
+              trackingUrl: labelLink,
+            });
+            if (mailErr) console.error('[shipping] email pedido-enviado falló', m.id, mailErr);
+            else await markEmailSent(rec.id);
+          }
+        }
+      } catch (mailEx: any) {
+        console.error('[shipping] email pedido-enviado excepción (no-fatal):', m.id, mailEx?.message);
+      }
     } catch (e: any) {
       result.failed.push({ member_id: m.id, reason: `excepcion: ${e?.message ?? String(e)}` });
       await markFailed(m.id);

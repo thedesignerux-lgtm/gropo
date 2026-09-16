@@ -21,7 +21,7 @@ import { supabaseAdmin } from './supabase-admin';
 export interface CaptureSummary {
   captured: number;
   released: number;
-  failed: { memberId: string; paymentIntentId: string | null; error: string }[];
+  failed: { memberId: string; paymentIntentId: string | null; error: string; finalPrice: number | null }[];
 }
 
 export async function captureGroupPayments(groupId: string): Promise<CaptureSummary> {
@@ -60,7 +60,26 @@ export async function captureGroupPayments(groupId: string): Promise<CaptureSumm
       }
     } catch (e: any) {
       console.error(`[capture] miembro ${m.id} PI ${pi}:`, e?.message);
-      summary.failed.push({ memberId: m.id, paymentIntentId: pi, error: e?.message ?? 'error' });
+      // Sistema de comunicaciones · Sección G (fallo de retención): el cobro tras
+      // el cierre ha fallado (tarjeta rechazada, SCA, hold caducado...). Antes
+      // este miembro se quedaba en 'instructed' para siempre, sin ningún aviso.
+      // Se marca 'auth_failed' —valor ya reservado en el enum— para que quede
+      // reflejado en BD y el llamador (closeGroup) pueda avisar al comprador.
+      try {
+        await supabaseAdmin
+          .from('group_members')
+          .update({ payment_status: 'auth_failed' })
+          .eq('id', m.id)
+          .eq('payment_status', 'instructed'); // guarda: no tocar si ya cambió
+      } catch (dbErr: any) {
+        console.error(`[capture] no se pudo marcar auth_failed para ${m.id}:`, dbErr?.message);
+      }
+      summary.failed.push({
+        memberId: m.id,
+        paymentIntentId: pi,
+        error: e?.message ?? 'error',
+        finalPrice: m.final_price != null ? Number(m.final_price) : null,
+      });
     }
   }
 

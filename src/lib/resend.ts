@@ -4,6 +4,11 @@ import { joinConfirmationEmail } from './emails/joinConfirmation'
 import { paymentInstructionsEmail } from './emails/paymentInstructions'
 import { petitionMatchedEmail } from './emails/petitionMatched'
 import { purchaseConfirmationEmail } from './emails/purchaseConfirmation'
+import { selectedPriceReachedEmail } from './emails/selectedPriceReached'
+import { closedNotReachedEmail } from './emails/closedNotReached'
+import { authorizationFailedEmail } from './emails/authorizationFailed'
+import { shipmentConfirmedEmail } from './emails/shipmentConfirmed'
+import { weekendOpportunitiesEmail, type WeekendOpportunity } from './emails/weekendOpportunities'
 
 // Remitente. Debe ser SIEMPRE una dirección de un dominio verificado en Resend
 // (hoy: gropo.es, y el heredado vonda.es); con cualquier otro, Resend rechaza el
@@ -83,6 +88,88 @@ export interface SendPurchaseConfirmationParams {
 export async function sendPurchaseConfirmation(params: SendPurchaseConfirmationParams) {
   const { to, nombre, productName, quantity, finalPrice, total } = params
   const { subject, html, text } = purchaseConfirmationEmail({ nombre, productName, quantity, finalPrice, total })
+
+  const resend = getResend()
+  return resend.emails.send({ from: FROM, to, subject, html, text })
+}
+
+export interface SendSelectedPriceReachedParams {
+  to: string
+  nombre?: string
+  productName: string
+  targetPrice: number
+  currentPrice: number
+  totalUnits: number
+  closesAt: string
+  groupUrl: string
+}
+
+export async function sendSelectedPriceReached(params: SendSelectedPriceReachedParams) {
+  const { to, ...rest } = params
+  const { subject, html, text } = selectedPriceReachedEmail(rest)
+
+  const resend = getResend()
+  return resend.emails.send({ from: FROM, to, subject, html, text })
+}
+
+export interface SendClosedNotReachedParams {
+  to: string
+  nombre?: string
+  productName: string
+  chosenPrice: number | null
+  finalPrice: number | null
+}
+
+export async function sendClosedNotReached(params: SendClosedNotReachedParams) {
+  const { to, ...rest } = params
+  const { subject, html, text } = closedNotReachedEmail(rest)
+
+  const resend = getResend()
+  return resend.emails.send({ from: FROM, to, subject, html, text })
+}
+
+export interface SendAuthorizationFailedParams {
+  to: string
+  nombre?: string
+  productName: string
+  finalPrice: number
+  groupUrl: string
+}
+
+export async function sendAuthorizationFailed(params: SendAuthorizationFailedParams) {
+  const { to, ...rest } = params
+  const { subject, html, text } = authorizationFailedEmail(rest)
+
+  const resend = getResend()
+  return resend.emails.send({ from: FROM, to, subject, html, text })
+}
+
+export interface SendShipmentConfirmedParams {
+  to: string
+  nombre?: string
+  productName: string
+  trackingCode?: string | null
+  carrier?: string | null
+  trackingUrl?: string | null
+}
+
+export async function sendShipmentConfirmed(params: SendShipmentConfirmedParams) {
+  const { to, ...rest } = params
+  const { subject, html, text } = shipmentConfirmedEmail(rest)
+
+  const resend = getResend()
+  return resend.emails.send({ from: FROM, to, subject, html, text })
+}
+
+export interface SendWeekendOpportunitiesParams {
+  to: string
+  nombre?: string
+  opportunities: WeekendOpportunity[]
+}
+
+export async function sendWeekendOpportunities(params: SendWeekendOpportunitiesParams) {
+  const { to, nombre, opportunities } = params
+  const { subject, html, text } = weekendOpportunitiesEmail({ nombre, opportunities })
 
   const resend = getResend()
   return resend.emails.send({ from: FROM, to, subject, html, text })

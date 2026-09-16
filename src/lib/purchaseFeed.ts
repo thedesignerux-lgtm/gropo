@@ -44,6 +44,16 @@ export type FeedKind =
   | 'closing_soon'
   | 'closed'
   | 'not_executed'
+  // Sistema de comunicaciones del comprador (16-sep-2026) — derivados de
+  // `buyer_communications`, por PARTICIPACIÓN y no por grupo, así que son
+  // exactos incluso cuando un cierre trata distinto a cada miembro (excedente,
+  // PMA no alcanzado). Ver `lib/buyerCommsFeed.ts`.
+  | 'participation_confirmed'
+  | 'price_reached'
+  | 'closed_success'
+  | 'closed_not_reached'
+  | 'auth_failed'
+  | 'shipment_confirmed'
 
 export interface FeedMembership {
   group_id: string
