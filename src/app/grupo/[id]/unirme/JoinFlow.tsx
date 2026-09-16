@@ -429,17 +429,17 @@ export default function JoinFlow({
             <div className="rounded-[18px] border border-black/[0.08] bg-white p-1.5">
               <div className="flex items-center px-3 py-[11px]">
                 <div className="text-xs font-semibold text-neutral-500">Precio actual del grupo</div>
-                <div className="ml-auto text-[22px] font-extrabold leading-none tracking-tight tabular-nums text-neutral-900">{eur(pricePerUnit)}</div>
+                <div className="ml-auto flex-shrink-0 whitespace-nowrap text-[22px] font-extrabold leading-none tracking-tight tabular-nums text-neutral-900">{eur(pricePerUnit)}</div>
               </div>
               <div className="flex items-center rounded-[14px] border-[1.5px] px-3.5 py-3" style={{ background: '#F5F9F9', borderColor: '#024947' }}>
                 <div className="mr-[11px] grid h-[34px] w-[34px] flex-none place-items-center rounded-[10px]" style={{ background: '#024947' }}>
                   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4.5" /><circle cx="12" cy="12" r="1" /></svg>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <div className="text-[15px] font-bold text-brand">Tu precio objetivo</div>
                   <div className="mt-px text-xs font-medium" style={{ color: '#024947' }}>al que compras si el grupo lo alcanza</div>
                 </div>
-                <div className="ml-auto text-[22px] font-extrabold leading-none tracking-tight tabular-nums text-brand">{eur(efectiveTargetPrice)}</div>
+                <div className="ml-auto flex-shrink-0 whitespace-nowrap text-[22px] font-extrabold leading-none tracking-tight tabular-nums text-brand">{eur(efectiveTargetPrice)}</div>
               </div>
             </div>
           </section>
@@ -581,11 +581,11 @@ export default function JoinFlow({
               <div className="mr-[11px] grid h-[34px] w-[34px] flex-none place-items-center rounded-[10px]" style={{ background: '#024947' }}>
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4.5" /><circle cx="12" cy="12" r="1" /></svg>
               </div>
-              <div>
+              <div className="min-w-0">
                 <div className="text-[15px] font-bold text-brand">¡Objetivo conseguido! Compras a {eur(displayPricePerUnit)}</div>
                 <div className="mt-px text-xs font-medium" style={{ color: '#024947' }}>al reservar, tu compra se confirma automáticamente</div>
               </div>
-              <div className="ml-auto text-[22px] font-extrabold leading-none tracking-tight tabular-nums text-brand">{eur(displayPricePerUnit)}</div>
+              <div className="ml-auto flex-shrink-0 whitespace-nowrap text-[22px] font-extrabold leading-none tracking-tight tabular-nums text-brand">{eur(displayPricePerUnit)}</div>
             </div>
           </section>
 
@@ -729,7 +729,7 @@ export default function JoinFlow({
               <div className="mr-[11px] grid h-[34px] w-[34px] flex-none place-items-center rounded-[10px]" style={{ background: '#024947' }}>
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11z" /><path d="M9 12l2 2 4-4" /></svg>
               </div>
-              <div>
+              <div className="min-w-0">
                 <div className="text-[15px] font-bold text-brand">Precio de tu plaza</div>
                 {/* A-13 · Este subtítulo era un texto FIJO que no consultaba el estado.
                     En los grupos donde ya no queda escalera —G05, G06— era falso, y
@@ -739,7 +739,7 @@ export default function JoinFlow({
                   {nextTier ? 'bajará si entran más compradores' : 'es el mejor precio del grupo'}
                 </div>
               </div>
-              <div className="ml-auto text-[22px] font-extrabold leading-none tracking-tight tabular-nums text-brand">{eur(displayPricePerUnit)}</div>
+              <div className="ml-auto flex-shrink-0 whitespace-nowrap text-[22px] font-extrabold leading-none tracking-tight tabular-nums text-brand">{eur(displayPricePerUnit)}</div>
             </div>
             {/* El ahorro se dice una sola vez, en el bloque de dinero de abajo. */}
           </section>
