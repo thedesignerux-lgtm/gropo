@@ -600,12 +600,16 @@ export default function JoinFlow({
                 </div>
               </div>
               <div className="relative mx-1 mb-2 mt-6">
+                {/* 16-sep-2026 (Benjamin) · Aquí el objetivo YA está conseguido: el
+                    círculo se queda anclado en el tramo alcanzado, sin el punto que
+                    antes se adelantaba hacia el SIGUIENTE tramo. Ese adelanto es real
+                    (tus unidades también cuentan ahí — "comprar ahora" cuenta en
+                    todos), pero sin ninguna etiqueta al lado se leía como un fallo de
+                    posición, no como progreso. El "Faltan N unidades" de debajo ya lo
+                    cuenta bien; aquí basta con el check quieto. */}
                 <div className="absolute left-[6%] right-[6%] top-[9px] h-[3px] rounded-full bg-black/[0.07]" />
-                <div className="absolute left-[6%] top-[9px] h-[3px] rounded-full bg-brand transition-[width] duration-300 ease-out" style={{ width: `calc(88% * ${projPos})` }} />
+                <div className="absolute left-[6%] top-[9px] h-[3px] rounded-full bg-brand transition-[width] duration-300 ease-out" style={{ width: `calc(88% * ${nTiers > 1 ? projIdx / (nTiers - 1) : projPos})` }} />
                 <div className="absolute left-[6%] top-[9px] h-[3px] rounded-full bg-brand transition-[width] duration-300 ease-out" style={{ width: `calc(88% * ${groupPos})` }} />
-                {showKnob && (
-                  <div className="absolute top-[6px] z-[1] h-[9px] w-[9px] -translate-x-1/2 rounded-full bg-brand ring-2 ring-white shadow-sm transition-[left] duration-300 ease-out" style={{ left: `calc(6% + 88% * ${projPos})` }} />
-                )}
                 <div className="relative flex justify-between">
                   {sorted.map((t, i) => {
                     const groupReached = ladder[i].groupReached;
