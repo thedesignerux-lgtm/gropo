@@ -86,7 +86,10 @@ export default function GroupDesktopView({
         </div>
 
         {/* ── 2 columnas: galería + panel de compra ── */}
-        <div className="grid gap-9 mt-[22px] items-start" style={{ gridTemplateColumns: '1fr 360px' }}>
+        {/* El panel de compra pasa de 360 a 420 px (15 sep 2026): con 360 las tres
+            tarjetas de tramo caían a 97 px y el precio se partía en dos líneas. La
+            galería cede esos 60 px; sigue por encima de 540 px de ancho. */}
+        <div className="grid gap-9 mt-[22px] items-start" style={{ gridTemplateColumns: '1fr 420px' }}>
 
           {/* Left: Gallery grid */}
           <div className="grid gap-2.5 rounded-[22px] overflow-hidden" style={{ gridTemplateColumns: 'minmax(0,2fr) minmax(0,1fr)', gridTemplateRows: '1fr 1fr', height: 452 }}>

@@ -1486,6 +1486,73 @@ cálculo sí está verificado contra los datos reales; lo que falta es el ojo.
 
 ---
 
+## HALLAZGO POSTERIOR · 15 de septiembre de 2026 (tarde)
+
+### 🔴 A-37 · La ficha enseña un techo que el servidor no va a grabar
+**Lo encuentra Benjamin mirando la ficha con 8 unidades en el selector.** Su observación fue
+visual —«este tramo ya estaría desbloqueado a 99, con lo que el anterior no sería seleccionable»—
+pero debajo había un fallo de dinero.
+
+**Qué hace el servidor.** `prepare_join` NO guarda como techo el tramo que marcas en la ficha.
+Guarda esto (extraído con `pg_get_functiondef` sobre producción, 15-sep-2026):
+
+```sql
+SELECT best_price INTO v_guaranteed_price
+FROM compute_price(p_group_id, p_quantity);
+```
+
+Es decir, el precio proyectado **con tus unidades ya contadas**. Comprobado en vivo sobre las
+Zapatillas Shimano (demanda 12 en el tramo de 20 unidades):
+
+| Tu cantidad | `compute_price` | Techo que graba el servidor |
+|---|---|---|
+| 7 | 119 € | 119 € |
+| **8** | **99 €** | **99 €** |
+
+**Qué enseñaba la ficha con esas mismas 8 unidades:** «PRECIO ACTUAL 119 €», «SIGUIENTE 99 €»,
+la tarjeta de 119 € marcada como «Tu opción actual» y el botón **«Asegurar hasta 119 €»**. Ninguno
+de los cuatro era cierto: el techo grabado habría sido 99 y la retención en la tarjeta, 99 × 8 =
+792 €, no 952 €.
+
+**Por qué importa más allá de la coherencia.** El techo decide quién compra: `close_group` paso 4
+cancela al comprador cuyo `guaranteed_price` sea menor que el settlement (RULE-013). Un botón que
+promete «hasta 119 €» y graba 99 está describiendo mal el riesgo que asume el comprador.
+
+**Está vivo hoy**, no es teórico. Precio con 1 unidad frente a con N, en los grupos abiertos:
+
+| Grupo | 1 ud | 2 uds | 10 uds |
+|---|---|---|---|
+| Garmin Edge 840 Solar | 449 € | **419 €** | 419 € |
+| Zapatillas Shimano | 119 € | 119 € | **99 €** (desde 8) |
+| Par de ruedas Zipp 303 S | 819 € | 819 € | **799 €** |
+| Bicicleta Orbea Orca M30 | 1849 € | 1849 € | **1749 €** |
+| Casco Giro Aries | 289 € | 289 € | **259 €** |
+| Maillot Castelli | 49,95 € | 49,95 € | **42,95 €** |
+
+En el Garmin basta con pedir **2 unidades** para que la ficha mienta.
+
+**CORREGIDO en escritorio** (`GroupRightSidebar` + `TierChooser`). El suelo de lo elegible deja de
+ser `curIdx` —el precio del grupo— y pasa a ser `floorIdx`, el tramo al que entrarías con tus
+unidades dentro, preguntado al MISMO endpoint que usa el checkout (`/api/group/[id]/quote` →
+`compute_price`), sin reimplementar la matemática de tramos en el navegador. Con eso:
+
+- los tramos por encima del suelo se colapsan a su precio y dejan de ser elegibles;
+- el tramo que abren tus unidades se marca **«Lo abres tú»** y queda seleccionado;
+- el botón dice el techo real;
+- el panel cuenta TODO contigo dentro (titular, frase y barra), que antes iban a dos velocidades:
+  «Faltan 23» a dos centímetros de «22 + 8 / 45», que dice 15;
+- y los tres hablan del MISMO tramo. Segundo aviso de Benjamin, sobre la primera corrección: el
+  titular decía «Con 7 unidades entraríais a 99 €» y la barra debajo enseñaba «23 + 7 / 45», que
+  es el tramo de 85 €. Cuando tus unidades abren un tramo, la barra es la de ESE tramo y sale
+  completa —«13 + 7 / 20»—, que es justo la prueba de que lo abres.
+
+**ABIERTO en móvil.** `GroupLiveSection` tiene el mismo `curIdx` sin cotización y el mismo
+«Asegurar hasta X». Hoy no falla porque la cantidad está fija en 1 y **ningún grupo abierto cambia
+de precio con 1 unidad** (comprobado arriba). Es un fallo latente: el día que el Garmin llegue a
+una unidad del tramo, o el día que el móvil tenga selector de cantidad (A-31), se activa solo.
+
+---
+
 ## RESUMEN DE LA AUDITORÍA
 
 **37 hallazgos** sobre 6 partes (recuento verificado sobre este mismo documento).
@@ -1493,14 +1560,14 @@ Estado a 14 de septiembre de 2026:
 
 | Severidad | Total | Corregidos | Abiertos |
 |---|---|---|---|
-| 🔴 crítico | 11 | **10** — A-01, A-02, A-11, A-12, A-15, A-18 (con A-18b), A-21, A-25, A-29, A-30 | **0** — A-28 baja a 🟠: producto hecho, falta abogado |
+| 🔴 crítico | 12 | **11** — A-01, A-02, A-11, A-12, A-15, A-18 (con A-18b), A-21, A-25, A-29, A-30 y A-37 (en escritorio; abierto en móvil) | **0** — A-28 baja a 🟠: producto hecho, falta abogado |
 | 🟠 importante | 14 | **13** — A-03, A-04, A-05, A-06, A-11c, A-13, A-16, A-19, A-20, A-22, A-26, A-27 y A-31 (estos dos, en parte) | 1 |
 | 🟡 mejora | 11 | **6** — A-07, A-09, A-14, A-17, A-23, A-35 | 5 |
 | ⚠️ a la espera | 1 — A-11b | 0 | 1 (no tocado a propósito) |
 
 *(A-14 pasó de 🟠 a 🟡 al comprobarse que el ahorro sí se calculaba.)*
 
-**31 de 37 cerrados** (15 sep: A-32, A-33, A-07 y A-09). Lo que queda, por lo que hace falta para
+**32 de 38 cerrados** (15 sep: A-32, A-33, A-07, A-09 y A-37 en escritorio). Lo que queda, por lo que hace falta para
 cerrarlo:
 
 | Hace falta | Hallazgos |

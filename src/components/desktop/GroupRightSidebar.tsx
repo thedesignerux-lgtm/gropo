@@ -6,7 +6,8 @@ import { useTierDemand } from '@/hooks/useTierDemand'
 import { usePulse } from '@/hooks/usePulse'
 import { useCheckout } from '@/components/checkout/CheckoutProvider'
 import { createClient } from '@/lib/supabase-browser'
-import GropoTargetSlider, { type Detent } from '@/components/GropoTargetSlider'
+import { type Detent } from '@/components/GropoTargetSlider'
+import TierChooser from '@/components/desktop/TierChooser'
 import { modeAccent } from '@/lib/brand-colors'
 import GroupPeopleGlyph from '@/components/GroupPeopleGlyph'
 import { getActivation } from '@/lib/activation'
@@ -39,8 +40,9 @@ export default function GroupRightSidebar({
   // GroupDesktopView… y no se desestructuraban. Consecuencia: el arreglo de A-11
   // (plazo vencido) nunca llegó a escritorio, el selector topaba en 10 fijo
   // ignorando el stock, y el ahorro no existía en esta vista.
-  const { tiers: demandTiers, currentPrice, nextTier, missing } = useTierDemand(groupId)
-  const { data: pulseData } = usePulse(nextTier ? groupId : null)
+  const { tiers: demandTiers, currentPrice, nextTier } = useTierDemand(groupId)
+  /* El pulso sigue suscrito (alimenta las notificaciones); el chooser no lo pinta. */
+  usePulse(nextTier ? groupId : null)
   const displayPrice = currentPrice > 0 ? currentPrice : (tiers.length > 0 ? Math.max(...tiers.map(t => t.price)) : 0)
   // UNIDADES comprometidas, no personas. La demanda efectiva es máxima en el tramo
   // más barato (ahí entran todos: los de «comprar» y los esperadores, cuyo objetivo
@@ -75,6 +77,33 @@ export default function GroupRightSidebar({
   const [quantity, setQuantity] = useState(1)
   const touchedRef = useRef(false)
 
+  /**
+   * EL PRECIO CON TUS UNIDADES DENTRO — y por qué el suelo del selector no es `curIdx`.
+   *
+   * `prepare_join` NO guarda como techo el tramo que marcas: guarda
+   * `compute_price(grupo, tu_cantidad).best_price`, o sea el precio proyectado CON tus
+   * unidades ya contadas. Verificado en producción el 15-sep-2026 sobre las Zapatillas
+   * (demanda 12 en el tramo de 20):
+   *
+   *     compute_price(grupo, 7) → 119 €      compute_price(grupo, 8) → 99 €
+   *
+   * Es decir: con 8 unidades el techo que se graba es 99, no 119. La ficha enseñaba
+   * «Asegurar hasta 119 €» y retenía 99 × 8. Marcar 119 con 8 unidades era imposible.
+   *
+   * Así que el suelo de lo elegible es este precio proyectado, no el precio del grupo.
+   * Se pregunta al MISMO endpoint que usa el checkout (`/quote` → `compute_price`), para
+   * no reimplementar la matemática de tramos en el navegador.
+   */
+  const [projPrice, setProjPrice] = useState<number | null>(null)
+  useEffect(() => {
+    const ac = new AbortController()
+    fetch(`/api/group/${groupId}/quote?units=${quantity}`, { signal: ac.signal })
+      .then((r) => r.json())
+      .then((d) => { if (d?.pricePerUnit != null) setProjPrice(Number(d.pricePerUnit)) })
+      .catch(() => {})
+    return () => ac.abort()
+  }, [groupId, quantity])
+
   // A-11 en escritorio · El plazo es una regla, no un adorno. Se calcula DESPUÉS
   // de montar (como GroupCountdown) para no romper la hidratación, y con
   // intervalo para que la pantalla se apague sola si vence con la página abierta.
@@ -87,10 +116,24 @@ export default function GroupRightSidebar({
     return () => clearInterval(id)
   }, [closesAt])
 
+  /** Suelo de lo elegible: el tramo al que entrarías HOY con tus unidades dentro.
+   *  Nunca por encima de `curIdx`; mientras no haya cotización, es `curIdx`. */
+  const floorIdx = useMemo(() => {
+    if (projPrice == null) return curIdx
+    let idx = curIdx
+    for (let i = 0; i < detents.length; i++) if (detents[i].price >= projPrice) idx = i
+    return Math.max(curIdx, idx)
+  }, [detents, projPrice, curIdx])
+
   // Si el usuario no ha tocado el slider, sigue al precio actual (realtime)
   useEffect(() => {
     if (!touchedRef.current) setSelIdx(curIdx)
   }, [curIdx])
+  /* Si subes la cantidad y con ella desbloqueas un tramo, el que tenías marcado deja
+     de existir como opción: la marca baja sola al nuevo suelo. */
+  useEffect(() => {
+    setSelIdx((i) => (i < floorIdx ? floorIdx : i))
+  }, [floorIdx])
   useEffect(() => {
     if (selIdx > detents.length - 1) setSelIdx(curIdx)
   }, [detents.length, selIdx, curIdx])
@@ -98,7 +141,9 @@ export default function GroupRightSidebar({
   const handleSelIdx = (i: number) => { touchedRef.current = true; setSelIdx(i) }
 
   const selectedPrice = detents[selIdx]?.price ?? displayPrice
-  const confirmed = selIdx <= curIdx
+  /* «Comprar ahora» es elegir el suelo: el precio que ya tendrías entrando con tus
+     unidades. Por debajo de ahí sí estás esperando a que el grupo baje. */
+  const confirmed = selIdx <= floorIdx
   const isEsperar = !confirmed
 
   // Auth + checkout
@@ -249,40 +294,27 @@ export default function GroupRightSidebar({
           </div>
         )}
 
-        {/* A-03 · La decisión se pedía sin enunciarla con las palabras de Benjamin.
-            Copy suyo, versión larga: aquí hay sitio.
-
-            CORRECCIÓN 15-sep-2026. El comentario anterior decía que «el slider no
-            tenía NINGÚN encabezado». Era falso: con `chrome="full"` el propio slider
-            pintaba «¿Cuál es el máximo que pagarías?», así que al añadir esto la
-            pregunta salía DOS VECES, con dos redacciones distintas. El slider pasa a
-            `chrome="status"`, que mantiene la píldora de estado y calla el título. */}
-        {detents.length > 1 && !hasClosed && (
-          <>
-            <p className="text-[12.5px] leading-snug text-neutral-500 mb-1">El precio baja si el grupo crece. Tú marcas el máximo que pagarías.</p>
-            <p className="text-[13.5px] font-bold text-neutral-900 mb-2">¿Cuál es el precio máximo que pagarías?</p>
-          </>
-        )}
-
-        {/* ── Target slider (reemplaza stepper + selector) ── */}
+        {/* MOCKUP 15-sep-2026 · El slider de escritorio se sustituye por el panel de
+            progreso + las tarjetas de tramo que dibujó Benjamin. La pregunta larga
+            («¿Cuál es el precio máximo que pagarías?») desaparece: el panel ya explica
+            la mecánica en una frase y las tarjetas llevan su propio encabezado, así que
+            mantenerla repetiría el enunciado —que fue exactamente el fallo A-03—.
+            En móvil NO cambia nada: `GroupLiveSection` sigue con el slider. */}
         {detents.length > 1 && !hasClosed ? (
-          <GropoTargetSlider
+          <TierChooser
             detents={detents}
+            tierDemand={tierDemand}
             curIdx={curIdx}
+            floorIdx={floorIdx}
             selIdx={selIdx}
             onSelIdx={handleSelIdx}
-            size="full"
-            /* `status`, no `full`: la pregunta la escribe esta pantalla arriba. */
-            chrome="status"
-            udsToNext={missing}
-            tierDemand={tierDemand}
+            /* La cantidad REAL, incluido el 1 por defecto. Ocultar el «+1» dejaba la
+               barra contando sin ti y el suelo del selector contando contigo: con una
+               demanda de 19/20, una sola unidad tuya baja el precio y la barra no se
+               enteraba. La proyección y el suelo tienen que contar lo mismo. */
             myUnits={quantity}
-            pulse={pulseData?.steps}
-            glow={pulseData?.glow}
-            locked={busy}
-            disabled={busy || hasClosed}
+            disabled={busy}
             notActivated={notActivated}
-            udsToActivate={activation.unitsToActivate}
           />
         ) : (
           <div className="text-lg font-bold text-neutral-900">{fmt(displayPrice)}</div>
