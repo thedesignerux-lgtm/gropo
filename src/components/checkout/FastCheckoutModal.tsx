@@ -2,18 +2,24 @@
 
 // src/components/checkout/FastCheckoutModal.tsx
 // Gate A3 · "Confirma tu bloqueo" — bottom sheet (mobile) / modal centrado (desktop).
-// Diseño 1-Click purgado (Benjamin): precio máximo + producto + envío/pago prefill
-// + CTA. SIN ola, urgencia ni selector de cantidad (la cantidad se elige en la ficha).
+// Diseño 1-Click (Benjamin) + producto/envío/pago prefill + CTA.
+//
+// 16-sep-2026 (Benjamin): el modal vuelve a dejar elegir UNIDADES y tramo de
+// precio, como en la ficha — pero sin repetir dirección ni tarjeta si ya están
+// guardadas. La escalera de tramos y el stock salen de `/checkout-context`
+// (misma RPC que `unirme`); el precio por cantidad, de `/quote` (misma que usa
+// el resto de la app). Nada de esto se recalcula a mano en el cliente.
 //
 // Dos rutas de confirmación:
 //   · Tarjeta guardada (acordeón cerrado, texto plano)  → POST /api/checkout/lock
 //     [cargo silencioso con el PM por defecto — endpoint money-critical, Gate A3.money]
 //   · Editar / nueva tarjeta (acordeón abierto, PaymentElement) → create-intent (A2)
 //     + stripe.confirmPayment. Ruta ya funcional.
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { PROVINCIAS_ES } from '@/lib/provincias';
+import GropoTargetSlider, { type Detent } from '@/components/GropoTargetSlider';
 import type { CheckoutPayload } from './CheckoutProvider';
 
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
@@ -32,6 +38,13 @@ type Prefill = {
   contact?: { name: string | null; email: string | null; phone: string | null };
 };
 
+type CheckoutContext = {
+  tiers: { minUnits: number; price: number; demand: number }[];
+  committedUnits: number;
+  maxStock: number;
+  currentPrice: number;
+};
+
 export default function FastCheckoutModal({
   payload,
   onClose,
@@ -44,11 +57,6 @@ export default function FastCheckoutModal({
   const [prefill, setPrefill] = useState<Prefill | null>(null);
   const [prefillLoading, setPrefillLoading] = useState(true);
 
-  const isEsperar = payload.joinMode === 'esperar';
-  const pricePerUnit = isEsperar && payload.targetPrice ? payload.targetPrice : payload.maxPricePerUnit;
-  const total = pricePerUnit * payload.quantity;
-  const amountCents = Math.max(50, Math.round(total * 100));
-
   useEffect(() => {
     let alive = true;
     fetch('/api/checkout/prefill')
@@ -57,6 +65,90 @@ export default function FastCheckoutModal({
       .catch(() => { if (alive) { setPrefill({ authenticated: false, shipping: null, payment: null }); setPrefillLoading(false); } });
     return () => { alive = false; };
   }, []);
+
+  // ── Escalera de tramos + stock real, para elegir unidades sin salir del modal ──
+  const [ctx, setCtx] = useState<CheckoutContext | null>(null);
+  const [ctxLoading, setCtxLoading] = useState(true);
+
+  useEffect(() => {
+    let alive = true;
+    setCtxLoading(true);
+    fetch(`/api/group/${payload.groupId}/checkout-context`)
+      .then((r) => r.json())
+      .then((d) => { if (alive) { setCtx(d); setCtxLoading(false); } })
+      .catch(() => { if (alive) setCtxLoading(false); });
+    return () => { alive = false; };
+  }, [payload.groupId]);
+
+  const detents: Detent[] = useMemo(
+    () => (ctx ? [...ctx.tiers].sort((a, b) => a.minUnits - b.minUnits).map((t) => ({ price: t.price, uds: t.minUnits })) : []),
+    [ctx],
+  );
+
+  // Tramo ya alcanzado hoy (precio vigente)
+  const curIdx = useMemo(() => {
+    if (!ctx || detents.length === 0) return 0;
+    let idx = 0;
+    for (let i = 0; i < detents.length; i++) if (detents[i].price >= ctx.currentPrice) idx = i;
+    return idx;
+  }, [detents, ctx]);
+
+  const [quantity, setQuantity] = useState(payload.quantity);
+  const [selIdx, setSelIdx] = useState<number | null>(null);
+
+  // Al llegar la escalera, arranca en el tramo que ya se había elegido en la
+  // tarjeta/ficha (si coincide con alguno) — el precio que ves al abrir el
+  // modal es el mismo que viste al pulsar el botón, no un salto sorpresa.
+  useEffect(() => {
+    if (selIdx !== null || detents.length === 0) return;
+    const initPrice = payload.joinMode === 'esperar' && payload.targetPrice != null ? payload.targetPrice : payload.maxPricePerUnit;
+    const found = detents.findIndex((d) => Math.abs(d.price - initPrice) < 0.005);
+    setSelIdx(found >= 0 ? found : curIdx);
+  }, [detents, curIdx, selIdx, payload.joinMode, payload.targetPrice, payload.maxPricePerUnit]);
+
+  // Precio proyectado CON tus unidades dentro — mismo endpoint que usa el resto
+  // de la app (`/quote` → `compute_price`). Ver GroupRightSidebar (A-29): el
+  // techo real de "comprar ahora" con varias unidades no es el precio vigente.
+  const [projPrice, setProjPrice] = useState<number | null>(null);
+  useEffect(() => {
+    const ac = new AbortController();
+    fetch(`/api/group/${payload.groupId}/quote?units=${quantity}`, { signal: ac.signal })
+      .then((r) => r.json())
+      .then((d) => { if (d?.pricePerUnit != null) setProjPrice(Number(d.pricePerUnit)); })
+      .catch(() => {});
+    return () => ac.abort();
+  }, [payload.groupId, quantity]);
+
+  const floorIdx = useMemo(() => {
+    if (projPrice == null || detents.length === 0) return curIdx;
+    let idx = curIdx;
+    for (let i = 0; i < detents.length; i++) if (detents[i].price >= projPrice) idx = i;
+    return Math.max(curIdx, idx);
+  }, [detents, projPrice, curIdx]);
+
+  // Si subir la cantidad desbloquea un tramo, el marcado por debajo deja de
+  // existir como opción: baja solo al nuevo suelo (igual que en la ficha).
+  useEffect(() => {
+    setSelIdx((i) => (i !== null && i < floorIdx ? floorIdx : i));
+  }, [floorIdx]);
+
+  const effectiveSelIdx = selIdx ?? curIdx;
+  const hasLadder = detents.length > 0;
+  const selectedPrice = hasLadder ? (detents[effectiveSelIdx]?.price ?? ctx!.currentPrice) : null;
+  const confirmed = effectiveSelIdx <= floorIdx;
+
+  const isEsperar = hasLadder ? !confirmed : payload.joinMode === 'esperar';
+  const pricePerUnit = hasLadder ? (selectedPrice as number) : (isEsperar && payload.targetPrice ? payload.targetPrice : payload.maxPricePerUnit);
+
+  // Tope real de unidades: stock de la puja ganadora menos lo ya comprometido
+  // (P2-01). Sin contexto todavía, 10 por defecto — `prepare_join` es quien de
+  // verdad acepta o rechaza en servidor; esto solo evita pedir lo imposible.
+  const remaining = ctx && ctx.maxStock > 0 ? Math.max(0, ctx.maxStock - ctx.committedUnits) : null;
+  const maxQty = remaining === null ? 10 : Math.max(1, Math.min(10, remaining));
+  useEffect(() => { setQuantity((q) => Math.min(q, maxQty)); }, [maxQty]);
+
+  const total = pricePerUnit * quantity;
+  const amountCents = Math.max(50, Math.round(total * 100));
 
   // Cerrar con ESC + bloquear scroll de fondo mientras el sheet está abierto.
   useEffect(() => {
@@ -102,6 +194,17 @@ export default function FastCheckoutModal({
             isEsperar={isEsperar}
             prefill={prefill}
             prefillLoading={prefillLoading}
+            quantity={quantity}
+            setQuantity={setQuantity}
+            maxQty={maxQty}
+            remaining={remaining}
+            ctxLoading={ctxLoading}
+            hasLadder={hasLadder}
+            detents={detents}
+            curIdx={curIdx}
+            selIdx={effectiveSelIdx}
+            setSelIdx={setSelIdx}
+            selectedPrice={hasLadder ? (selectedPrice as number) : pricePerUnit}
             onClose={onClose}
             onSuccess={onSuccess}
           />
@@ -125,6 +228,17 @@ function InnerCheckout({
   isEsperar,
   prefill,
   prefillLoading,
+  quantity,
+  setQuantity,
+  maxQty,
+  remaining,
+  ctxLoading,
+  hasLadder,
+  detents,
+  curIdx,
+  selIdx,
+  setSelIdx,
+  selectedPrice,
   onClose,
   onSuccess,
 }: {
@@ -133,6 +247,17 @@ function InnerCheckout({
   isEsperar: boolean;
   prefill: Prefill | null;
   prefillLoading: boolean;
+  quantity: number;
+  setQuantity: (fn: (q: number) => number) => void;
+  maxQty: number;
+  remaining: number | null;
+  ctxLoading: boolean;
+  hasLadder: boolean;
+  detents: Detent[];
+  curIdx: number;
+  selIdx: number;
+  setSelIdx: (i: number) => void;
+  selectedPrice: number;
   onClose: () => void;
   onSuccess: () => void;
 }) {
@@ -162,9 +287,13 @@ function InnerCheckout({
   const brandLabel = (b: string | null) =>
     ({ visa: 'Visa', mastercard: 'Mastercard', amex: 'Amex' } as Record<string, string>)[b ?? ''] ?? 'Tarjeta';
 
+
   async function handleConfirm() {
     setErrorMsg(null);
     setStatus('processing');
+
+    const joinMode = isEsperar ? 'esperar' : 'comprar';
+    const targetPrice = isEsperar ? selectedPrice : undefined;
 
     // Ruta A — nueva tarjeta / edición: create-intent (A2) + confirmPayment.
     if (editingPayment || !hasSavedCard) {
@@ -178,12 +307,12 @@ function InnerCheckout({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             group_id: payload.groupId,
-            quantity: payload.quantity,
+            quantity,
             name: prefill?.contact?.name ?? prefill?.shipping?.name ?? '',
             email: prefill?.contact?.email ?? '',
             phone: prefill?.contact?.phone ?? prefill?.shipping?.phone ?? '',
-            join_mode: payload.joinMode || 'comprar',
-            ...(payload.targetPrice != null ? { target_price: payload.targetPrice } : {}),
+            join_mode: joinMode,
+            ...(targetPrice != null ? { target_price: targetPrice } : {}),
             shipping: {
               name: prefill?.shipping?.name ?? prefill?.contact?.name ?? '',
               phone: prefill?.shipping?.phone ?? prefill?.contact?.phone ?? '',
@@ -214,7 +343,7 @@ function InnerCheckout({
       const res = await fetch('/api/checkout/lock', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ group_id: payload.groupId, quantity: payload.quantity, join_mode: payload.joinMode || 'comprar', ...(payload.targetPrice != null ? { target_price: payload.targetPrice } : {}) }),
+        body: JSON.stringify({ group_id: payload.groupId, quantity, join_mode: joinMode, ...(targetPrice != null ? { target_price: targetPrice } : {}) }),
       });
       const data = await res.json().catch(() => ({}));
 
@@ -271,6 +400,7 @@ function InnerCheckout({
 
   const processing = status === 'processing';
   const succeeded = status === 'success';
+  const quantityLocked = processing || succeeded || ctxLoading;
 
   return (
     <div className="px-5 pb-[calc(20px+env(safe-area-inset-bottom))] pt-2">
@@ -295,10 +425,44 @@ function InnerCheckout({
         </div>
       </div>
 
+      {/* Unidades — elegir cantidad sin salir del modal (16-sep-2026) */}
+      <div className="mt-4 flex items-center justify-between border-t border-neutral-100 pt-4">
+        <div>
+          <span className="text-[11px] font-bold uppercase tracking-wide text-neutral-500">Unidades</span>
+          {remaining !== null && remaining <= 5 && (
+            <p className="mt-0.5 text-[11px] font-medium text-amber-600">Quedan {remaining} disponibles</p>
+          )}
+        </div>
+        <div className="flex items-center gap-3 rounded-full border border-neutral-200 px-1 py-1">
+          <button
+            type="button"
+            onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+            disabled={quantity <= 1 || quantityLocked}
+            aria-label="Quitar una unidad"
+            className="grid h-7 w-7 place-items-center rounded-full text-[17px] leading-none text-neutral-600 disabled:text-neutral-300"
+          >−</button>
+          <span className="w-6 text-center text-[15px] font-extrabold tabular-nums text-neutral-900">{quantity}</span>
+          <button
+            type="button"
+            onClick={() => setQuantity((q) => Math.min(maxQty, q + 1))}
+            disabled={quantity >= maxQty || quantityLocked}
+            aria-label="Añadir una unidad"
+            className="grid h-7 w-7 place-items-center rounded-full text-[17px] leading-none text-neutral-600 disabled:text-neutral-300"
+          >+</button>
+        </div>
+      </div>
+
+      {/* Tramo de precio — mismo control que la ficha, en miniatura */}
+      {hasLadder && detents.length > 1 && (
+        <div className="mt-3">
+          <GropoTargetSlider detents={detents} curIdx={curIdx} selIdx={selIdx} onSelIdx={setSelIdx} size="mini" />
+        </div>
+      )}
+
       {/* Precio máximo garantizado — HERO centrado (ancla visual) */}
       <div className="mt-4 border-t border-neutral-100 pt-5 text-center">
         <p className="text-[11px] font-bold uppercase tracking-wide text-neutral-500">
-          {isEsperar ? 'Compra automática a' : 'Precio máximo garantizado'}{payload.quantity > 1 ? ` · ${payload.quantity} uds` : ''}
+          {isEsperar ? 'Compra automática a' : 'Precio máximo garantizado'}{quantity > 1 ? ` · ${quantity} uds` : ''}
         </p>
         <p className="mt-2 text-4xl font-bold text-brand tabular-nums">{eur(total)}</p>
         <p className="mt-2 flex items-center justify-center gap-1 text-xs font-medium text-neutral-500">
