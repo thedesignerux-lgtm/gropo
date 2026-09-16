@@ -1,19 +1,27 @@
-// Email 05 del sistema de comunicaciones del comprador — "No hemos podido
-// realizar la retención". Se envía cuando, DESPUÉS del cierre, el cobro del
-// precio final falla (tarjeta rechazada, SCA, etc.). Por decisión de producto
-// (16-sep-2026) el CTA es, por ahora, solo un enlace al producto/grupo — no un
-// reintento de cobro automático (esa pieza queda pendiente de construir).
-import { emailBrandHeader, emailTrackBlock } from './brand'
+// Plantilla del email "no hemos podido completar tu compra" (autorización fallida).
+// Diseño v2 (sep-2026): header, saludo sin badge, tarjeta de producto,
+// bloque error "Pago no realizado" con importe, sección "¿Quieres volver a intentarlo?",
+// CTA "Volver a intentarlo", link de soporte, trust badges, footer.
+// Se envía cuando el intento de autorización/captura de Stripe falla.
+// Remitente visible: Gropo.
+
+import {
+  emailOpen, emailClose, emailHeader, emailSectionLabel, emailHero, emailSaludo,
+  emailProductCard, emailAlertBlock, emailCTAButton,
+  emailTrustBadges, emailFooter, emailSpacer,
+  fmtPrice, FONT, C, TRUST,
+  type ProductCardData,
+} from './brand'
+import { CONTACT_EMAIL } from '../site'
 
 export interface AuthorizationFailedData {
   nombre?: string
   productName: string
   finalPrice: number
   groupUrl: string
-}
-
-function fmtPrice(n: number): string {
-  return (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
+  imageUrl?: string
+  brandName?: string
+  attributes?: string[]
 }
 
 export function authorizationFailedEmail(data: AuthorizationFailedData): {
@@ -21,62 +29,69 @@ export function authorizationFailedEmail(data: AuthorizationFailedData): {
   text: string
   html: string
 } {
-  const { nombre, productName, finalPrice, groupUrl } = data
-  const saludo = nombre ? `Hola ${nombre},` : 'Hola,'
-  const precio = fmtPrice(finalPrice)
+  const { nombre, productName, finalPrice, groupUrl, imageUrl, brandName, attributes } = data
+  const precioFmt = fmtPrice(finalPrice)
 
-  const subject = `No hemos podido completar tu compra · ${productName}`
-  const track = emailTrackBlock(28)
+  const subject = `Acción necesaria · ${productName}`
 
-  const text = `${saludo}
+  // ── TEXT VERSION ──
 
-Hemos intentado realizar una retención momentánea de ${precio} correspondiente al precio alcanzado por el grupo de ${productName}, pero no ha sido posible.
+  const text = `${nombre ? `Hola ${nombre},` : 'Hola,'}
 
-Por el momento, has quedado fuera del grupo. No se te ha realizado ningún cargo.
+No hemos podido completar tu compra de ${productName}.
 
-Puedes volver a intentarlo desde el producto: ${groupUrl}
-${track.text}
+Pago no realizado: Hemos intentado realizar una retención momentánea de ${precioFmt}, correspondiente al precio alcanzado por el grupo, pero no ha sido posible. Por el momento, has quedado fuera del grupo. No se te ha realizado ningún cargo.
+
+¿Quieres volver a intentarlo? Puedes unirte de nuevo al grupo y completar tu compra en solo unos segundos.
+
+Volver a intentarlo: ${groupUrl}
+
+Si tienes algún problema con el pago, puedes contactar con nuestro equipo de soporte: ${CONTACT_EMAIL}
 
 — Gropo`
 
-  const html = `<!DOCTYPE html>
-<html lang="es">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:24px 0;">
-    <tr><td align="center">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #eaeaea;">
-        <tr><td style="padding:28px 28px 0 28px;">
-          ${emailBrandHeader(34)}
-        </td></tr>
-        <tr><td style="padding:20px 28px 8px 28px;">
-          <p style="margin:0 0 16px 0;font-size:15px;color:#333333;line-height:1.5;">${saludo}</p>
-          <p style="margin:0 0 16px 0;font-size:15px;color:#333333;line-height:1.5;">
-            No hemos podido completar tu compra de <strong style="color:#111111;">${productName}</strong>.
-          </p>
-        </td></tr>
-        <tr><td style="padding:0 28px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#fff3f0;border:1px solid #ffd4c7;border-radius:12px;">
-            <tr><td style="padding:16px 18px;">
-              <p style="margin:0 0 6px 0;font-size:13px;color:#b4451a;">Retención no realizada</p>
-              <p style="margin:0;font-size:14px;color:#333333;line-height:1.5;">
-                Hemos intentado realizar una retención momentánea de <strong>${precio}</strong>, correspondiente al precio alcanzado por el grupo, pero no ha sido posible. Por el momento, has quedado fuera del grupo. No se te ha realizado ningún cargo.
-              </p>
-            </td></tr>
-          </table>
-        </td></tr>
-        <tr><td style="padding:20px 28px 0 28px;">
-          <a href="${groupUrl}" style="display:inline-block;background:#024947;color:#FFFFFF;font-size:14px;font-weight:700;text-decoration:none;padding:12px 22px;border-radius:10px;">Volver a intentarlo</a>
-        </td></tr>
-        ${track.html}
-        <tr><td style="padding:18px 28px 28px 28px;">
-          <p style="margin:0;font-size:14px;color:#999999;">— Gropo</p>
-        </td></tr>
-      </table>
+  // ── HTML VERSION ──
+
+  const productCard: ProductCardData = { imageUrl, brandName, productName, attributes }
+
+  const saludoBody = `<p style="margin:8px 0 0 0;font-family:${FONT};font-size:15px;color:${C.body};line-height:1.5;">
+    No hemos podido completar tu compra de <strong style="color:${C.dark};">${productName}</strong>.
+  </p>`
+
+  // Retry section (styled like an info block but simpler)
+  const retrySection = `<tr><td class="email-pad" style="padding:16px 28px 0 28px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${C.cardBg};border-radius:12px;">
+    <tr><td style="padding:20px 20px;">
+      <p style="margin:0 0 8px 0;font-family:${FONT};font-size:18px;font-weight:700;color:${C.dark};line-height:1.3;">¿Quieres volver a intentarlo?</p>
+      <p style="margin:0;font-family:${FONT};font-size:14px;color:${C.secondary};line-height:1.5;">Puedes unirte de nuevo al grupo y completar tu compra en solo unos segundos.</p>
     </td></tr>
   </table>
-</body>
-</html>`
+</td></tr>`
+
+  // Support link below CTA
+  const supportLink = `<tr><td class="email-pad" style="padding:12px 28px 0 28px;">
+  <p style="margin:0;font-family:${FONT};font-size:13px;color:${C.muted};line-height:1.5;">Si tienes algún problema con el pago, puedes <a href="mailto:${CONTACT_EMAIL}" style="color:${C.primary};font-weight:600;text-decoration:underline;">contactar con nuestro equipo de soporte.</a></p>
+</td></tr>`
+
+  const html = [
+    emailOpen(),
+    emailHeader(),
+    emailSectionLabel('NO HEMOS PODIDO COMPLETAR TU COMPRA'),
+    emailHero(emailSaludo(nombre, saludoBody)),
+    emailProductCard(productCard),
+    emailAlertBlock(
+      'error',
+      'Pago no realizado',
+      `Hemos intentado realizar una retención momentánea de <strong>${precioFmt}</strong>, correspondiente al precio alcanzado por el grupo, pero no ha sido posible. Por el momento, has quedado fuera del grupo. No se te ha realizado ningún cargo.`,
+    ),
+    retrySection,
+    emailCTAButton('Volver a intentarlo', groupUrl),
+    supportLink,
+    emailSpacer(4),
+    emailTrustBadges([TRUST.pagoSeguro, TRUST.sinCargos, TRUST.compraMejor]),
+    emailFooter(),
+    emailClose(),
+  ].join('\n')
 
   return { subject, text, html }
 }

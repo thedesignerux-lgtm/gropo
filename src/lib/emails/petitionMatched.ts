@@ -1,13 +1,25 @@
 // Plantilla del email "tu petición ya tiene grupo".
-// Se envía al peticionario cuando el admin asigna el primer vendedor
-// (primera puja) a la petición. Remitente visible: Gropo.
+// Diseño v2 (sep-2026): header con tagline, badge "Compra en grupo",
+// tarjeta de producto con imagen, precio actual, "Entrar al grupo" CTA,
+// trust badges, footer.
+// Remitente visible: Gropo.
 
-import { emailBrandHeader } from './brand'
+import {
+  emailOpen, emailClose, emailHeader, emailSectionLabel, emailHero, emailSaludo,
+  emailProductCard, emailCTAButton, emailShareBlock,
+  emailTrustBadges, emailFooter, emailSpacer,
+  fmtPrice, FONT, C, TRUST,
+  type StatusBadgeConfig, type ProductCardData,
+} from './brand'
 
 export interface PetitionMatchedData {
   nombre?: string
   productName: string
   groupUrl: string
+  currentPrice?: number
+  imageUrl?: string
+  brandName?: string
+  attributes?: string[]
 }
 
 export function petitionMatchedEmail(data: PetitionMatchedData): {
@@ -15,53 +27,79 @@ export function petitionMatchedEmail(data: PetitionMatchedData): {
   text: string
   html: string
 } {
-  const { nombre, productName, groupUrl } = data
-  const saludo = nombre ? `Hola ${nombre},` : 'Hola,'
+  const { nombre, productName, groupUrl, currentPrice, imageUrl, brandName, attributes } = data
 
-  const subject = 'Tu producto ya tiene grupo en Gropo'
+  const subject = `¡Buenas noticias! Ya hay grupo para ${productName}`
 
-  const text = `${saludo}
+  // ── TEXT VERSION ──
+
+  const text = `${nombre ? `Hola ${nombre},` : 'Hola,'}
 
 ¡Buenas noticias! Ya hay un grupo de compra para ${productName}.
 
-Entra a unirte: ${groupUrl}
+Únete y consigue un mejor precio junto a otros compradores.
+${currentPrice != null ? `Precio actual: ${fmtPrice(currentPrice)}` : ''}
 
-Cuantos más seáis, mejor precio para todos.
+Entrar al grupo: ${groupUrl}
+
+Descubre el grupo, el precio actual y únete con un solo clic. No hace falta contraseña.
 
 — Gropo`
 
-  const html = `<!DOCTYPE html>
-<html lang="es">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:24px 0;">
-    <tr><td align="center">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #eaeaea;">
-        <tr><td style="padding:28px 28px 0 28px;">
-          ${emailBrandHeader(34)}
+  // ── HTML VERSION ──
+
+  const badge: StatusBadgeConfig = {
+    icon: '👥',
+    iconBg: C.primaryLight,
+    iconColor: C.primary,
+    title: 'Compra en grupo',
+    subtitle: 'y consigue mejores precios.',
+  }
+
+  const productCard: ProductCardData = {
+    imageUrl,
+    brandName,
+    productName,
+    attributes,
+  }
+
+  const priceHtml = currentPrice != null
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin-top:12px;">
+        <tr><td style="padding:8px 14px;background:${C.cardBg};border-radius:8px;">
+          <p style="margin:0 0 2px 0;font-family:${FONT};font-size:12px;color:${C.muted};">Precio actual</p>
+          <p style="margin:0;font-family:${FONT};font-size:24px;font-weight:700;color:${C.dark};">🏷 ${fmtPrice(currentPrice)}</p>
         </td></tr>
-        <tr><td style="padding:20px 28px 8px 28px;">
-          <p style="margin:0 0 16px 0;font-size:15px;color:#333333;line-height:1.5;">${saludo}</p>
-          <p style="margin:0 0 16px 0;font-size:15px;color:#333333;line-height:1.5;">
-            ¡Buenas noticias! Ya hay un grupo de compra para <strong style="color:#111111;">${productName}</strong>.
-          </p>
-        </td></tr>
-        <tr><td style="padding:8px 28px 4px 28px;">
-          <a href="${groupUrl}" style="display:inline-block;background:#1D9E75;color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:14px 22px;border-radius:12px;">
-            Entrar a unirme
-          </a>
-        </td></tr>
-        <tr><td style="padding:20px 28px 28px 28px;">
-          <p style="margin:0;font-size:14px;color:#555555;line-height:1.5;">
-            Cuantos más seáis, mejor precio para todos.
-          </p>
-          <p style="margin:20px 0 0 0;font-size:14px;color:#999999;">— Gropo</p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`
+      </table>`
+    : ''
+
+  const saludoBody = `<p style="margin:8px 0 0 0;font-family:${FONT};font-size:15px;color:${C.body};line-height:1.5;">
+    Ya hay un grupo de compra para <strong style="color:${C.dark};">${productName}</strong>.
+  </p>
+  <p style="margin:4px 0 0 0;font-family:${FONT};font-size:14px;color:${C.muted};line-height:1.4;">Únete y consigue un mejor precio junto a otros compradores.</p>`
+
+  // The price block goes inside the product card area
+  const priceRow = currentPrice != null
+    ? `<tr><td class="email-pad" style="padding:0 28px;">${priceHtml}</td></tr>`
+    : ''
+
+  const html = [
+    emailOpen(),
+    emailHeader(),
+    emailSectionLabel('¡BUENAS NOTICIAS!'),
+    emailHero(emailSaludo(nombre, saludoBody), badge),
+    emailProductCard(productCard),
+    priceRow,
+    emailShareBlock(productName, groupUrl),
+    emailCTAButton(
+      'Entrar al grupo',
+      groupUrl,
+      'Descubre el grupo, el precio actual y únete con un solo clic. No hace falta contraseña.',
+    ),
+    emailSpacer(4),
+    emailTrustBadges([TRUST.mejoresPrecios, TRUST.pagoSeguro, TRUST.envio]),
+    emailFooter(),
+    emailClose(),
+  ].join('\n')
 
   return { subject, text, html }
 }

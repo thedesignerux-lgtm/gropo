@@ -24,18 +24,25 @@ function getResend(): Resend {
   return new Resend(apiKey)
 }
 
+// ─── Campos opcionales de producto (para tarjetas de email v2) ──────────────
+// Todos son opcionales y backward-compatible: si no se pasan, el email se
+// renderiza sin imagen / marca / atributos / groupUrl (estilo anterior).
+
 export interface SendJoinParams {
   to: string
   nombre?: string
   productName: string
   currentPrice: number
   closesAt: string
+  imageUrl?: string
+  brandName?: string
+  attributes?: string[]
+  groupUrl?: string
 }
 
 export async function sendJoinConfirmation(params: SendJoinParams) {
-  const { to, nombre, productName, currentPrice, closesAt } = params
-  const { subject, html, text } = joinConfirmationEmail({ nombre, productName, currentPrice, closesAt })
-
+  const { to, ...rest } = params
+  const { subject, html, text } = joinConfirmationEmail(rest)
   const resend = getResend()
   return resend.emails.send({ from: FROM, to, subject, html, text })
 }
@@ -50,14 +57,15 @@ export interface SendPaymentParams {
   paymentInfo?: string | null
   concepto: string
   deadline: string
+  imageUrl?: string
+  brandName?: string
+  attributes?: string[]
+  groupUrl?: string
 }
 
 export async function sendPaymentInstructions(params: SendPaymentParams) {
-  const { to, nombre, productName, quantity, finalPrice, total, paymentInfo, concepto, deadline } = params
-  const { subject, html, text } = paymentInstructionsEmail({
-    nombre, productName, quantity, finalPrice, total, paymentInfo, concepto, deadline,
-  })
-
+  const { to, ...rest } = params
+  const { subject, html, text } = paymentInstructionsEmail(rest)
   const resend = getResend()
   return resend.emails.send({ from: FROM, to, subject, html, text })
 }
@@ -67,12 +75,15 @@ export interface SendPetitionMatchedParams {
   nombre?: string
   productName: string
   groupUrl: string
+  currentPrice?: number
+  imageUrl?: string
+  brandName?: string
+  attributes?: string[]
 }
 
 export async function sendPetitionMatched(params: SendPetitionMatchedParams) {
-  const { to, nombre, productName, groupUrl } = params
-  const { subject, html, text } = petitionMatchedEmail({ nombre, productName, groupUrl })
-
+  const { to, ...rest } = params
+  const { subject, html, text } = petitionMatchedEmail(rest)
   const resend = getResend()
   return resend.emails.send({ from: FROM, to, subject, html, text })
 }
@@ -84,12 +95,15 @@ export interface SendPurchaseConfirmationParams {
   quantity: number
   finalPrice: number
   total: number
+  imageUrl?: string
+  brandName?: string
+  attributes?: string[]
+  groupUrl?: string
 }
 
 export async function sendPurchaseConfirmation(params: SendPurchaseConfirmationParams) {
-  const { to, nombre, productName, quantity, finalPrice, total } = params
-  const { subject, html, text } = purchaseConfirmationEmail({ nombre, productName, quantity, finalPrice, total })
-
+  const { to, ...rest } = params
+  const { subject, html, text } = purchaseConfirmationEmail(rest)
   const resend = getResend()
   return resend.emails.send({ from: FROM, to, subject, html, text })
 }
@@ -103,12 +117,14 @@ export interface SendSelectedPriceReachedParams {
   totalUnits: number
   closesAt: string
   groupUrl: string
+  imageUrl?: string
+  brandName?: string
+  attributes?: string[]
 }
 
 export async function sendSelectedPriceReached(params: SendSelectedPriceReachedParams) {
   const { to, ...rest } = params
   const { subject, html, text } = selectedPriceReachedEmail(rest)
-
   const resend = getResend()
   return resend.emails.send({ from: FROM, to, subject, html, text })
 }
@@ -119,12 +135,15 @@ export interface SendClosedNotReachedParams {
   productName: string
   chosenPrice: number | null
   finalPrice: number | null
+  imageUrl?: string
+  brandName?: string
+  attributes?: string[]
+  groupUrl?: string
 }
 
 export async function sendClosedNotReached(params: SendClosedNotReachedParams) {
   const { to, ...rest } = params
   const { subject, html, text } = closedNotReachedEmail(rest)
-
   const resend = getResend()
   return resend.emails.send({ from: FROM, to, subject, html, text })
 }
@@ -135,12 +154,14 @@ export interface SendAuthorizationFailedParams {
   productName: string
   finalPrice: number
   groupUrl: string
+  imageUrl?: string
+  brandName?: string
+  attributes?: string[]
 }
 
 export async function sendAuthorizationFailed(params: SendAuthorizationFailedParams) {
   const { to, ...rest } = params
   const { subject, html, text } = authorizationFailedEmail(rest)
-
   const resend = getResend()
   return resend.emails.send({ from: FROM, to, subject, html, text })
 }
@@ -149,15 +170,18 @@ export interface SendShipmentConfirmedParams {
   to: string
   nombre?: string
   productName: string
-  trackingCode?: string | null
-  carrier?: string | null
-  trackingUrl?: string | null
+  trackingCode?: string
+  carrier?: string
+  trackingUrl?: string
+  imageUrl?: string
+  brandName?: string
+  attributes?: string[]
+  groupUrl?: string
 }
 
 export async function sendShipmentConfirmed(params: SendShipmentConfirmedParams) {
   const { to, ...rest } = params
   const { subject, html, text } = shipmentConfirmedEmail(rest)
-
   const resend = getResend()
   return resend.emails.send({ from: FROM, to, subject, html, text })
 }
@@ -171,7 +195,6 @@ export interface SendWeekendOpportunitiesParams {
 export async function sendWeekendOpportunities(params: SendWeekendOpportunitiesParams) {
   const { to, nombre, opportunities } = params
   const { subject, html, text } = weekendOpportunitiesEmail({ nombre, opportunities })
-
   const resend = getResend()
   return resend.emails.send({ from: FROM, to, subject, html, text })
 }
@@ -189,14 +212,14 @@ export interface SendTargetPendingParams {
   pvp: number
   closesAt: string
   groupUrl: string
+  imageUrl?: string
+  brandName?: string
+  attributes?: string[]
 }
 
 export async function sendTargetPending(params: SendTargetPendingParams) {
-  const { to, nombre, productName, targetPrice, currentPrice, pvp, closesAt, groupUrl } = params
-  const { subject, html, text } = targetPendingEmail({
-    nombre, productName, targetPrice, currentPrice, pvp, closesAt, groupUrl,
-  })
-
+  const { to, ...rest } = params
+  const { subject, html, text } = targetPendingEmail(rest)
   const resend = getResend()
   return resend.emails.send({ from: FROM, to, subject, html, text })
 }
@@ -206,7 +229,6 @@ export async function sendTargetPending(params: SendTargetPendingParams) {
 export async function sendAdminAlert(subject: string, text: string) {
   const to = process.env.ADMIN_EMAIL
   if (!to) throw new Error('ADMIN_EMAIL no configurada en el servidor')
-
   const resend = getResend()
   return resend.emails.send({ from: FROM, to, subject, text })
 }

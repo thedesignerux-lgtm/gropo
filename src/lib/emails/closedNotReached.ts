@@ -1,19 +1,30 @@
-// Email 04 del sistema de comunicaciones del comprador — "Grupo cerrado ·
-// precio no alcanzado". Se envía a quien `close_group` cancela por no haber
-// alcanzado el precio/condición que había indicado. No inventa el motivo del
-// cierre: solo confirma que su compra no se ejecuta y que se le devuelve el
-// importe retenido.
-import { emailBrandHeader, emailTrackBlock } from './brand'
+// Plantilla del email "grupo cerrado sin alcanzar tu precio".
+// Diseño v2 (sep-2026): badge "Grupo cerrado" (X rojo), tarjeta de producto,
+// dos columnas precio elegido vs precio final, texto explicativo,
+// "Devolución garantizada" bloque verde, phone block + "Ver mi pedido",
+// fila secundaria "Descubre otros grupos", footer (SIN trust badges).
+// Se envía a miembros cuyo target_price NO fue alcanzado al cierre.
+// Remitente visible: Gropo.
+
+import { SITE_URL } from '../site'
+import {
+  emailOpen, emailClose, emailHeader, emailSectionLabel, emailHero, emailSaludo,
+  emailProductCard, emailTwoColumns, emailAlertBlock,
+  emailPhoneBlock, emailSecondaryRow,
+  emailFooter, emailSpacer,
+  fmtPrice, FONT, C,
+  type StatusBadgeConfig, type ProductCardData,
+} from './brand'
 
 export interface ClosedNotReachedData {
   nombre?: string
   productName: string
-  chosenPrice: number | null // precio/techo que el usuario había indicado (null si join_mode='comprar')
-  finalPrice: number | null // precio final alcanzado por el grupo, si lo hubo
-}
-
-function fmtPrice(n: number): string {
-  return (n % 1 === 0 ? String(n) : n.toFixed(2).replace('.', ',')) + ' €'
+  chosenPrice: number | null
+  finalPrice: number | null
+  imageUrl?: string
+  brandName?: string
+  attributes?: string[]
+  groupUrl?: string
 }
 
 export function closedNotReachedEmail(data: ClosedNotReachedData): {
@@ -21,74 +32,101 @@ export function closedNotReachedEmail(data: ClosedNotReachedData): {
   text: string
   html: string
 } {
-  const { nombre, productName, chosenPrice, finalPrice } = data
-  const saludo = nombre ? `Hola ${nombre},` : 'Hola,'
+  const {
+    nombre, productName, chosenPrice, finalPrice,
+    imageUrl, brandName, attributes, groupUrl,
+  } = data
+  const url = groupUrl ?? `${SITE_URL}/mis-grupos`
 
-  const subject = `Grupo cerrado · precio no alcanzado · ${productName}`
-  const track = emailTrackBlock(28)
+  const subject = `Grupo cerrado · ${productName}`
 
-  const detalle = chosenPrice != null
-    ? `El precio que habías indicado era ${fmtPrice(chosenPrice)}${finalPrice != null ? ` y el grupo cerró en ${fmtPrice(finalPrice)}` : ''}.`
-    : `El grupo no reunió las unidades necesarias para completarse.`
+  // ── TEXT VERSION ──
 
-  const text = `${saludo}
+  const text = `${nombre ? `Hola ${nombre},` : 'Hola,'}
 
-El grupo de ${productName} se ha cerrado y no hemos alcanzado el precio que elegiste. Tu compra no se va a ejecutar.
+El grupo de ${productName} se ha cerrado. No hemos alcanzado el precio que elegiste, así que tu compra no se va a ejecutar.
+${chosenPrice != null ? `Tu precio elegido: ${fmtPrice(chosenPrice)}` : ''}
+${finalPrice != null ? `Precio final del grupo: ${fmtPrice(finalPrice)}` : ''}
 
-${detalle}
+Devolución garantizada: No se te ha realizado ningún cargo. Si se había realizado una retención en tu tarjeta, ya ha quedado anulada — según tu banco, puede tardar unos días en desaparecer de tu extracto.
 
-No te preocupes: no se te ha realizado ningún cargo. Si habíamos hecho una retención en tu tarjeta, ya ha quedado anulada — según tu banco, puede tardar unos días en desaparecer de tu extracto.
+Ver mi pedido: ${url}
 
-Puedes ver otros grupos abiertos en Gropo cuando quieras.
-${track.text}
+Descubre otros grupos en ${SITE_URL}/grupos
 
 — Gropo`
 
-  const html = `<!DOCTYPE html>
-<html lang="es">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
-<body style="margin:0;padding:0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f5f5;padding:24px 0;">
-    <tr><td align="center">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #eaeaea;">
-        <tr><td style="padding:28px 28px 0 28px;">
-          ${emailBrandHeader(34)}
-        </td></tr>
-        <tr><td style="padding:20px 28px 8px 28px;">
-          <p style="margin:0 0 16px 0;font-size:15px;color:#333333;line-height:1.5;">${saludo}</p>
-          <p style="margin:0 0 16px 0;font-size:15px;color:#333333;line-height:1.5;">
-            El grupo de <strong style="color:#111111;">${productName}</strong> se ha cerrado. No hemos alcanzado el precio que elegiste, así que tu compra <strong>no se va a ejecutar</strong>.
-          </p>
-        </td></tr>
-        <tr><td style="padding:0 28px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f8f8f8;border-radius:12px;">
-            <tr><td style="padding:16px 18px;">
-              <p style="margin:0;font-size:14px;color:#333333;line-height:1.5;">${detalle}</p>
-            </td></tr>
-          </table>
-        </td></tr>
-        <tr><td style="padding:14px 28px 0 28px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f0faf3;border:1px solid #c2ecd0;border-radius:12px;">
-            <tr><td style="padding:16px 18px;">
-              <p style="margin:0 0 6px 0;font-size:13px;color:#3d8b57;">Devolución</p>
-              <p style="margin:0;font-size:14px;color:#333333;line-height:1.5;">
-                No se te ha realizado ningún cargo. Si habíamos hecho una retención en tu tarjeta, ya ha quedado anulada — según tu banco, puede tardar unos días en desaparecer de tu extracto.
-              </p>
-            </td></tr>
-          </table>
-        </td></tr>
-        ${track.html}
-        <tr><td style="padding:18px 28px 28px 28px;">
-          <p style="margin:0;font-size:14px;color:#555555;line-height:1.5;">
-            Puedes ver otros grupos abiertos en Gropo cuando quieras.
-          </p>
-          <p style="margin:20px 0 0 0;font-size:14px;color:#999999;">— Gropo</p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`
+  // ── HTML VERSION ──
+
+  const badge: StatusBadgeConfig = {
+    icon: '✕',
+    iconBg: C.errorOrange,
+    iconColor: C.white,
+    title: 'Grupo cerrado',
+    subtitle: 'No se ha alcanzado tu precio objetivo.',
+  }
+
+  const productCard: ProductCardData = { imageUrl, brandName, productName, attributes }
+
+  const saludoBody = `<p style="margin:8px 0 0 0;font-family:${FONT};font-size:15px;color:${C.body};line-height:1.5;">
+    El grupo de <strong style="color:${C.dark};">${productName}</strong> se ha cerrado. No hemos alcanzado el precio que elegiste, así que <strong style="color:${C.dark};">tu compra no se va a ejecutar.</strong>
+  </p>`
+
+  // Two-column price comparison
+  const priceColumns = (chosenPrice != null && finalPrice != null)
+    ? emailTwoColumns(
+        {
+          icon: '🏷',
+          iconBg: C.primaryLight,
+          label: 'Tu precio elegido',
+          value: fmtPrice(chosenPrice),
+        },
+        {
+          icon: '👥',
+          iconBg: C.primaryLight,
+          label: 'Precio final del grupo',
+          value: fmtPrice(finalPrice),
+        },
+      )
+    : ''
+
+  // Explanatory text below price columns
+  const explanationRow = (chosenPrice != null && finalPrice != null)
+    ? `<tr><td class="email-pad" style="padding:6px 28px 0 28px;">
+        <p style="margin:0;font-family:${FONT};font-size:13px;color:${C.secondary};line-height:1.5;text-align:center;">El grupo se cerró sin alcanzar tu precio, por lo que tu compra no se ha ejecutado.</p>
+      </td></tr>`
+    : ''
+
+  const html = [
+    emailOpen(),
+    emailHeader(),
+    emailSectionLabel('GRUPO CERRADO'),
+    emailHero(emailSaludo(nombre, saludoBody), badge),
+    emailProductCard(productCard),
+    priceColumns,
+    explanationRow,
+    emailAlertBlock(
+      'success',
+      'Devolución garantizada',
+      'No se te ha realizado ningún cargo. Si se había realizado una retención en tu tarjeta, ya ha quedado anulada — según tu banco, puede tardar unos días en desaparecer de tu extracto.',
+    ),
+    emailPhoneBlock(
+      '¿Quieres ver más detalles?',
+      'Entra en tu cuenta para ver el grupo, el precio final y el estado de tu solicitud.',
+      'Ver mi pedido',
+      url,
+    ),
+    emailSecondaryRow(
+      '🔍',
+      'Descubre otros grupos',
+      'Hay nuevas oportunidades esperándote.',
+      'Explorar productos',
+      `${SITE_URL}/grupos`,
+    ),
+    emailSpacer(4),
+    emailFooter(),
+    emailClose(),
+  ].join('\n')
 
   return { subject, text, html }
 }
