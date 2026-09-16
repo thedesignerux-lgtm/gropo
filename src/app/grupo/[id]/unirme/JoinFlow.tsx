@@ -441,7 +441,7 @@ export default function JoinFlow({
               </div>
               <div className="relative mx-1 mb-2 mt-6">
                 <div className="absolute left-[6%] right-[6%] top-[9px] h-[3px] rounded-full bg-black/[0.07]" />
-                <div className="absolute left-[6%] top-[9px] h-[3px] rounded-full bg-brand transition-[width] duration-300 ease-out" style={{ width: `calc(88% * ${projPos})` }} />
+                <div className="absolute left-[6%] top-[9px] h-[3px] rounded-full bg-brand transition-[width] duration-300 ease-out" style={{ width: `calc(88% * ${nTiers > 1 ? projIdx / (nTiers - 1) : 0})` }} />
                 <div className="absolute left-[6%] top-[9px] h-[3px] rounded-full bg-brand transition-[width] duration-300 ease-out" style={{ width: `calc(88% * ${groupPos})` }} />
 
                 <div className="relative flex justify-between">
@@ -486,7 +486,7 @@ export default function JoinFlow({
             <div className="flex gap-[11px] rounded-2xl border border-[#CFEADA] bg-[#EEF8F1] p-[13px]">
               <svg width="19" height="19" className="mt-px flex-none" viewBox="0 0 24 24" fill="none" stroke="#0B7B44" strokeWidth="2"><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11z" /><path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" /></svg>
               <div className="text-xs font-semibold leading-[1.5] text-[#0D6B3D]">
-                <b>Tu compra automática a {eur(efectiveTargetPrice)}.</b> Se retendrán {eur(efectiveTargetPrice * quantity)} ({eur(efectiveTargetPrice)}/ud × {quantity}). Si el grupo alcanza este precio antes del cierre, tu compra se confirma automáticamente. Si no, se libera sin cargo. <b>La reserva se mantiene hasta el cierre y no se puede retirar:</b> es lo que permite al vendedor comprometer el precio.{' '}
+                <b>Reserva de {eur(efectiveTargetPrice * quantity)}</b> ({eur(efectiveTargetPrice)}/ud × {quantity}). Si el grupo alcanza tu precio, se confirma. Si no, se libera sin cargo.{' '}
                 <button type="button" onClick={() => setPayInfoOpen(true)} className="font-extrabold underline">Cómo funciona</button>
               </div>
             </div>
@@ -560,7 +560,7 @@ export default function JoinFlow({
 
           {/* Tarjeta objetivo conseguido */}
           <section className="px-4 pt-3.5">
-            <div className="flex items-center rounded-[18px] border-[1.5px] px-3.5 py-3.5" style={{ background: '#F5F9F9', borderColor: '#024947' }}>
+            <div className="flex min-h-[113px] items-center rounded-[18px] border-[1.5px] px-3.5 py-3.5" style={{ background: '#F5F9F9', borderColor: '#024947' }}>
               <div className="mr-[11px] grid h-[34px] w-[34px] flex-none place-items-center rounded-[10px]" style={{ background: '#024947' }}>
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4.5" /><circle cx="12" cy="12" r="1" /></svg>
               </div>
@@ -739,7 +739,7 @@ export default function JoinFlow({
               </div>
               <div className="relative mx-1 mb-2 mt-6">
                 <div className="absolute left-[6%] right-[6%] top-[9px] h-[3px] rounded-full bg-black/[0.07]" />
-                <div className="absolute left-[6%] top-[9px] h-[3px] rounded-full bg-brand transition-[width] duration-300 ease-out" style={{ width: `calc(88% * ${projPos})` }} />
+                <div className="absolute left-[6%] top-[9px] h-[3px] rounded-full bg-brand transition-[width] duration-300 ease-out" style={{ width: `calc(88% * ${nTiers > 1 ? projIdx / (nTiers - 1) : 0})` }} />
                 <div className="absolute left-[6%] top-[9px] h-[3px] rounded-full bg-brand transition-[width] duration-300 ease-out" style={{ width: `calc(88% * ${groupPos})` }} />
 
                 <div className="relative flex justify-between">
