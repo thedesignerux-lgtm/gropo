@@ -4,10 +4,8 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTierDemand } from '@/hooks/useTierDemand'
 import { usePulse } from '@/hooks/usePulse'
-import { useCheckout } from '@/components/checkout/CheckoutProvider'
 import GroupCountdown from './GroupCountdown'
 import GropoTargetSlider, { type Detent } from '@/components/GropoTargetSlider'
-import { createClient } from '@/lib/supabase-browser'
 import { modeAccent } from '@/lib/brand-colors'
 import { getActivation } from '@/lib/activation'
 import GroupPeopleGlyph from '@/components/GroupPeopleGlyph'
@@ -52,13 +50,7 @@ export default function GroupLiveSection({
   initialBestPrice, initialTotalUnits,
   tiers, minExecution, memberCount, closesAt, heroMode = false, belowContent,
 }: Props) {
-  const { open } = useCheckout()
   const router = useRouter()
-  const [authed, setAuthed] = useState<boolean | null>(null)
-  useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data: { user } }) => setAuthed(!!user))
-  }, [])
 
   const { tiers: demandTiers, currentPrice, nextTier, missing } = useTierDemand(groupId)
   const { data: pulseData } = usePulse(nextTier ? groupId : null)
@@ -141,21 +133,14 @@ export default function GroupLiveSection({
   const handleCheckout = () => {
     if (busy || hasClosed) return
     setBusy(true)
-    {
-      if (isEsperar && authed) {
-        open({ groupId, productName: name, productSpec: spec, imageUrl: null, quantity: 1, maxPricePerUnit: effectiveSelected, joinMode: 'esperar', targetPrice: effectiveSelected })
-      } else if (isEsperar) {
-        const p = new URLSearchParams({ mode: 'esperar', target: String(effectiveSelected) })
-        router.push(`/grupo/${groupId}/unirme?${p.toString()}`)
-      } else if (authed) {
-        open({ groupId, productName: name, productSpec: spec, imageUrl: null, quantity: 1, maxPricePerUnit: effectiveSelected })
-      } else {
-        router.push(`/grupo/${groupId}/unirme?target=${effectiveSelected}`)
-      }
+    // Siempre navegar a la página completa de JoinFlow (/unirme)
+    // en lugar del FastCheckoutModal — decisión de producto.
+    if (isEsperar) {
+      const p = new URLSearchParams({ mode: 'esperar', target: String(effectiveSelected) })
+      router.push(`/grupo/${groupId}/unirme?${p.toString()}`)
+    } else {
+      router.push(`/grupo/${groupId}/unirme?target=${effectiveSelected}`)
     }
-    // El checkout modal se abre en el sitio; al navegar, `busy` se queda puesto
-    // hasta que cambia la página.
-    if (authed) setBusy(false)
   }
 
   return (

@@ -4,8 +4,6 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useTierDemand } from '@/hooks/useTierDemand'
 import { usePulse } from '@/hooks/usePulse'
-import { useCheckout } from '@/components/checkout/CheckoutProvider'
-import { createClient } from '@/lib/supabase-browser'
 import { type Detent } from '@/components/GropoTargetSlider'
 import TierChooser from '@/components/desktop/TierChooser'
 import { modeAccent } from '@/lib/brand-colors'
@@ -147,13 +145,7 @@ export default function GroupRightSidebar({
   const isEsperar = !confirmed
 
   // Auth + checkout
-  const { open } = useCheckout()
   const router = useRouter()
-  const [authed, setAuthed] = useState<boolean | null>(null)
-  useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(({ data: { user } }) => setAuthed(!!user))
-  }, [])
 
   // A-29 · Tope real del selector. `maxStock` es el stock de la puja que da el mejor
   // precio; restarle las unidades ya comprometidas es el mismo cálculo que hace
@@ -185,15 +177,9 @@ export default function GroupRightSidebar({
   const handleBuy = () => {
     if (busy || hasClosed || noStock) return
     setBusy(true)
-    if (isEsperar && authed) {
-      open({ groupId, productName: name, productSpec: spec, imageUrl, quantity, maxPricePerUnit: selectedPrice, joinMode: 'esperar', targetPrice: selectedPrice })
-      setBusy(false)
-    } else if (authed && !isEsperar) {
-      open({ groupId, productName: name, productSpec: spec, imageUrl, quantity, maxPricePerUnit: selectedPrice })
-      setBusy(false)
-    } else {
-      router.push(ctaHref)   // navegando: `busy` se queda puesto hasta que cambia la página
-    }
+    // Siempre navegar a la página completa de JoinFlow (/unirme)
+    // en lugar del FastCheckoutModal — decisión de producto.
+    router.push(ctaHref)
   }
 
   const accent = modeAccent(confirmed)
