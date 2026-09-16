@@ -65,22 +65,32 @@ export default function ExploreProductCard({
     ? Math.round(((group.pvp - currentPrice) / group.pvp) * 100)
     : 0
 
-  const progress = nextTierMinUnits
-    ? (group.currentUnits / nextTierMinUnits) * 100
+  /* Coherencia de datos: solo mostrar siguiente precio si es MENOR al actual */
+  const hasValidNextTier =
+    nextTierPrice != null &&
+    nextTierMinUnits != null &&
+    nextTierPrice < currentPrice &&
+    unitsToNext > 0
+
+  /* ── barra de progreso adaptativa ── */
+  const progress = hasValidNextTier
+    ? (group.currentUnits / nextTierMinUnits!) * 100
     : 0
-  const showProgress = status !== 'new' && progress >= 15
+  // Visible en grupos no-nuevos con progreso real (>5 %).
+  // El ancho natural comunica la intensidad: un 8 % es sutil, un 90 % es prominente.
+  const showProgress = status !== 'new' && hasValidNextTier && progress >= 5
+  // Mayor presencia visual en grupos avanzados o casi alcanzados
+  const progressHeight = progress >= 60 || status === 'almost_reached' ? 'h-2' : 'h-1.5'
 
   const badge = getBadge(status)
 
-  /* ── ahorro neto al siguiente tramo ── */
-  const savingsToNext =
-    nextTierPrice != null ? Math.round(currentPrice - nextTierPrice) : 0
-
-  /* ── footer: vocabulario unificado → "compradores" ── */
-  const footerText =
-    status === 'new'
-      ? '👥 Grupo recién abierto'
-      : `👥 ${group.currentUnits} / ${nextTierMinUnits ?? '–'} compradores`
+  /* ── footer ── */
+  const footerText = (() => {
+    if (status === 'new') return '👥 Grupo recién abierto'
+    if (hasValidNextTier) return `👥 ${group.currentUnits} / ${nextTierMinUnits} compradores`
+    // Sin siguiente tramo (ya en el mejor precio): solo mostrar el total
+    return `👥 ${group.currentUnits} compradores`
+  })()
 
   /* ── bloque de oportunidad ── */
   const opportunityBlock = (() => {
@@ -91,13 +101,10 @@ export default function ExploreProductCard({
         </div>
       )
     }
-    if (unitsToNext > 0 && nextTierPrice != null) {
+    if (hasValidNextTier) {
       return (
         <div className="bg-teal-50 text-teal-700 text-xs font-medium px-3 py-2 rounded-lg">
-          Faltan {unitsToNext} para {fmtPrice(nextTierPrice)}
-          {savingsToNext > 0 && (
-            <span className="font-bold"> (-{savingsToNext} €)</span>
-          )}
+          Faltan {unitsToNext} compradores para {fmtPrice(nextTierPrice!)}
         </div>
       )
     }
@@ -115,7 +122,7 @@ export default function ExploreProductCard({
               src={group.imageUrl}
               alt={group.name}
               fill
-              className="object-contain p-4"
+              className="object-contain p-5"
               sizes="(min-width: 1280px) 25vw, (min-width: 1024px) 33vw, 50vw"
             />
           ) : (
@@ -159,18 +166,18 @@ export default function ExploreProductCard({
         </div>
 
         {/* ── contenido ── */}
-        <div className="p-4 flex flex-col gap-2.5 flex-1">
+        <div className="px-5 pt-4 pb-5 flex flex-col gap-3 flex-1">
           {/* nombre + variante */}
           <div>
             <h3 className="font-semibold text-gray-900 text-sm leading-tight line-clamp-2">
               {group.name}
             </h3>
             {group.variant && (
-              <p className="text-xs text-gray-500 mt-0.5 line-clamp-1">{group.variant}</p>
+              <p className="text-xs text-gray-500 mt-1 line-clamp-1">{group.variant}</p>
             )}
           </div>
 
-          {/* precio — PVP tachado prominente + precio actual + descuento */}
+          {/* precio — PVP tachado + precio actual + descuento */}
           <div className="flex items-baseline gap-2 flex-wrap">
             <span className="text-sm text-gray-500 line-through decoration-gray-400">
               {fmtPrice(group.pvp)}
@@ -188,7 +195,7 @@ export default function ExploreProductCard({
           {showProgress && (
             <div className="w-full bg-gray-100 rounded-full h-1.5">
               <div
-                className={`h-1.5 rounded-full transition-all duration-500 ${
+                className={`${progressHeight} rounded-full transition-all duration-500 ${
                   status === 'almost_reached' ? 'bg-orange-400' : 'bg-teal-400'
                 }`}
                 style={{ width: `${Math.min(progress, 100)}%` }}
@@ -196,16 +203,16 @@ export default function ExploreProductCard({
             </div>
           )}
 
-          {/* spacer para empujar footer + CTA abajo */}
+          {/* spacer */}
           <div className="flex-1" />
 
-          {/* footer */}
-          <p className="text-xs text-gray-500">{footerText}</p>
-
-          {/* CTA */}
-          <span className="text-sm font-semibold text-teal-600 group-hover:text-teal-700 transition-colors">
-            Ver oferta →
-          </span>
+          {/* footer + CTA */}
+          <div className="pt-1 border-t border-gray-50 space-y-2">
+            <p className="text-xs text-gray-500">{footerText}</p>
+            <span className="text-sm font-semibold text-teal-600 group-hover:text-teal-700 transition-colors inline-block">
+              Ver oferta →
+            </span>
+          </div>
         </div>
       </article>
     </Link>

@@ -33,15 +33,17 @@ function enrichGroups(products: GroupProduct[]): EnrichedGroup[] {
     return { group, pricing }
   })
 
-  /* Paso 2: determinar el umbral de "top_seller" (top ~30 % por personas, mínimo 8) */
+  /* Paso 2: determinar el umbral de "top_seller"
+   * Solo el top ~20 % por personas, con mínimo 10 miembros.
+   * Criterio restrictivo: el badge debe ser excepcional, no decorativo. */
   const nonNew = withPricing.filter(
     ({ group }) => !((group.memberCount ?? 0) <= 1 && group.currentUnits <= 1),
   )
   const sortedByMembers = [...nonNew].sort(
     (a, b) => (b.group.memberCount ?? 0) - (a.group.memberCount ?? 0),
   )
-  const topCount = Math.max(1, Math.ceil(sortedByMembers.length * 0.3))
-  const topThreshold = sortedByMembers[topCount - 1]?.group.memberCount ?? 8
+  const topCount = Math.max(1, Math.ceil(sortedByMembers.length * 0.2))
+  const topThreshold = sortedByMembers[topCount - 1]?.group.memberCount ?? 10
 
   /* Paso 3: asignar estado */
   return withPricing.map(({ group, pricing }) => {
@@ -51,7 +53,7 @@ function enrichGroups(products: GroupProduct[]): EnrichedGroup[] {
       status = 'new'
     } else if (pricing.nextTier && pricing.unitsToNext <= 3) {
       status = 'almost_reached'
-    } else if ((group.memberCount ?? 0) >= Math.max(8, topThreshold)) {
+    } else if ((group.memberCount ?? 0) >= Math.max(10, topThreshold)) {
       status = 'top_seller'
     }
 
@@ -101,9 +103,9 @@ export default function HomeDesktopView({ products, favoriteIds = [] }: Props) {
     <div className="min-h-screen bg-gray-50">
       <DesktopNavbar />
 
-      <main className="max-w-7xl mx-auto px-6 py-8">
+      <main className="max-w-7xl mx-auto px-6 pt-10 pb-12">
         {/* ── cabecera ── */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-gray-900">Grupos abiertos</h1>
             <span className="bg-teal-100 text-teal-700 text-sm font-semibold px-2.5 py-0.5 rounded-full">
@@ -125,7 +127,7 @@ export default function HomeDesktopView({ products, favoriteIds = [] }: Props) {
 
         {/* ── grid ── */}
         {sorted.length > 0 ? (
-          <div className="grid grid-cols-3 xl:grid-cols-4 gap-5">
+          <div className="grid grid-cols-3 xl:grid-cols-4 gap-6">
             {sorted.map((item) => (
               <ExploreProductCard
                 key={item.group.id}
