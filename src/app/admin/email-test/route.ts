@@ -9,6 +9,7 @@ import {
   sendAuthorizationFailed,
   sendShipmentConfirmed,
   sendWeekendOpportunities,
+  sendTargetPending,
   sendPetitionMatched,
 } from '@/lib/resend'
 
@@ -22,8 +23,8 @@ import {
 //
 // Casos disponibles: join, price_reached, purchase_confirmed,
 // payment_instructions, closed_not_reached, auth_failed, shipment,
-// weekend, petition_matched, all (por defecto: join, para no romper el uso
-// anterior de este endpoint).
+// weekend, target_pending, petition_matched, all (por defecto: join, para no
+// romper el uso anterior de este endpoint).
 //
 // Vive BAJO /admin a propósito: la cookie admin_auth se pone con path '/admin',
 // así que el navegador solo la envía a rutas bajo /admin (igual que el CSV).
@@ -37,6 +38,7 @@ const CASES = [
   'auth_failed',
   'shipment',
   'weekend',
+  'target_pending',
   'petition_matched',
 ] as const
 type Case = (typeof CASES)[number]
@@ -143,6 +145,20 @@ async function sendCase(to: string, c: Case) {
           { productName: 'Zapatillas Shimano RC503 Wide', currentPrice: 99, pvp: 119, closesAt, groupUrl },
           { productName: 'Gafas Oakley Sutro Lite Sweep', currentPrice: 89.9, pvp: 109.9, closesAt, groupUrl },
         ],
+      })
+
+    case 'target_pending':
+      // Adicional · recordatorio de fin de semana para join_mode='esperar' con
+      // target_price aún no alcanzado, pero grupo ya mejor que PVP
+      return sendTargetPending({
+        to,
+        nombre: 'Benjamín',
+        productName: 'Cubierta Continental GP5000',
+        targetPrice: 35,
+        currentPrice: 39.9,
+        pvp: 45,
+        closesAt,
+        groupUrl,
       })
 
     case 'petition_matched':

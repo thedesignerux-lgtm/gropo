@@ -67,6 +67,7 @@ const ICONO_BG: Record<string, { bg: string; fg: string }> = {
   closed_not_reached: { bg: '#F1F5F9', fg: '#475569' },
   auth_failed: { bg: '#FDEBE3', fg: '#B4541A' },
   shipment_confirmed: { bg: '#F0F7F7', fg: '#024947' },
+  target_pending: { bg: '#F0F7F7', fg: '#024947' },
 }
 
 export default function NotificacionesPage() {

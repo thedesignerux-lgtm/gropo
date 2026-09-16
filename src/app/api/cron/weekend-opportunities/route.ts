@@ -12,9 +12,19 @@
 //     compró, no es una "oportunidad", es su pedido — eso lo cubren los
 //     otros emails).
 // Máximo 1 email por usuario y fin de semana: `weekend_opportunity_log`.
+//
+// SEGUNDO BLOQUE (añadido tras el primer despliegue, no es uno de los 8 emails
+// de la especificación original): recordatorio para quien YA es miembro del
+// grupo en join_mode='esperar' y cuyo target_price todavía NO se ha alcanzado,
+// pero el grupo ya superó el PVP. Es puramente informativo — no ofrece
+// "aceptar el precio actual", porque esa acción no existe como funcionalidad
+// (ver cabecera de `targetPending.ts`). Dedup vía `buyer_communications`
+// (type='target_price_pending', event_key=weekendKey) porque, a diferencia del
+// bloque de arriba, aquí el destinatario SÍ tiene member_id.
 import { NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/supabase-admin'
-import { sendWeekendOpportunities } from '@/lib/resend'
+import { sendWeekendOpportunities, sendTargetPending } from '@/lib/resend'
+import { tryRecordCommunication, markEmailSent } from '@/lib/buyerComms'
 import { SITE_URL } from '@/lib/site'
 
 export const dynamic = 'force-dynamic'
@@ -131,19 +141,21 @@ export async function GET(req: Request) {
     if (!candidatos.has(u.id)) candidatos.set(u.id, new Set())
     candidatos.get(u.id)!.add(e.group_id)
   }
-  if (candidatos.size === 0) {
-    return NextResponse.json({ sent: 0, skipped: 'nadie sigue estos grupos por favoritos o petición' })
-  }
+  // Nota: NO se corta la ejecución aquí aunque no haya candidatos por
+  // favoritos/petición — el bloque 7 (miembros 'esperar' pendientes) es
+  // independiente de este y debe poder ejecutarse igualmente.
 
   // 6. Excluir grupos donde el usuario YA tiene una participación viva (no es
   //    una "oportunidad" para quien ya compró).
   const allUserIds = Array.from(candidatos.keys())
-  const { data: liveMembers } = await supabaseAdmin
-    .from('group_members')
-    .select('user_id, group_id')
-    .in('user_id', allUserIds)
-    .in('group_id', opportunityGroupIds)
-    .in('payment_status', ['authorized', 'instructed', 'paid'])
+  const { data: liveMembers } = allUserIds.length > 0
+    ? await supabaseAdmin
+        .from('group_members')
+        .select('user_id, group_id')
+        .in('user_id', allUserIds)
+        .in('group_id', opportunityGroupIds)
+        .in('payment_status', ['authorized', 'instructed', 'paid'])
+    : { data: [] as { user_id: string; group_id: string }[] }
   const yaParticipa = new Set((liveMembers ?? []).map(m => `${m.user_id}:${m.group_id}`))
 
   const userInfo = new Map(
@@ -197,5 +209,66 @@ export async function GET(req: Request) {
     }
   }
 
-  return NextResponse.json({ weekendKey, candidates: candidatos.size, attempted, sent, skippedDedup })
+  // 7. Segundo bloque: miembros 'esperar' de ESTOS MISMOS grupos-oportunidad
+  //    cuyo target_price todavía no llega al precio ya conseguido. Reutiliza
+  //    `oportunidadPorGrupo` — ya filtrado a grupos abiertos con descuento real
+  //    sobre el PVP — para no repetir la consulta a `groups`.
+  let pendingAttempted = 0
+  let pendingSent = 0
+  let pendingSkippedDedup = 0
+
+  const { data: pendingMembers, error: pendingErr } = await supabaseAdmin
+    .from('group_members')
+    .select('id, group_id, target_price, users(name, email)')
+    .eq('join_mode', 'esperar')
+    .in('group_id', opportunityGroupIds)
+    .in('payment_status', ['authorized', 'instructed', 'paid'])
+  if (pendingErr) {
+    console.error('[cron/weekend] error leyendo miembros esperar:', pendingErr.message)
+  }
+
+  for (const m of pendingMembers ?? []) {
+    const opp = oportunidadPorGrupo.get(m.group_id)
+    if (!opp) continue
+    const target = m.target_price != null ? Number(m.target_price) : null
+    // Sin target (dato corrupto) o target ya alcanzado: no es "pendiente", lo
+    // cubre selected_price_reached, no este recordatorio.
+    if (target == null || target >= opp.currentPrice) continue
+
+    const u = m.users as any
+    if (!u?.email) continue
+
+    pendingAttempted++
+
+    const rec = await tryRecordCommunication({
+      memberId: m.id,
+      type: 'target_price_pending',
+      eventKey: weekendKey,
+      payload: { current_price: opp.currentPrice, pvp: opp.pvp, target_price: target },
+    })
+    if (!rec.isNew) { pendingSkippedDedup++; continue }
+
+    try {
+      const { error } = await sendTargetPending({
+        to: u.email,
+        nombre: u.name ?? undefined,
+        productName: opp.productName,
+        targetPrice: target,
+        currentPrice: opp.currentPrice,
+        pvp: opp.pvp,
+        closesAt: opp.closesAt,
+        groupUrl: `${SITE_URL}/grupo/${m.group_id}`,
+      })
+      if (error) console.error('[cron/weekend] email target_pending falló para', u.email, error)
+      else { pendingSent++; await markEmailSent(rec.id) }
+    } catch (e: any) {
+      console.error('[cron/weekend] email target_pending excepción para', u.email, e?.message)
+    }
+  }
+
+  return NextResponse.json({
+    weekendKey,
+    opportunities: { candidates: candidatos.size, attempted, sent, skippedDedup },
+    targetPending: { attempted: pendingAttempted, sent: pendingSent, skippedDedup: pendingSkippedDedup },
+  })
 }

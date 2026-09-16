@@ -9,6 +9,7 @@ import { closedNotReachedEmail } from './emails/closedNotReached'
 import { authorizationFailedEmail } from './emails/authorizationFailed'
 import { shipmentConfirmedEmail } from './emails/shipmentConfirmed'
 import { weekendOpportunitiesEmail, type WeekendOpportunity } from './emails/weekendOpportunities'
+import { targetPendingEmail } from './emails/targetPending'
 
 // Remitente. Debe ser SIEMPRE una dirección de un dominio verificado en Resend
 // (hoy: gropo.es, y el heredado vonda.es); con cualquier otro, Resend rechaza el
@@ -170,6 +171,31 @@ export interface SendWeekendOpportunitiesParams {
 export async function sendWeekendOpportunities(params: SendWeekendOpportunitiesParams) {
   const { to, nombre, opportunities } = params
   const { subject, html, text } = weekendOpportunitiesEmail({ nombre, opportunities })
+
+  const resend = getResend()
+  return resend.emails.send({ from: FROM, to, subject, html, text })
+}
+
+// Email adicional (no forma parte de los 8 de la especificación original) —
+// recordatorio de fin de semana para comprador en join_mode='esperar' cuyo
+// target_price aún no se ha alcanzado, pero cuyo grupo ya superó el PVP. Ver
+// cabecera de targetPending.ts para la decisión de alcance (solo informativo).
+export interface SendTargetPendingParams {
+  to: string
+  nombre?: string
+  productName: string
+  targetPrice: number
+  currentPrice: number
+  pvp: number
+  closesAt: string
+  groupUrl: string
+}
+
+export async function sendTargetPending(params: SendTargetPendingParams) {
+  const { to, nombre, productName, targetPrice, currentPrice, pvp, closesAt, groupUrl } = params
+  const { subject, html, text } = targetPendingEmail({
+    nombre, productName, targetPrice, currentPrice, pvp, closesAt, groupUrl,
+  })
 
   const resend = getResend()
   return resend.emails.send({ from: FROM, to, subject, html, text })

@@ -54,6 +54,7 @@ export type FeedKind =
   | 'closed_not_reached'
   | 'auth_failed'
   | 'shipment_confirmed'
+  | 'target_pending'
 
 export interface FeedMembership {
   group_id: string

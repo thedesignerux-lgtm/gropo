@@ -130,6 +130,18 @@ export function buildCommsFeedItems(rows: MyNotificationRow[]): FeedItem[] {
         })
         break
 
+      case 'target_price_pending':
+        items.push({
+          ...base,
+          kind: 'target_pending' as FeedKind,
+          icon: '⏳',
+          title: 'Tu precio todavía no se ha alcanzado',
+          body: `El grupo ya está en ${eur(p.current_price)}, mejor que el PVP. Seguimos esperando a que baje a tu precio.`,
+          ctaLabel: 'Ver mi grupo',
+          href: `/grupo/${r.group_id}`,
+        })
+        break
+
       default:
         // Tipos futuros (shipment_updated, etc.) no se pintan hasta que se
         // defina su copy — mejor omitir que mostrar algo genérico y confuso.

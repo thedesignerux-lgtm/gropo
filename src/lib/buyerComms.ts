@@ -20,6 +20,7 @@ export type CommunicationType =
   | 'payment_authorization_failed'
   | 'shipment_confirmed'
   | 'shipment_updated'
+  | 'target_price_pending'
 
 export interface RecordResult {
   isNew: boolean
@@ -31,7 +32,9 @@ export interface RecordResult {
  * event_key), no hace nada y devuelve isNew=false — así el llamador sabe que NO
  * debe enviar el email de nuevo.
  *
- * `eventKey` solo hace falta para tipos repetibles (hoy: 'shipment_updated'); el
+ * `eventKey` solo hace falta para tipos repetibles (hoy: 'shipment_updated' y
+ * 'target_price_pending', que se repite cada fin de semana mientras el precio
+ * elegido siga sin alcanzarse); el
  * resto son "una vez por participación" y usan la cadena vacía por defecto.
  */
 export async function tryRecordCommunication(params: {
