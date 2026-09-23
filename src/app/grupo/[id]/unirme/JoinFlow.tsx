@@ -23,6 +23,7 @@ import {
   useElements,
 } from '@stripe/react-stripe-js';
 import { PROVINCIAS_ES } from '@/lib/provincias';
+import { provinceFromPostalCode, cityFromPostalCode } from '@/lib/postal-lookup';
 import { normalizePhone } from '@/lib/phone';
 import { isValidEmail } from '@/lib/email';
 import { supabase } from '@/lib/supabase';
@@ -1302,7 +1303,20 @@ function InnerForm({
         <div className="mt-3 grid grid-cols-2 gap-3">
           <Field id="postal_code" label="Código postal" inputMode="numeric" placeholder="Código postal"
             autoComplete="postal-code" error={fieldErrors.postal_code} inputRef={refs.postal_code}
-            value={s.postal_code} onChange={(e) => { setS({ ...s, postal_code: e.target.value }); clearField('postal_code'); }} />
+            value={s.postal_code} onChange={(e) => {
+              const cp = e.target.value.replace(/[^\d]/g, '').slice(0, 5);
+              const patch: Partial<typeof s> = { postal_code: cp };
+              if (cp.length >= 2) {
+                const prov = provinceFromPostalCode(cp);
+                if (prov) { patch.province = prov; clearField('province'); }
+              }
+              if (cp.length >= 3) {
+                const city = cityFromPostalCode(cp);
+                if (city) { patch.city = city; clearField('city'); }
+              }
+              setS(prev => ({ ...prev, ...patch }));
+              clearField('postal_code');
+            }} />
           <Field id="city" label="Ciudad" placeholder="Ciudad" autoComplete="address-level2"
             error={fieldErrors.city} inputRef={refs.city}
             value={s.city} onChange={(e) => { setS({ ...s, city: e.target.value }); clearField('city'); }} />
