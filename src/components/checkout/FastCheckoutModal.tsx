@@ -166,7 +166,7 @@ export default function FastCheckoutModal({
       currency: 'eur',
       capture_method: 'manual' as const,
       setup_future_usage: 'on_session' as const, // debe coincidir con create-intent (A2)
-      paymentMethodTypes: ['card', 'apple_pay', 'google_pay'],
+      paymentMethodTypes: ['card'],
       appearance: { theme: 'stripe' as const, variables: { colorPrimary: '#024947' } },
     }),
     [amountCents],

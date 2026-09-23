@@ -124,7 +124,7 @@ export async function POST(req: Request) {
       confirm: true,
       off_session: false,
       setup_future_usage: 'on_session',
-      payment_method_types: ['card', 'apple_pay', 'google_pay'],
+      payment_method_types: ['card'],
       description: `Gropo · ${prep.product_name} (${prep.product_spec}) x${quantity}`,
       shipping: {
         name: lastMember.shipping_name ?? profile.name ?? '',
