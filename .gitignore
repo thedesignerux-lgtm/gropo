@@ -38,3 +38,4 @@ next-env.d.ts
 # backups locales
 Archivos a guardar/
 *.save
+.env*

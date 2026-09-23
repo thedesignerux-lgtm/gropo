@@ -325,7 +325,7 @@ export default function JoinFlow({
       // Debe COINCIDIR con la PaymentIntent del servidor (create-intent), o Stripe
       // rechaza la confirmación en modo diferido con "setup_future_usage mismatch".
       setup_future_usage: 'on_session' as const,
-      paymentMethodTypes: ['card'],
+      paymentMethodTypes: ['card', 'apple_pay', 'google_pay'],
       appearance: { theme: 'stripe' as const, variables: { colorPrimary: '#024947' } },
     }),
     [effectiveAmount],
@@ -884,6 +884,12 @@ function PayLogos() {
       <div className={pill}>
         <svg width="26" height="16" viewBox="0 0 30 18" aria-label="Mastercard"><circle cx="12" cy="9" r="6" fill="#EB001B" /><circle cx="18" cy="9" r="6" fill="#F79E1B" fillOpacity="0.9" /></svg>
       </div>
+      <div className={pill}>
+        <svg width="26" height="16" viewBox="0 0 24 24" aria-label="Apple Pay" fill="none"><path d="M4.5 16.5h1.13c.26 0 .47-.06.64-.17a1 1 0 0 0 .38-.48c.08-.2.12-.45.12-.74 0-.28-.04-.53-.12-.73a1 1 0 0 0-.38-.48 1.1 1.1 0 0 0-.64-.17H4.5v2.77Zm0-3.74h1.01c.37 0 .65-.1.85-.3.2-.2.3-.49.3-.88 0-.38-.1-.67-.3-.87-.2-.2-.48-.3-.85-.3H4.5v2.35ZM3.5 17.5V9.5h2.14c.45 0 .84.08 1.17.25.33.17.59.41.77.72.18.31.27.68.27 1.1 0 .36-.07.67-.21.93a1.6 1.6 0 0 1-.6.62v.06a1.7 1.7 0 0 1 .76.66c.19.3.28.67.28 1.1 0 .44-.1.83-.29 1.16-.19.33-.46.58-.81.76-.35.18-.75.27-1.21.27H3.5Zm7.88-4.7c-.33 0-.6.12-.82.37-.22.25-.35.6-.39 1.06h2.37c-.01-.46-.13-.81-.35-1.06a1.05 1.05 0 0 0-.81-.37Zm.12 4.82c-.54 0-1.01-.12-1.41-.36a2.4 2.4 0 0 1-.93-1.02c-.22-.44-.33-.96-.33-1.55 0-.59.11-1.11.34-1.55a2.4 2.4 0 0 1 .94-1.02c.4-.24.87-.36 1.39-.36.53 0 .98.12 1.36.35.38.23.67.56.87.98.2.42.3.92.3 1.48v.38H10.1c.05.55.21.97.49 1.27.28.3.65.44 1.11.44.35 0 .65-.06.9-.17.25-.12.47-.28.66-.5l.56.68a2.7 2.7 0 0 1-.92.6c-.36.15-.77.22-1.22.22Zm3.37-.12V9.5h1v8h-1Zm2.49 0V9.5h1v8h-1Z" fill="black"/></svg>
+      </div>
+      <div className={pill}>
+        <svg width="26" height="16" viewBox="0 0 24 24" aria-label="Google Pay" fill="none"><path d="M11.19 13.2V15.6h-1V9h2.6c.64 0 1.18.21 1.63.64.46.43.69.95.69 1.56 0 .62-.23 1.14-.69 1.57-.44.42-.99.63-1.63.63h-1.6Zm0-3.3v2.42h1.63c.38 0 .7-.13.96-.39.27-.26.4-.57.4-.92a1.28 1.28 0 0 0-.4-.92 1.3 1.3 0 0 0-.96-.38h-1.63Zm6.05 1.42c.72 0 1.28.19 1.69.57.41.38.62.9.62 1.57v3.14h-.96v-.71h-.04c-.4.58-.92.87-1.57.87-.56 0-1.02-.16-1.4-.49a1.57 1.57 0 0 1-.56-1.23c0-.52.2-.93.59-1.24.39-.31.91-.46 1.57-.46.56 0 1.02.1 1.37.31v-.22c0-.33-.13-.61-.39-.84a1.3 1.3 0 0 0-.89-.34c-.51 0-.92.22-1.21.65l-.88-.56c.44-.64 1.08-.96 1.94-.96Zm-1.2 3.76c0 .25.11.46.33.63.22.17.47.26.77.26.42 0 .79-.16 1.11-.47.32-.31.48-.67.48-1.08-.29-.24-.7-.36-1.22-.36-.38 0-.7.1-.96.29-.27.2-.4.43-.4.72Z" fill="#5F6368"/><path d="M21.16 9.88l-2.52 5.87h-1.02l.94-2.03-1.67-3.84h1.07l1.08 2.75h.01l1.05-2.75h1.06Z" fill="#5F6368"/><path d="M8.72 12.48c0-.28-.02-.55-.08-.8H5.1v1.51h2.04a1.75 1.75 0 0 1-.75 1.14v.93h1.21c.71-.66 1.12-1.63 1.12-2.78Z" fill="#4285F4"/><path d="M5.1 15.2c1.01 0 1.86-.33 2.48-.9l-1.21-.94c-.34.23-.77.36-1.27.36a2.2 2.2 0 0 1-2.08-1.53H1.78v.97A3.75 3.75 0 0 0 5.1 15.2Z" fill="#34A853"/><path d="M3.02 12.19a2.28 2.28 0 0 1 0-1.44v-.97H1.78a3.76 3.76 0 0 0 0 3.38l1.24-.97Z" fill="#FBBC04"/><path d="M5.1 9.22c.56 0 1.06.19 1.46.57l1.09-1.1A3.58 3.58 0 0 0 5.1 7.8a3.75 3.75 0 0 0-3.32 2.02l1.24.97A2.2 2.2 0 0 1 5.1 9.22Z" fill="#EA4335"/></svg>
+      </div>
     </div>
   );
 }
@@ -1310,12 +1316,17 @@ function InnerForm({
                 const prov = provinceFromPostalCode(cp);
                 if (prov) { patch.province = prov; clearField('province'); }
               }
-              if (cp.length >= 3) {
-                const city = cityFromPostalCode(cp);
-                if (city) { patch.city = city; clearField('city'); }
-              }
               setS(prev => ({ ...prev, ...patch }));
               clearField('postal_code');
+              // Ciudad: buscar por API cuando el CP tiene 5 dígitos
+              if (cp.length === 5) {
+                cityFromPostalCode(cp).then(city => {
+                  if (city) {
+                    setS(prev => prev.postal_code === cp ? { ...prev, city } : prev);
+                    clearField('city');
+                  }
+                });
+              }
             }} />
           <Field id="city" label="Ciudad" placeholder="Ciudad" autoComplete="address-level2"
             error={fieldErrors.city} inputRef={refs.city}
