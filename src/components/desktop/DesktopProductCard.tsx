@@ -124,7 +124,7 @@ export default function DesktopProductCard({ product, isFavorited = false, isAut
       <Link href={href} className="flex gap-3 items-start mt-3 group">
         <div className="w-[68px] h-[68px] rounded-xl bg-neutral-100 shrink-0 overflow-hidden flex items-center justify-center">
           {product.imageUrl
-            ? <img src={product.imageUrl} alt="" className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
+            ? <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
             : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-neutral-300" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>}
         </div>
         <div className="min-w-0 pt-0.5">

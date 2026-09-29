@@ -7,6 +7,7 @@ import SiteFooter from '@/components/SiteFooter'
 import LegalBody from '@/components/legal/LegalBody'
 import { LEGAL_SLUGS, getLegalDoc } from '@/content/legal'
 import { countPlaceholders, hasPlaceholders } from '@/lib/legal'
+import { SITE_URL } from '@/lib/site'
 
 export function generateStaticParams() {
   return LEGAL_SLUGS.map((slug) => ({ slug }))
@@ -18,6 +19,7 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
   return {
     title: `${doc.title} — Gropo`,
     description: doc.summary,
+    alternates: { canonical: `${SITE_URL}/legal/${params.slug}` },
     // Mientras el documento tenga huecos ([RAZÓN SOCIAL], [NIF]…) no debe indexarse:
     // una página legal incompleta posicionada en Google es peor que no tenerla. El día
     // que Benjamin rellene los datos, esto se apaga solo. Nadie tiene que acordarse.

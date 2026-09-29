@@ -1,6 +1,9 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
 import { supabaseAdmin } from '@/lib/supabase-admin'
+import { SITE_URL } from '@/lib/site'
 import type { Tier } from '@/lib/mock-data'
+import JsonLd from '@/components/seo/JsonLd'
 import HeroShareButton from '@/components/HeroShareButton'
 import FavoriteButton from '@/components/FavoriteButton'
 import BottomNav from '@/components/BottomNav'
@@ -10,6 +13,62 @@ import GroupCountdownBadge from '@/components/GroupCountdownBadge'
 import GroupHowAndTrust from '@/components/GroupHowAndTrust'
 
 export const dynamic = 'force-dynamic'
+
+/* ── SEO: Metadata dinámica por producto ── */
+export async function generateMetadata({
+  params,
+}: {
+  params: { id: string }
+}): Promise<Metadata> {
+  const { data: group } = await supabaseAdmin
+    .from('groups')
+    .select('product_name, product_spec, pvp, image_url, current_price')
+    .eq('id', params.id)
+    .single()
+
+  if (!group) {
+    return { title: 'Grupo no encontrado' }
+  }
+
+  const name = group.product_name as string
+  const spec = ((group as any).product_spec ?? '') as string
+  const pvp = Number((group as any).pvp ?? 0)
+  const currentPrice = Number(group.current_price ?? pvp)
+  const imageUrl = (group as any).image_url as string | null
+  const discount = pvp > 0 ? Math.round(((pvp - currentPrice) / pvp) * 100) : 0
+
+  const fullName = spec ? `${name} — ${spec}` : name
+  const title = discount > 0
+    ? `${name} desde ${currentPrice.toFixed(0)} € (-${discount}%) · Compra colectiva`
+    : `${name} · Compra colectiva en Gropo`
+  const description = `Compra ${fullName} en grupo y ahorra. ${
+    discount > 0
+      ? `Precio actual: ${currentPrice.toFixed(2)} € (PVP ${pvp.toFixed(2)} €, -${discount}%). `
+      : ''
+  }Únete al grupo y el precio baja para todos. Cuantos más sois, menos pagáis.`
+
+  const url = `${SITE_URL}/grupo/${params.id}`
+
+  return {
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: {
+      type: 'website',
+      title: fullName,
+      description,
+      url,
+      siteName: 'Gropo',
+      ...(imageUrl ? { images: [{ url: imageUrl, alt: fullName }] } : {}),
+    },
+    twitter: {
+      card: imageUrl ? 'summary_large_image' : 'summary',
+      title: fullName,
+      description,
+      ...(imageUrl ? { images: [imageUrl] } : {}),
+    },
+  }
+}
 
 async function fetchGroup(id: string) {
   const { data: group, error } = await supabaseAdmin
@@ -112,8 +171,53 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
     )
   }
 
+  const productLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: group.spec ? `${group.name} — ${group.spec}` : group.name,
+    ...(group.imageUrl ? { image: group.imageUrl } : {}),
+    description: `Compra ${group.name} en grupo a través de Gropo y consigue el mejor precio. Cuantos más se unen, menos paga cada uno.`,
+    brand: { '@type': 'Brand', name: 'Gropo' },
+    offers: {
+      '@type': 'AggregateOffer',
+      priceCurrency: 'EUR',
+      lowPrice: group.bestPrice.toFixed(2),
+      highPrice: group.pvp.toFixed(2),
+      offerCount: group.memberCount,
+      availability: 'https://schema.org/InStock',
+      url: `${SITE_URL}/grupo/${group.id}`,
+    },
+  }
+
+  const breadcrumbLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      {
+        '@type': 'ListItem',
+        position: 1,
+        name: 'Gropo',
+        item: SITE_URL,
+      },
+      {
+        '@type': 'ListItem',
+        position: 2,
+        name: 'Grupos',
+        item: SITE_URL,
+      },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: group.name,
+        item: `${SITE_URL}/grupo/${group.id}`,
+      },
+    ],
+  }
+
   return (
     <>
+      <JsonLd data={productLd} />
+      <JsonLd data={breadcrumbLd} />
       {/* ── DESKTOP (≥1024px) ── */}
       <div className="hidden lg:block">
         <GroupDesktopView

@@ -424,7 +424,7 @@ function InnerCheckout({
       {/* Producto */}
       <div className="mt-3 flex items-center gap-3">
         <div className="h-12 w-12 flex-shrink-0 overflow-hidden rounded-xl bg-neutral-100">
-          {payload.imageUrl && <img src={payload.imageUrl} alt="" className="h-full w-full object-cover" />}
+          {payload.imageUrl && <img src={payload.imageUrl} alt={payload.productName} className="h-full w-full object-cover" />}
         </div>
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-neutral-900">{payload.productName}</p>

@@ -413,7 +413,7 @@ function OpportunityCard({ group: g }: { group: RadarGroup; category?: 'hot' | '
         {/* producto */}
         <div className="flex gap-3 items-start mt-3.5 mb-1">
           <div className="w-[52px] h-[52px] rounded-[11px] shrink-0 overflow-hidden flex items-center justify-center" style={{ backgroundColor: '#0F172A' }}>
-            {g.imageUrl && <img src={g.imageUrl} alt="" className="w-full h-full object-cover" />}
+            {g.imageUrl && <img src={g.imageUrl} alt={g.name} className="w-full h-full object-cover" />}
           </div>
           <div className="min-w-0">
             <p className="text-[15px] font-bold text-neutral-900 leading-tight truncate max-w-[170px]">{g.name}</p>
@@ -525,7 +525,7 @@ function CrossSell({ suggestions }: { suggestions: Suggestion[] }) {
           <Link key={x.id} href={`/grupo/${x.id}`} className="flex items-center gap-3 bg-white border border-neutral-200 rounded-xl px-3.5 py-3 hover:border-brand/30 transition-colors">
             <div className="w-[42px] h-[42px] rounded-lg bg-neutral-100 shrink-0 overflow-hidden flex items-center justify-center">
               {x.imageUrl
-                ? <img src={x.imageUrl} alt="" className="w-full h-full object-cover" />
+                ? <img src={x.imageUrl} alt={x.name} className="w-full h-full object-cover" />
                 : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-neutral-300" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>}
             </div>
             <div className="min-w-0 flex-1">
@@ -592,7 +592,7 @@ function MobileRadarCard({ group: g }: { group: RadarGroup }) {
       {/* Compact row: thumbnail + name/price + heart */}
       <div className="flex gap-3 items-center">
         <Link href={`/grupo/${g.id}`} className="w-14 h-14 rounded-[13px] overflow-hidden shrink-0" style={{ background: '#1a1a1f' }}>
-          {g.imageUrl && <img src={g.imageUrl} alt="" className="w-full h-full object-cover opacity-90" />}
+          {g.imageUrl && <img src={g.imageUrl} alt={g.name} className="w-full h-full object-cover opacity-90" />}
         </Link>
         <div className="flex-1 min-w-0">
           <Link href={`/grupo/${g.id}`}>

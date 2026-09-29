@@ -344,7 +344,7 @@ export function MgCard({ m, ladder, onOpen }: { m: Membership; ladder: LadderRow
       {/* producto */}
       <div className="flex gap-3 items-start mt-3">
         <div className="w-14 h-14 rounded-xl bg-neutral-100 shrink-0 overflow-hidden flex items-center justify-center">
-          {m.image_url ? <img src={m.image_url} alt="" className="w-full h-full object-cover" /> : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-neutral-300"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>}
+          {m.image_url ? <img src={m.image_url} alt={m.product_name} className="w-full h-full object-cover" /> : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="text-neutral-300"><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8.5" cy="8.5" r="1.5" /><polyline points="21 15 16 10 5 21" /></svg>}
         </div>
         <div className="min-w-0 pt-0.5">
           <p className="text-[14.5px] font-bold text-neutral-900 leading-tight truncate">{m.product_name}</p>
@@ -515,7 +515,7 @@ export function Drawer({ m, ladder, onClose }: { m: Membership; ladder: LadderRo
             <span className="inline-flex items-center gap-1.5 text-neutral-400 text-[12.5px]">{I.clock}{timeLeft(m.closes_at)}</span>
           </div>
           <div className="flex gap-3 items-center">
-            <div className="w-[52px] h-[52px] rounded-xl bg-neutral-100 shrink-0 overflow-hidden">{m.image_url && <img src={m.image_url} alt="" className="w-full h-full object-cover" />}</div>
+            <div className="w-[52px] h-[52px] rounded-xl bg-neutral-100 shrink-0 overflow-hidden">{m.image_url && <img src={m.image_url} alt={m.product_name} className="w-full h-full object-cover" />}</div>
             <div><div className="text-base font-bold">{m.product_name}</div>{spec && <div className="text-[12.5px] text-neutral-500 mt-0.5">{spec}</div>}<div className="text-[11px] font-semibold mt-1" style={{ color: m.join_mode === 'esperar' ? '#D97706' : '#024947' }}>{m.join_mode === 'esperar' ? 'En espera' : 'Compra directa'}</div></div>
           </div>
           <div className="flex gap-3 items-start rounded-2xl p-3.5 mt-4" style={{ background: t.secbg }}>
@@ -605,7 +605,7 @@ export function Drawer({ m, ladder, onClose }: { m: Membership; ladder: LadderRo
         {head('Tu compra')}
         <div className="px-[22px] py-5 overflow-y-auto flex-1">
           <div className="flex gap-3 items-center mb-2">
-            <div className="w-[52px] h-[52px] rounded-xl bg-neutral-100 shrink-0 overflow-hidden">{m.image_url && <img src={m.image_url} alt="" className="w-full h-full object-cover" />}</div>
+            <div className="w-[52px] h-[52px] rounded-xl bg-neutral-100 shrink-0 overflow-hidden">{m.image_url && <img src={m.image_url} alt={m.product_name} className="w-full h-full object-cover" />}</div>
             <div><div className="text-base font-bold">{m.product_name}</div>{spec && <div className="text-[12.5px] text-neutral-500 mt-0.5">{spec}</div>}<div className="text-[11px] font-semibold mt-1" style={{ color: m.join_mode === 'esperar' ? '#D97706' : '#024947' }}>{m.join_mode === 'esperar' ? 'En espera' : 'Compra directa'}</div></div>
           </div>
           <div className="border border-neutral-200 rounded-2xl p-4 mt-4">
@@ -634,7 +634,7 @@ export function Drawer({ m, ladder, onClose }: { m: Membership; ladder: LadderRo
         {head(d.authFailed ? 'Pago no confirmado' : 'Tu plaza liberada')}
         <div className="px-[22px] py-5 overflow-y-auto flex-1">
           <div className="flex gap-3 items-center mb-2">
-            <div className="w-[52px] h-[52px] rounded-xl bg-neutral-100 shrink-0 overflow-hidden">{m.image_url && <img src={m.image_url} alt="" className="w-full h-full object-cover" />}</div>
+            <div className="w-[52px] h-[52px] rounded-xl bg-neutral-100 shrink-0 overflow-hidden">{m.image_url && <img src={m.image_url} alt={m.product_name} className="w-full h-full object-cover" />}</div>
             <div><div className="text-base font-bold">{m.product_name}</div>{spec && <div className="text-[12.5px] text-neutral-500 mt-0.5">{spec}</div>}</div>
           </div>
           <div className="flex gap-2.5 rounded-2xl p-3.5 mt-4 text-[12.5px] leading-relaxed" style={{ background: '#EFF6FF', color: '#1E3A8A' }}>
@@ -672,7 +672,7 @@ export function Drawer({ m, ladder, onClose }: { m: Membership; ladder: LadderRo
       {head('Devolución')}
       <div className="px-[22px] py-5 overflow-y-auto flex-1">
         <div className="flex gap-3 items-center mb-2">
-          <div className="w-[52px] h-[52px] rounded-xl bg-neutral-100 shrink-0 overflow-hidden">{m.image_url && <img src={m.image_url} alt="" className="w-full h-full object-cover" />}</div>
+          <div className="w-[52px] h-[52px] rounded-xl bg-neutral-100 shrink-0 overflow-hidden">{m.image_url && <img src={m.image_url} alt={m.product_name} className="w-full h-full object-cover" />}</div>
           <div><div className="text-base font-bold">{m.product_name}</div>{spec && <div className="text-[12.5px] text-neutral-500 mt-0.5">{spec}</div>}<div className="text-[11px] font-semibold mt-1" style={{ color: m.join_mode === 'esperar' ? '#D97706' : '#024947' }}>{m.join_mode === 'esperar' ? 'En espera' : 'Compra directa'}</div></div>
         </div>
         <div className="flex gap-2.5 rounded-2xl p-3.5 mt-4 text-[12.5px] leading-relaxed" style={{ background: '#EFF6FF', color: '#1E3A8A' }}>

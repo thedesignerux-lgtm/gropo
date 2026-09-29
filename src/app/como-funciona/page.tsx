@@ -1,7 +1,23 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
+import { SITE_URL } from '@/lib/site'
 import DesktopNavbar from '@/components/desktop/DesktopNavbar'
 import BottomNav from '@/components/BottomNav'
 import SiteFooter from '@/components/SiteFooter'
+import JsonLd from '@/components/seo/JsonLd'
+
+export const metadata: Metadata = {
+  title: 'Cómo funciona la compra colectiva',
+  description:
+    'Descubre cómo funciona Gropo: únete a un grupo de compra, el precio baja en vivo según entran más compradores, y solo se cobra si el grupo alcanza su objetivo. Sin riesgo.',
+  alternates: { canonical: `${SITE_URL}/como-funciona` },
+  openGraph: {
+    title: 'Cómo funciona Gropo — Compra colectiva paso a paso',
+    description:
+      'Encuentra tu producto, asegura tu precio y el precio baja a medida que se une más gente. Si el grupo no llega al mínimo, no se cobra nada.',
+    url: `${SITE_URL}/como-funciona`,
+  },
+}
 
 const STEPS = [
   {
@@ -28,8 +44,37 @@ const GUARANTEES = [
 ]
 
 export default function ComoFuncionaPage() {
+  const howToLd = {
+    '@context': 'https://schema.org',
+    '@type': 'HowTo',
+    name: 'Cómo funciona la compra colectiva en Gropo',
+    description:
+      'Guía paso a paso para comprar en grupo y conseguir mejores precios en Gropo.',
+    step: STEPS.map((s, i) => ({
+      '@type': 'HowToStep',
+      position: i + 1,
+      name: s.t,
+      text: s.d,
+    })),
+  }
+
+  const faqLd = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: GUARANTEES.map(g => ({
+      '@type': 'Question',
+      name: g.t,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: g.d,
+      },
+    })),
+  }
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F7F9FC' }}>
+      <JsonLd data={howToLd} />
+      <JsonLd data={faqLd} />
       <div className="hidden lg:block"><DesktopNavbar /></div>
 
       <div className="flex-1 min-w-0 flex flex-col">
