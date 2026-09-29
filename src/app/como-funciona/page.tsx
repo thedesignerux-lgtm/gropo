@@ -33,14 +33,14 @@ const STEPS = [
     n: '4', t: 'Cierre del grupo', d: 'Cada domingo a las 22:00 el grupo se cierra con un precio único de liquidación. Ese es el precio que paga todo el mundo, sin importar cuándo entró.',
   },
   {
-    n: '5', t: 'Se cobra y se envía', d: 'Si el grupo alcanza el objetivo, se cobra tu precio final y te lo enviamos con seguimiento. Si no se alcanza, se libera la retención y no se te cobra nada.',
+    n: '5', t: 'Se cobra y se envía', d: 'Si el grupo alcanza el objetivo, se cobra tu precio final y el pedido sale con envío con seguimiento. Si no se alcanza, se libera la retención y no se te cobra nada.',
   },
 ]
 
 const GUARANTEES = [
   { t: 'Tu dinero está protegido', d: 'Solo se realiza el cargo si el grupo alcanza su objetivo. Hasta entonces es una retención, no un cobro.' },
   { t: 'Nunca pagas de más', d: 'Tú fijas el máximo que aceptas pagar y el sistema nunca lo supera. Si el grupo consigue un precio mejor, pagas menos automáticamente.' },
-  { t: 'Gropo responde', d: 'Gropo es el vendedor oficial (merchant of record): factura, envío y devoluciones pasan por nosotros.' },
+  { t: 'Vendedores profesionales', d: 'Cada producto lo vende un vendedor profesional, que responde del envío, la garantía y las devoluciones. Gropo gestiona el grupo y el pago.' },
 ]
 
 export default function ComoFuncionaPage() {

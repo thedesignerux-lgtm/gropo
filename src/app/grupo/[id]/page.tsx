@@ -203,11 +203,8 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
         ? 'https://schema.org/InStock'
         : 'https://schema.org/SoldOut',
       url: `${SITE_URL}/grupo/${group.id}`,
-      seller: {
-        '@type': 'Organization',
-        name: 'Gropo',
-        url: SITE_URL,
-      },
+      // Sin `seller`: Gropo es intermediario, no vendedor, y la ficha todavía no
+      // identifica al vendedor real (LEGAL.md §4.5). Mejor omitirlo que mentir.
     },
   }
 

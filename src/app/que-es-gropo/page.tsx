@@ -36,8 +36,8 @@ const BENEFITS = [
     text: 'Al cierre del grupo, todos los compradores pagan el mismo precio final. Da igual si fuiste el primero o el último en unirte.',
   },
   {
-    title: 'Gropo es tu vendedor',
-    text: 'Gropo actúa como merchant of record: la factura, el envío y las devoluciones pasan por nosotros. Compras con la confianza de una tienda, con el precio de un grupo.',
+    title: 'Vendedores profesionales, pago protegido',
+    text: 'Los productos los venden vendedores profesionales. Gropo es la plataforma que reúne a los compradores, gestiona el grupo y protege el pago: nada se cobra hasta que el grupo cierra.',
   },
 ]
 
@@ -63,8 +63,8 @@ const FAQ = [
     a: 'Gropo nace con ciclismo como primera categoría, pero es un marketplace generalista. La compra colectiva funciona igual de bien para electrónica, hogar, deporte, alimentación o cualquier otro producto donde agrupar demanda permita negociar mejores precios.',
   },
   {
-    q: '¿Quién me envía el producto?',
-    a: 'Gropo es el vendedor oficial (merchant of record). Nosotros gestionamos el cobro, la facturación, el envío con seguimiento y las devoluciones. Compras con la seguridad de una tienda, con el precio de un grupo.',
+    q: '¿Quién me vende el producto?',
+    a: 'Un vendedor profesional. Gropo no vende: es la plataforma que pone en contacto a los compradores con el vendedor, agrupa la demanda y facilita el pago. El vendedor es quien responde de la entrega, la garantía y las devoluciones de su producto.',
   },
 ]
 
@@ -100,8 +100,9 @@ export default function QueEsGropoPage() {
         </h1>
         <p className="text-[15px] lg:text-[17px] text-neutral-500 mt-4 leading-relaxed max-w-[680px]">
           Gropo es un marketplace de compra colectiva. Juntamos a personas que
-          quieren el mismo producto para negociar mejores precios por volumen.
-          Cuantos más se unen al grupo, más baja el precio para todos.
+          quieren el mismo producto y las conectamos con vendedores profesionales
+          que ofrecen precios por volumen. Cuantos más se unen al grupo, más baja
+          el precio para todos.
         </p>
 
         {/* ── Cómo funciona (resumen) ── */}
@@ -165,8 +166,9 @@ export default function QueEsGropoPage() {
           </p>
           <p className="text-[14.5px] text-neutral-500 leading-relaxed mt-3">
             No necesitas conocer a los demás compradores ni organizar nada.
-            Gropo gestiona el grupo, negocia los precios con los vendedores y se
-            encarga del envío. Tú solo eliges tu producto y decides tu precio máximo.
+            Gropo gestiona el grupo y el pago; el vendedor fija sus precios por
+            volumen y te envía el producto. Tú solo eliges tu producto y decides tu
+            precio máximo.
           </p>
         </section>
 
