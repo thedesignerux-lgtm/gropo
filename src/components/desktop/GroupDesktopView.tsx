@@ -24,6 +24,8 @@ interface Props {
   /** A-04 · Personas, no unidades. */
   memberCount: number
   closesAt: string
+  /** SEO · Migas de pan (Gropo › Categoría › Producto). Sustituye al enlace «Volver». */
+  breadcrumb?: React.ReactNode
 }
 
 function ImagePlaceholder({ label }: { label: string }) {
@@ -39,7 +41,7 @@ function ImagePlaceholder({ label }: { label: string }) {
 
 export default function GroupDesktopView({
   groupId, name, spec, pvp, imageUrl,
-  tiers, maxStock, minExecution, memberCount, closesAt,
+  tiers, maxStock, minExecution, memberCount, closesAt, breadcrumb,
 }: Props) {
   function handleShare() {
     const url = `${SITE_URL}/grupo/${groupId}`
@@ -55,9 +57,11 @@ export default function GroupDesktopView({
 
         {/* ── Header: breadcrumb + share/save ── */}
         <div className="flex items-center justify-between mb-1.5">
-          <a href="/" className="text-[13px] text-[#8A8794] hover:text-neutral-700 transition-colors">
-            ← Volver a los grupos
-          </a>
+          {breadcrumb ?? (
+            <a href="/" className="text-[13px] text-[#8A8794] hover:text-neutral-700 transition-colors">
+              ← Volver a los grupos
+            </a>
+          )}
           <div className="flex items-center gap-2">
             <button onClick={handleShare} className="flex items-center gap-[7px] text-[13.5px] font-bold text-[#1a1a1f] hover:text-brand px-2.5 py-2 rounded-[9px] transition-colors">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.6" y1="10.5" x2="15.4" y2="6.5" /><line x1="8.6" y1="13.5" x2="15.4" y2="17.5" /></svg>

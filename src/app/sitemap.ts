@@ -2,17 +2,31 @@ import type { MetadataRoute } from 'next'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { SITE_URL } from '@/lib/site'
 import { LEGAL_SLUGS } from '@/content/legal'
+import { CATEGORY_SLUGS } from '@/lib/categories'
+import { countOpenGroupsByCategory } from '@/lib/category-counts'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const entries: MetadataRoute.Sitemap = []
 
-  // ── Páginas estáticas ──
+  // ── Marca y concepto ──
   entries.push(
     {
       url: SITE_URL,
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 1.0,
+    },
+    {
+      url: `${SITE_URL}/que-es-gropo`,
+      lastModified: new Date(),
+      changeFrequency: 'monthly',
+      priority: 0.9,
+    },
+    {
+      url: `${SITE_URL}/categorias`,
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 0.8,
     },
     {
       url: `${SITE_URL}/como-funciona`,
@@ -27,6 +41,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.5,
     },
   )
+
+  // ── Categorías con grupos abiertos ──
+  // Las vacías existen para el usuario pero llevan noindex: no se anuncian.
+  const counts = await countOpenGroupsByCategory()
+  for (const slug of CATEGORY_SLUGS) {
+    if ((counts.get(slug) ?? 0) === 0) continue
+    entries.push({
+      url: `${SITE_URL}/categorias/${slug}`,
+      lastModified: new Date(),
+      changeFrequency: 'daily',
+      priority: 0.8,
+    })
+  }
 
   // ── Páginas legales ──
   for (const slug of LEGAL_SLUGS) {

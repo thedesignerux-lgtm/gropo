@@ -61,7 +61,9 @@ export default function SiteFooter() {
           </Col>
 
           <Col title="Comprar">
+            <Item href="/que-es-gropo">Qué es Gropo</Item>
             <Item href="/como-funciona">Cómo funciona</Item>
+            <Item href="/categorias">Categorías</Item>
             <Item href="/legal/condiciones-compra">Condiciones de compra</Item>
             <Item href="/legal/terminos">Términos y condiciones</Item>
           </Col>

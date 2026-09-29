@@ -121,6 +121,10 @@ export default function ComoFuncionaPage() {
 
           <p className="text-center text-[13px] text-neutral-400 mt-8">
             ¿Tienes dudas? <Link href="/ayuda" className="text-brand font-semibold">Visita el centro de ayuda</Link>
+            {' · '}
+            <Link href="/que-es-gropo" className="text-brand font-semibold">Qué es Gropo</Link>
+            {' · '}
+            <Link href="/categorias" className="text-brand font-semibold">Explorar categorías</Link>
           </p>
         </main>
       </div>

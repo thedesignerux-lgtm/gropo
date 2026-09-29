@@ -2,8 +2,10 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { supabaseAdmin } from '@/lib/supabase-admin'
 import { SITE_URL } from '@/lib/site'
+import { getGroupCategorySlugs, getCategory } from '@/lib/categories'
 import type { Tier } from '@/lib/mock-data'
 import JsonLd from '@/components/seo/JsonLd'
+import Breadcrumbs from '@/components/Breadcrumbs'
 import HeroShareButton from '@/components/HeroShareButton'
 import FavoriteButton from '@/components/FavoriteButton'
 import BottomNav from '@/components/BottomNav'
@@ -22,7 +24,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { data: group } = await supabaseAdmin
     .from('groups')
-    .select('product_name, product_spec, pvp, image_url, current_price')
+    .select('product_name, product_spec, pvp, image_url, current_price, status, is_demo')
     .eq('id', params.id)
     .single()
 
@@ -49,10 +51,16 @@ export async function generateMetadata({
 
   const url = `${SITE_URL}/grupo/${params.id}`
 
+  // Solo los grupos abiertos y reales merecen índice. Los DEMO son una galería
+  // interna (accesibles por URL) y los cerrados ya no se pueden comprar: se
+  // quedan fuera del índice pero se siguen sus enlaces.
+  const indexable = (group as any).status === 'open' && (group as any).is_demo !== true
+
   return {
     title,
     description,
     alternates: { canonical: url },
+    ...(indexable ? {} : { robots: { index: false, follow: true } }),
     openGraph: {
       type: 'website',
       title: fullName,
@@ -75,7 +83,7 @@ async function fetchGroup(id: string) {
     .from('groups')
     .select(`
       id, product_name, product_spec, pvp, image_url,
-      total_units, current_price, next_price, closes_at
+      total_units, current_price, next_price, closes_at, status
     `)
     .eq('id', id)
     .single()
@@ -150,6 +158,7 @@ async function fetchGroup(id: string) {
     imageUrl: ((group as any).image_url as string | null) ?? undefined,
     totalUnits: Number(group.total_units ?? 0),
     closesAt: group.closes_at as string,
+    status: ((group as any).status ?? 'open') as string,
     bestPrice,
     nextPrice,
     bidCount: bidCount ?? 0,
@@ -171,56 +180,52 @@ export default async function GrupoPage({ params }: { params: { id: string } }) 
     )
   }
 
+  /* ── Categoría del grupo (para breadcrumbs + schema) ── */
+  const categorySlugs = getGroupCategorySlugs(group.id)
+  const category = categorySlugs.length > 0 ? getCategory(categorySlugs[0]) : null
+
+  const fullName = group.spec ? `${group.name} — ${group.spec}` : group.name
+
   const productLd = {
     '@context': 'https://schema.org',
     '@type': 'Product',
-    name: group.spec ? `${group.name} — ${group.spec}` : group.name,
+    name: fullName,
     ...(group.imageUrl ? { image: group.imageUrl } : {}),
     description: `Compra ${group.name} en grupo a través de Gropo y consigue el mejor precio. Cuantos más se unen, menos paga cada uno.`,
-    brand: { '@type': 'Brand', name: 'Gropo' },
     offers: {
-      '@type': 'AggregateOffer',
+      '@type': 'Offer',
       priceCurrency: 'EUR',
-      lowPrice: group.bestPrice.toFixed(2),
-      highPrice: group.pvp.toFixed(2),
-      offerCount: group.memberCount,
-      availability: 'https://schema.org/InStock',
+      // Precio vigente = el máximo que pagará quien se una ahora (el cierre solo
+      // puede bajarlo). Es el dato honesto; el PVP no es una oferta de Gropo.
+      price: group.bestPrice.toFixed(2),
+      ...(group.closesAt ? { priceValidUntil: group.closesAt.slice(0, 10) } : {}),
+      availability: group.status === 'open'
+        ? 'https://schema.org/InStock'
+        : 'https://schema.org/SoldOut',
       url: `${SITE_URL}/grupo/${group.id}`,
+      seller: {
+        '@type': 'Organization',
+        name: 'Gropo',
+        url: SITE_URL,
+      },
     },
   }
 
-  const breadcrumbLd = {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: [
-      {
-        '@type': 'ListItem',
-        position: 1,
-        name: 'Gropo',
-        item: SITE_URL,
-      },
-      {
-        '@type': 'ListItem',
-        position: 2,
-        name: 'Grupos',
-        item: SITE_URL,
-      },
-      {
-        '@type': 'ListItem',
-        position: 3,
-        name: group.name,
-        item: `${SITE_URL}/grupo/${group.id}`,
-      },
-    ],
-  }
+  const breadcrumbItems = [
+    { label: 'Gropo', href: '/' },
+    ...(category
+      ? [{ label: category.name, href: `/categorias/${category.slug}` }]
+      : [{ label: 'Categorías', href: '/categorias' }]),
+    { label: group.name, href: `/grupo/${group.id}` },
+  ]
 
   return (
     <>
       <JsonLd data={productLd} />
-      <JsonLd data={breadcrumbLd} />
       {/* ── DESKTOP (≥1024px) ── */}
       <div className="hidden lg:block">
         <GroupDesktopView
+          breadcrumb={<Breadcrumbs items={breadcrumbItems} className="" />}
           groupId={group.id}
           name={group.name}
           spec={group.spec}
